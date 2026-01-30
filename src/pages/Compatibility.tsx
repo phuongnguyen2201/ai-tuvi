@@ -5,90 +5,28 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Heart, Share2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { calculateCompatibility, ZodiacChi, CompatibilityResult } from "@/lib/tuvi/compatibility";
 
-// Compatibility logic (simplified)
-const getCompatibility = (zodiac1: string, zodiac2: string) => {
-  // Tam Hợp groups (harmonious)
-  const tamHop = [
-    ["Thân", "Tý", "Thìn"],
-    ["Dần", "Ngọ", "Tuất"],
-    ["Tỵ", "Dậu", "Sửu"],
-    ["Hợi", "Mão", "Mùi"],
-  ];
-  
-  // Tứ Hành Xung (conflicting)
-  const tuHanhXung = [
-    ["Tý", "Ngọ"],
-    ["Sửu", "Mùi"],
-    ["Dần", "Thân"],
-    ["Mão", "Dậu"],
-    ["Thìn", "Tuất"],
-    ["Tỵ", "Hợi"],
-  ];
-
-  // Lục Hợp (very compatible pairs)
-  const lucHop = [
-    ["Tý", "Sửu"],
-    ["Dần", "Hợi"],
-    ["Mão", "Tuất"],
-    ["Thìn", "Dậu"],
-    ["Tỵ", "Thân"],
-    ["Ngọ", "Mùi"],
-  ];
-
-  // Check Lục Hợp (best match)
-  for (const pair of lucHop) {
-    if (pair.includes(zodiac1) && pair.includes(zodiac2)) {
-      return {
-        score: 95,
-        level: "Đại Hợp",
-        levelColor: "text-green-400",
-        explanation: "Hai tuổi thuộc Lục Hợp - cặp đôi thiên định, hạnh phúc viên mãn. Đây là sự kết hợp tuyệt vời nhất trong 12 con giáp.",
-      };
-    }
+// Map compatibility level to color
+const getLevelColor = (level: string): string => {
+  switch (level) {
+    case "Đại Hợp": return "text-green-400";
+    case "Hợp": return "text-gold";
+    case "Bình Thường": return "text-muted-foreground";
+    case "Kỵ": return "text-orange-400";
+    case "Đại Kỵ": return "text-destructive";
+    default: return "text-muted-foreground";
   }
-
-  // Check Tam Hợp
-  for (const group of tamHop) {
-    if (group.includes(zodiac1) && group.includes(zodiac2)) {
-      return {
-        score: 85,
-        level: "Hợp",
-        levelColor: "text-gold",
-        explanation: "Hai tuổi thuộc Tam Hợp - tương trợ lẫn nhau, cuộc sống hòa thuận. Cùng nhau phát triển và đạt được nhiều thành công.",
-      };
-    }
-  }
-
-  // Check Tứ Hành Xung
-  for (const pair of tuHanhXung) {
-    if (pair.includes(zodiac1) && pair.includes(zodiac2)) {
-      return {
-        score: 35,
-        level: "Kỵ",
-        levelColor: "text-destructive",
-        explanation: "Hai tuổi thuộc Tứ Hành Xung - cần cố gắng thấu hiểu và nhường nhịn nhau. Nếu biết cách hóa giải, vẫn có thể hạnh phúc.",
-      };
-    }
-  }
-
-  // Default - neutral
-  return {
-    score: 65,
-    level: "Bình Thường",
-    levelColor: "text-muted-foreground",
-    explanation: "Hai tuổi không có mối quan hệ đặc biệt. Hạnh phúc phụ thuộc vào sự nỗ lực và thấu hiểu của cả hai bên.",
-  };
 };
 
 const Compatibility = () => {
   const [zodiac1, setZodiac1] = useState<string | null>(null);
   const [zodiac2, setZodiac2] = useState<string | null>(null);
-  const [result, setResult] = useState<ReturnType<typeof getCompatibility> | null>(null);
+  const [result, setResult] = useState<CompatibilityResult | null>(null);
 
   const handleCheck = () => {
     if (zodiac1 && zodiac2) {
-      setResult(getCompatibility(zodiac1, zodiac2));
+      setResult(calculateCompatibility(zodiac1 as ZodiacChi, zodiac2 as ZodiacChi));
     }
   };
 
@@ -192,7 +130,7 @@ const Compatibility = () => {
                   {result.score}%
                 </span>
               </div>
-              <p className={cn("text-xl font-display font-semibold", result.levelColor)}>
+              <p className={cn("text-xl font-display font-semibold", getLevelColor(result.level))}>
                 {result.level}
               </p>
             </div>
