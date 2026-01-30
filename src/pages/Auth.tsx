@@ -1,0 +1,168 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import Logo from "@/components/Logo";
+import { Mail, Lock, Eye, EyeOff, Sparkles } from "lucide-react";
+import { toast } from "sonner";
+
+const Auth = () => {
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { signIn, signUp } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      if (isLogin) {
+        const { error } = await signIn(email, password);
+        if (error) {
+          toast.error(error.message);
+        } else {
+          toast.success("Đăng nhập thành công!");
+          navigate("/");
+        }
+      } else {
+        const { error } = await signUp(email, password);
+        if (error) {
+          toast.error(error.message);
+        } else {
+          toast.success("Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.");
+        }
+      }
+    } catch (error) {
+      toast.error("Đã có lỗi xảy ra");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center">
+      {/* Background decorative elements */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-20 left-1/4 w-96 h-96 bg-purple-deep/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-0 w-80 h-80 bg-gold/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 -left-20 w-64 h-64 bg-gold/5 rounded-full blur-3xl" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-md px-4">
+        {/* Logo */}
+        <div className="flex justify-center mb-8">
+          <Logo size="lg" />
+        </div>
+
+        {/* Auth Card */}
+        <div className="bg-surface-2/80 backdrop-blur-xl rounded-2xl border border-gold/20 p-8 shadow-2xl">
+          <div className="text-center mb-6">
+            <h1 className="font-display text-2xl text-foreground mb-2">
+              {isLogin ? "Đăng Nhập" : "Đăng Ký"}
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              {isLogin
+                ? "Chào mừng trở lại với Tử Vi"
+                : "Tạo tài khoản để lưu lịch sử xem tử vi"}
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-foreground">
+                Email
+              </Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="pl-10 bg-surface-3 border-gold/20 focus:border-gold"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-foreground">
+                Mật khẩu
+              </Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10 pr-10 bg-surface-3 border-gold/20 focus:border-gold"
+                  required
+                  minLength={6}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              variant="gold"
+              size="lg"
+              className="w-full"
+              disabled={loading}
+            >
+              {loading ? (
+                <Sparkles className="w-5 h-5 animate-spin" />
+              ) : isLogin ? (
+                "Đăng Nhập"
+              ) : (
+                "Đăng Ký"
+              )}
+            </Button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-muted-foreground text-sm">
+              {isLogin ? "Chưa có tài khoản?" : "Đã có tài khoản?"}{" "}
+              <button
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-gold hover:text-gold/80 font-medium transition-colors"
+              >
+                {isLogin ? "Đăng ký ngay" : "Đăng nhập"}
+              </button>
+            </p>
+          </div>
+
+          <div className="mt-4 text-center">
+            <button
+              onClick={() => navigate("/")}
+              className="text-muted-foreground text-sm hover:text-foreground transition-colors"
+            >
+              ← Quay lại trang chủ
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Auth;
