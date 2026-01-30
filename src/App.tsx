@@ -12,6 +12,7 @@ import DayAnalysis from "./pages/DayAnalysis";
 import BoiKieu from "./pages/BoiKieu";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import NguHanhTest from "./components/NguHanhTest";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/tuoi-hop" element={<Compatibility />} />
             <Route path="/xem-ngay" element={<DayAnalysis />} />
             <Route path="/boi-kieu" element={<BoiKieu />} />
+            <Route path="/test-nguhanh" element={<NguHanhTest />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
