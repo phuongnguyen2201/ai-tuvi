@@ -16,6 +16,7 @@ import NguHanhTest from "./components/NguHanhTest";
 import CompatibilityTest from "./components/CompatibilityTest";
 import Test from "./pages/Test";
 import TuViTest from "./pages/TuViTest";
+import TestChartPage from "./pages/TestChartPage";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/test-compatibility" element={<CompatibilityTest />} />
             <Route path="/test" element={<Test />} />
             <Route path="/test-tuvi" element={<TuViTest />} />
+            <Route path="/test-chart" element={<TestChartPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
