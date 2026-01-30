@@ -23,7 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { solarToLunar, CANH_GIO, formatLunarDate } from "@/lib/tuvi/lunarCalendar";
 import {
   createTuViChart,
-  DIA_CHI_CUNG,
+  DIA_BAN,
   TuViChart,
   BirthInfo as ChartBirthInfo,
 } from "@/lib/tuvi/tuviChart";
@@ -78,6 +78,7 @@ export default function TuViTest() {
       lunarYear: lunarInfo.year,
       birthHourIndex,
       canNamIndex: lunarInfo.canNam.index,
+      chiNamIndex: lunarInfo.chiNam.index,
       gender: gender as "male" | "female",
     };
 
@@ -264,25 +265,25 @@ export default function TuViTest() {
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Cung Mệnh tại:</span>
                     <span className="font-medium text-amber-600">
-                      {DIA_CHI_CUNG[result.chart.cungMenhIndex]}
+                      {DIA_BAN[result.chart.cungMenhIndex]}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Cung Thân tại:</span>
                     <span className="font-medium text-purple-600">
-                      {DIA_CHI_CUNG[result.chart.cungThanIndex]}
+                      {DIA_BAN[result.chart.cungThanIndex]}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Tử Vi tại:</span>
                     <span className="font-medium text-red-600">
-                      {DIA_CHI_CUNG[result.chart.tuViPosition]}
+                      {DIA_BAN[result.chart.tuViPosition]}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Thiên Phủ tại:</span>
                     <span className="font-medium text-blue-600">
-                      {DIA_CHI_CUNG[result.chart.thienPhuPosition]}
+                      {DIA_BAN[result.chart.thienPhuPosition]}
                     </span>
                   </div>
                 </CardContent>
@@ -319,8 +320,8 @@ export default function TuViTest() {
                               {result.chart.cucName}
                             </div>
                             <div className="text-xs text-muted-foreground space-y-1">
-                              <div>Mệnh: {DIA_CHI_CUNG[result.chart.cungMenhIndex]}</div>
-                              <div>Thân: {DIA_CHI_CUNG[result.chart.cungThanIndex]}</div>
+                              <div>Mệnh: {DIA_BAN[result.chart.cungMenhIndex]}</div>
+                              <div>Thân: {DIA_BAN[result.chart.cungThanIndex]}</div>
                               <div className="pt-2 text-[10px]">
                                 {result.lunarInfo.yearCanChi}
                               </div>
@@ -410,13 +411,13 @@ export default function TuViTest() {
                         cucSo: result.chart.cucSo,
                         cucName: result.chart.cucName,
                         cungMenhIndex: result.chart.cungMenhIndex,
-                        cungMenh: DIA_CHI_CUNG[result.chart.cungMenhIndex],
+                        cungMenh: DIA_BAN[result.chart.cungMenhIndex],
                         cungThanIndex: result.chart.cungThanIndex,
-                        cungThan: DIA_CHI_CUNG[result.chart.cungThanIndex],
+                        cungThan: DIA_BAN[result.chart.cungThanIndex],
                         tuViPosition: result.chart.tuViPosition,
-                        tuVi: DIA_CHI_CUNG[result.chart.tuViPosition],
+                        tuVi: DIA_BAN[result.chart.tuViPosition],
                         thienPhuPosition: result.chart.thienPhuPosition,
-                        thienPhu: DIA_CHI_CUNG[result.chart.thienPhuPosition],
+                        thienPhu: DIA_BAN[result.chart.thienPhuPosition],
                       },
                     },
                     null,
