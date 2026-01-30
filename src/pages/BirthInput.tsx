@@ -9,41 +9,18 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { CalendarIcon, Sparkles } from "lucide-react";
+import { solarToLunar, CANH_GIO } from "@/lib/tuvi/lunarCalendar";
 
-const birthHours = [
-  { value: "ty", label: "Tý (23:00 - 01:00)", time: "23-01" },
-  { value: "suu", label: "Sửu (01:00 - 03:00)", time: "01-03" },
-  { value: "dan", label: "Dần (03:00 - 05:00)", time: "03-05" },
-  { value: "mao", label: "Mão (05:00 - 07:00)", time: "05-07" },
-  { value: "thin", label: "Thìn (07:00 - 09:00)", time: "07-09" },
-  { value: "ti", label: "Tỵ (09:00 - 11:00)", time: "09-11" },
-  { value: "ngo", label: "Ngọ (11:00 - 13:00)", time: "11-13" },
-  { value: "mui", label: "Mùi (13:00 - 15:00)", time: "13-15" },
-  { value: "than", label: "Thân (15:00 - 17:00)", time: "15-17" },
-  { value: "dau", label: "Dậu (17:00 - 19:00)", time: "17-19" },
-  { value: "tuat", label: "Tuất (19:00 - 21:00)", time: "19-21" },
-  { value: "hoi", label: "Hợi (21:00 - 23:00)", time: "21-23" },
-];
+const birthHours = CANH_GIO.map((gio) => ({
+  value: gio.name.toLowerCase(),
+  label: gio.description,
+  index: gio.index,
+}));
 
 const genders = [
   { value: "male", label: "Nam", emoji: "👨" },
   { value: "female", label: "Nữ", emoji: "👩" },
 ];
-
-// Simple lunar calendar approximation (for demo purposes)
-const getLunarDate = (date: Date) => {
-  // This is a simplified approximation - in production use a proper lunar calendar library
-  const day = date.getDate();
-  const month = date.getMonth() + 1;
-  const year = date.getFullYear();
-  
-  // Approximate lunar date (simplified)
-  const lunarDay = ((day - 1) % 30) + 1;
-  const lunarMonth = ((month + 10) % 12) + 1;
-  const lunarYear = year;
-  
-  return { day: lunarDay, month: lunarMonth, year: lunarYear };
-};
 
 const BirthInput = () => {
   const navigate = useNavigate();
@@ -51,7 +28,7 @@ const BirthInput = () => {
   const [hour, setHour] = useState<string>();
   const [gender, setGender] = useState<string>();
 
-  const lunarDate = date ? getLunarDate(date) : null;
+  const lunarDate = date ? solarToLunar(date) : null;
 
   const handleSubmit = () => {
     if (date && hour && gender) {
@@ -111,7 +88,7 @@ const BirthInput = () => {
             <div className="flex items-center gap-2 p-3 rounded-lg bg-gold/5 border border-gold/20">
               <Sparkles className="w-4 h-4 text-gold" />
               <span className="text-sm text-gold">
-                Âm lịch: {lunarDate.day}/{lunarDate.month}/{lunarDate.year}
+                Âm lịch: {lunarDate.day}/{lunarDate.month}{lunarDate.isLeapMonth ? ' (nhuận)' : ''}/{lunarDate.yearCanChi}
               </span>
             </div>
           )}
