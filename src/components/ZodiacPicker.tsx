@@ -4,7 +4,7 @@ const zodiacSigns = [
   { name: "Tý", emoji: "🐀", element: "Thủy" },
   { name: "Sửu", emoji: "🐂", element: "Thổ" },
   { name: "Dần", emoji: "🐅", element: "Mộc" },
-  { name: "Mão", emoji: "🐇", element: "Mộc" },
+  { name: "Mão", emoji: "🐱", element: "Mộc" },
   { name: "Thìn", emoji: "🐉", element: "Thổ" },
   { name: "Tỵ", emoji: "🐍", element: "Hỏa" },
   { name: "Ngọ", emoji: "🐴", element: "Hỏa" },

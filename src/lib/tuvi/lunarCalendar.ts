@@ -87,7 +87,7 @@ export const DIA_CHI = [
   { name: 'Tý', animal: '🐀', vietnameseAnimal: 'Chuột', element: 'Thủy', index: 0 },
   { name: 'Sửu', animal: '🐂', vietnameseAnimal: 'Trâu', element: 'Thổ', index: 1 },
   { name: 'Dần', animal: '🐅', vietnameseAnimal: 'Hổ', element: 'Mộc', index: 2 },
-  { name: 'Mão', animal: '🐇', vietnameseAnimal: 'Mèo', element: 'Mộc', index: 3 },
+  { name: 'Mão', animal: '🐱', vietnameseAnimal: 'Mèo', element: 'Mộc', index: 3 },
   { name: 'Thìn', animal: '🐉', vietnameseAnimal: 'Rồng', element: 'Thổ', index: 4 },
   { name: 'Tỵ', animal: '🐍', vietnameseAnimal: 'Rắn', element: 'Hỏa', index: 5 },
   { name: 'Ngọ', animal: '🐴', vietnameseAnimal: 'Ngựa', element: 'Hỏa', index: 6 },

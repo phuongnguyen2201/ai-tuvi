@@ -8,7 +8,7 @@ export const ZODIAC_ANIMALS = [
   { chi: "Tý", animal: "Chuột", emoji: "🐀" },
   { chi: "Sửu", animal: "Trâu", emoji: "🐂" },
   { chi: "Dần", animal: "Hổ", emoji: "🐅" },
-  { chi: "Mão", animal: "Mèo", emoji: "🐇" },
+  { chi: "Mão", animal: "Mèo", emoji: "🐱" },
   { chi: "Thìn", animal: "Rồng", emoji: "🐉" },
   { chi: "Tỵ", animal: "Rắn", emoji: "🐍" },
   { chi: "Ngọ", animal: "Ngựa", emoji: "🐴" },
