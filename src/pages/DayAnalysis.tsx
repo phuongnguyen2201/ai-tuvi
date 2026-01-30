@@ -5,21 +5,13 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { CheckCircle2, XCircle, Clock, Sun, Moon, Sparkles } from "lucide-react";
+import { solarToLunar } from "@/lib/tuvi/lunarCalendar";
 
 // Demo data generators
 const getHoangDao = (date: Date) => {
   const day = date.getDate();
   // Simplified logic for demo
   return day % 3 !== 0;
-};
-
-const getLunarDate = (date: Date) => {
-  const day = date.getDate();
-  const month = date.getMonth() + 1;
-  const year = date.getFullYear();
-  const lunarDay = ((day - 1) % 30) + 1;
-  const lunarMonth = ((month + 10) % 12) + 1;
-  return { day: lunarDay, month: lunarMonth, year };
 };
 
 const getGoodThings = () => [
@@ -55,7 +47,7 @@ const DayAnalysis = () => {
   const [date, setDate] = useState<Date>(new Date());
 
   const isHoangDao = getHoangDao(date);
-  const lunarDate = getLunarDate(date);
+  const lunarDate = solarToLunar(date);
   const goodThings = getGoodThings();
   const badThings = getBadThings();
   const hours = getGoodHours();
@@ -90,10 +82,13 @@ const DayAnalysis = () => {
               <p className="text-sm text-muted-foreground">
                 {format(date, "EEEE, dd/MM/yyyy", { locale: vi })}
               </p>
-              <div className="flex items-center gap-2 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
+                Ngày {lunarDate.dayCanChi}
+              </p>
+              <div className="flex items-center gap-2 mt-2">
                 <Sparkles className="w-4 h-4 text-gold" />
                 <span className="text-gold">
-                  Âm lịch: {lunarDate.day}/{lunarDate.month}
+                  Âm lịch: {lunarDate.day}/{lunarDate.month}{lunarDate.isLeapMonth ? ' (nhuận)' : ''} - {lunarDate.yearCanChi}
                 </span>
               </div>
             </div>
