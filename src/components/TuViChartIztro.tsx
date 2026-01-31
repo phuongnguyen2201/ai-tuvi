@@ -90,23 +90,40 @@ function PalaceCell({ palace }: { palace: PalaceInfo }) {
         )}
       </div>
       
-      {/* Minor stars (first 4) */}
-      <div className="flex-1 text-[9px] text-gray-400 overflow-y-auto border-t border-amber-600/20 pt-1 mt-1">
-        <div className="flex flex-wrap gap-x-1 gap-y-0.5 justify-center">
-          {palace.minorStars.slice(0, 4).map((star, i) => (
-            <span key={i} className="whitespace-nowrap">
-              {star.name}
-              {star.mutagen && (
-                <span className={`ml-0.5 ${getMutagenColor(star.mutagen)}`}>
-                  ({star.mutagen})
-                </span>
-              )}
-            </span>
-          ))}
-          {palace.minorStars.length > 4 && (
-            <span className="text-gray-500">+{palace.minorStars.length - 4}</span>
-          )}
-        </div>
+      {/* Minor stars + Adjective stars */}
+      <div className="flex-1 text-[9px] overflow-y-auto border-t border-amber-600/20 pt-1 mt-1 space-y-0.5">
+        {/* Phụ tinh - màu xanh lá */}
+        {palace.minorStars.length > 0 && (
+          <div className="flex flex-wrap gap-x-1 gap-y-0.5 justify-center">
+            {palace.minorStars.slice(0, 4).map((star, i) => (
+              <span key={`minor-${i}`} className="whitespace-nowrap text-green-400">
+                {star.name}
+                {star.mutagen && (
+                  <span className={`ml-0.5 ${getMutagenColor(star.mutagen)}`}>
+                    ({star.mutagen})
+                  </span>
+                )}
+              </span>
+            ))}
+            {palace.minorStars.length > 4 && (
+              <span className="text-green-600">+{palace.minorStars.length - 4}</span>
+            )}
+          </div>
+        )}
+        
+        {/* Tạp diệu - màu cam/đỏ */}
+        {palace.adjectiveStars && palace.adjectiveStars.length > 0 && (
+          <div className="flex flex-wrap gap-x-1 gap-y-0.5 justify-center">
+            {palace.adjectiveStars.slice(0, 3).map((star, i) => (
+              <span key={`adj-${i}`} className="whitespace-nowrap text-orange-400">
+                {star.name}
+              </span>
+            ))}
+            {palace.adjectiveStars.length > 3 && (
+              <span className="text-orange-600">+{palace.adjectiveStars.length - 3}</span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -193,22 +210,18 @@ export function TuViChartIztro({ chart }: Props) {
         </div>
         
         {/* Legend */}
-        <div className="mt-4 flex flex-wrap justify-center gap-4 text-xs">
+        <div className="mt-4 flex flex-wrap justify-center gap-3 text-xs">
+          <div className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded bg-purple-500"></span>
+            <span className="text-gray-400">Chính tinh</span>
+          </div>
           <div className="flex items-center gap-1">
             <span className="w-3 h-3 rounded bg-green-500"></span>
-            <span className="text-gray-400">Hóa Lộc</span>
+            <span className="text-gray-400">Phụ tinh</span>
           </div>
           <div className="flex items-center gap-1">
             <span className="w-3 h-3 rounded bg-orange-500"></span>
-            <span className="text-gray-400">Hóa Quyền</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded bg-blue-500"></span>
-            <span className="text-gray-400">Hóa Khoa</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded bg-red-500"></span>
-            <span className="text-gray-400">Hóa Kỵ</span>
+            <span className="text-gray-400">Tạp diệu</span>
           </div>
           <div className="flex items-center gap-1">
             <span className="w-3 h-3 rounded border-2 border-yellow-400 bg-yellow-900/30"></span>
@@ -218,6 +231,15 @@ export function TuViChartIztro({ chart }: Props) {
             <span className="w-3 h-3 rounded border-2 border-cyan-400 bg-cyan-900/30"></span>
             <span className="text-gray-400">Cung Thân</span>
           </div>
+        </div>
+        
+        {/* Tứ Hóa Legend */}
+        <div className="mt-2 flex flex-wrap justify-center gap-3 text-xs border-t border-slate-700 pt-2">
+          <span className="text-gray-500">Tứ Hóa:</span>
+          <span className="text-green-400">Lộc</span>
+          <span className="text-orange-400">Quyền</span>
+          <span className="text-blue-400">Khoa</span>
+          <span className="text-red-400">Kỵ</span>
         </div>
       </CardContent>
     </Card>
