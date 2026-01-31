@@ -18,6 +18,7 @@ export interface ChartInterpretation {
   wealth: InterpretationSection;
   love: InterpretationSection;
   health: InterpretationSection;
+  fortune: InterpretationSection;  // Vận hạn
   advice: InterpretationSection;
 }
 
@@ -318,6 +319,120 @@ function interpretHealth(chart: TuViChartData): InterpretationSection {
   };
 }
 
+// Luận giải vận hạn (Đại hạn & Tiểu hạn)
+function interpretFortune(chart: TuViChartData): InterpretationSection {
+  const content: string[] = [];
+  let level: 'positive' | 'neutral' | 'negative' = 'neutral';
+  
+  // Tính tuổi hiện tại (ước lượng)
+  const currentYear = new Date().getFullYear();
+  const birthYear = parseInt(chart.lunarYear.split(' ')[0]) || currentYear - 30;
+  const currentAge = currentYear - birthYear + 1; // Tuổi mụ
+  
+  content.push(`📅 Tuổi hiện tại (tính theo tuổi mụ): khoảng ${currentAge} tuổi.`);
+  
+  // Tìm Đại Hạn hiện tại
+  let currentDaiHan: PalaceInfo | null = null;
+  let nextDaiHan: PalaceInfo | null = null;
+  
+  for (const palace of chart.palaces) {
+    if (palace.stage) {
+      const [start, end] = palace.stage.range;
+      if (currentAge >= start && currentAge <= end) {
+        currentDaiHan = palace;
+      }
+      if (start > currentAge && (!nextDaiHan || start < (nextDaiHan.stage?.range[0] || Infinity))) {
+        nextDaiHan = palace;
+      }
+    }
+  }
+  
+  // Phân tích Đại Hạn hiện tại
+  if (currentDaiHan && currentDaiHan.stage) {
+    const { good, bad } = evaluateStarsInPalace(currentDaiHan);
+    content.push(`\n🔷 ĐẠI HẠN HIỆN TẠI (${currentDaiHan.stage.range[0]}-${currentDaiHan.stage.range[1]} tuổi):`);
+    content.push(`• Đang đi vào cung ${currentDaiHan.name} (${currentDaiHan.earthlyBranch}), Can ${currentDaiHan.stage.heavenlyStem}.`);
+    
+    if (currentDaiHan.majorStars.length > 0) {
+      const starNames = currentDaiHan.majorStars.map(s => s.name).join(', ');
+      content.push(`• Chính tinh: ${starNames}`);
+    } else {
+      content.push(`• Cung vô chính diệu - vận hạn phụ thuộc vào các sao phụ tinh và tam hợp.`);
+    }
+    
+    // Đánh giá chung
+    if (good.length > bad.length) {
+      content.push(`✨ Giai đoạn này có nhiều cát tinh hỗ trợ (${good.slice(0, 3).join(', ')}), vận khí tương đối thuận lợi.`);
+      level = 'positive';
+    } else if (bad.length > good.length) {
+      content.push(`⚠️ Giai đoạn này có ${bad.slice(0, 2).join(', ')} - cần cẩn thận, không nên mạo hiểm.`);
+      level = 'negative';
+    } else {
+      content.push(`⚖️ Giai đoạn bình hòa, không quá tốt cũng không quá xấu.`);
+    }
+    
+    // Kiểm tra Trường Sinh 12 thần
+    if (currentDaiHan.changsheng12) {
+      const changshengMeaning: Record<string, string> = {
+        'Trường Sinh': 'khởi đầu mới, phát triển',
+        'Mộc Dục': 'thử thách, cần cẩn thận',
+        'Quan Đới': 'ổn định, chuẩn bị thăng tiến',
+        'Lâm Quan': 'đỉnh cao, thành công',
+        'Đế Vượng': 'cực thịnh, cần giữ gìn',
+        'Suy': 'bắt đầu suy giảm',
+        'Bệnh': 'cẩn thận sức khỏe',
+        'Tử': 'kết thúc chu kỳ cũ',
+        'Mộ': 'tích lũy, ẩn náu',
+        'Tuyệt': 'khó khăn, chờ thời',
+        'Thai': 'mầm mống mới',
+        'Dưỡng': 'nuôi dưỡng, chuẩn bị',
+      };
+      const meaning = changshengMeaning[currentDaiHan.changsheng12] || '';
+      content.push(`• Trường Sinh: ${currentDaiHan.changsheng12}${meaning ? ` - ${meaning}` : ''}`);
+    }
+  }
+  
+  // Tìm Tiểu Hạn năm nay
+  let currentTieuHan: PalaceInfo | null = null;
+  for (const palace of chart.palaces) {
+    if (palace.ages && palace.ages.includes(currentAge)) {
+      currentTieuHan = palace;
+      break;
+    }
+  }
+  
+  if (currentTieuHan) {
+    const { good, bad } = evaluateStarsInPalace(currentTieuHan);
+    content.push(`\n🔶 TIỂU HẠN NĂM NAY (${currentAge} tuổi):`);
+    content.push(`• Tiểu hạn đi vào cung ${currentTieuHan.name} (${currentTieuHan.earthlyBranch}).`);
+    
+    if (currentTieuHan.majorStars.length > 0) {
+      content.push(`• Gặp sao: ${currentTieuHan.majorStars.map(s => s.name).join(', ')}`);
+    }
+    
+    if (good.length > bad.length) {
+      content.push(`✨ Năm nay vận khí tốt, có quý nhân giúp đỡ.`);
+      if (level !== 'negative') level = 'positive';
+    } else if (bad.length > good.length) {
+      content.push(`⚠️ Năm nay cần cẩn thận, tránh đầu tư mạo hiểm.`);
+      level = 'negative';
+    }
+  }
+  
+  // Dự báo Đại Hạn tiếp theo
+  if (nextDaiHan && nextDaiHan.stage) {
+    content.push(`\n📌 ĐẠI HẠN TIẾP THEO (${nextDaiHan.stage.range[0]}-${nextDaiHan.stage.range[1]} tuổi):`);
+    content.push(`• Sẽ chuyển vào cung ${nextDaiHan.name} với ${nextDaiHan.majorStars.length > 0 ? nextDaiHan.majorStars.map(s => s.name).join(', ') : 'vô chính diệu'}.`);
+  }
+  
+  return {
+    title: 'Vận Hạn (Đại Hạn & Tiểu Hạn)',
+    icon: '⏳',
+    content,
+    level
+  };
+}
+
 // Lời khuyên tổng hợp
 function generateAdvice(chart: TuViChartData): InterpretationSection {
   const content: string[] = [];
@@ -357,6 +472,7 @@ export function interpretChart(chart: TuViChartData): ChartInterpretation {
     wealth: interpretWealth(chart),
     love: interpretLove(chart),
     health: interpretHealth(chart),
+    fortune: interpretFortune(chart),
     advice: generateAdvice(chart),
   };
 }
