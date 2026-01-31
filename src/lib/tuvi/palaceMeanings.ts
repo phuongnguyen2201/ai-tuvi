@@ -189,6 +189,24 @@ export const PALACE_MEANINGS: Record<string, PalaceMeaning> = {
     ]
   },
   
+  'Tử Nữ': {
+    name: 'Tử Nữ',
+    keywords: ['Con cái', 'Hậu duệ', 'Sinh sản', 'Sáng tạo'],
+    meaning: 'Cung Tử Nữ cho biết về con cái, khả năng sinh sản, mối quan hệ với con và sự sáng tạo trong công việc.',
+    aspects: [
+      'Con cái, số lượng và giới tính',
+      'Mối quan hệ với con',
+      'Khả năng sinh sản',
+      'Sự phát triển của con cái',
+      'Tính sáng tạo'
+    ],
+    questions: [
+      'Có con cái như thế nào?',
+      'Con cái có hiếu không?',
+      'Có khó sinh không?'
+    ]
+  },
+  
   'Phu Thê': {
     name: 'Phu Thê',
     keywords: ['Hôn nhân', 'Vợ chồng', 'Tình duyên', 'Đối tác'],
