@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import type { TuViChart, Cung, ChinhTinh } from '@/lib/tuvi/tuviChart';
+import type { TuViChart, Cung, ChinhTinh, PhuTinhInCung } from '@/lib/tuvi/tuviChart';
 import { DIA_BAN, CHINH_TINH } from '@/lib/tuvi/tuviChart';
 
 // ========================= INTERFACES =========================
@@ -62,6 +62,36 @@ function getNatureBadgeClass(nature: ChinhTinh['nature']): string {
 }
 
 /**
+ * Get color class for PhuTinh based on its nature
+ */
+function getPhuTinhColorClass(nature: 'cát' | 'hung' | 'trung_tính'): string {
+  switch (nature) {
+    case 'cát':
+      return 'text-green-400';
+    case 'hung':
+      return 'text-red-400';
+    default:
+      return 'text-gray-400';
+  }
+}
+
+/**
+ * Get background class for PhuTinh based on its category
+ */
+function getPhuTinhBgClass(category: string): string {
+  switch (category) {
+    case 'truong_sinh':
+      return 'bg-amber-900/20';
+    case 'loc_ton':
+      return 'bg-yellow-900/20';
+    case 'thai_tue':
+      return 'bg-blue-900/20';
+    default:
+      return 'bg-slate-800/50';
+  }
+}
+
+/**
  * Map địa bàn position (0-11) to grid position
  * Layout truyền thống:
  * Row 0: Tỵ(3), Ngọ(4), Mùi(5), Thân(6)
@@ -93,13 +123,18 @@ function CungCell({ cung, isHighlighted, onClick }: CungCellProps) {
   const isMenh = cung.isMenh;
   const isThan = cung.isThan;
   
+  // Phân loại phụ tinh: Cát (tốt) và Hung (xấu)
+  const catTinh = cung.phuTinh?.filter(pt => pt.nature === 'cát') || [];
+  const hungTinh = cung.phuTinh?.filter(pt => pt.nature === 'hung') || [];
+  const trungTinh = cung.phuTinh?.filter(pt => pt.nature === 'trung_tính') || [];
+  
   return (
     <div
       onClick={onClick}
       className={`
         relative p-2 border rounded-lg cursor-pointer
         transition-all duration-200 hover:scale-[1.02]
-        min-h-[120px] flex flex-col
+        min-h-[160px] flex flex-col
         ${isMenh 
           ? 'border-yellow-400 border-2 bg-gradient-to-br from-yellow-900/40 to-amber-900/30' 
           : isThan
@@ -130,7 +165,7 @@ function CungCell({ cung, isHighlighted, onClick }: CungCellProps) {
       </div>
       
       {/* Tên Cung - Center Top */}
-      <div className="text-center mt-4 mb-2">
+      <div className="text-center mt-4 mb-1">
         <span className={`
           text-sm font-semibold
           ${isMenh ? 'text-yellow-300' : isThan ? 'text-cyan-300' : 'text-amber-200'}
@@ -140,26 +175,54 @@ function CungCell({ cung, isHighlighted, onClick }: CungCellProps) {
       </div>
       
       {/* Chính Tinh List */}
-      <div className="flex-1 flex flex-col gap-0.5 overflow-y-auto">
+      <div className="flex flex-col gap-0.5 mb-1">
         {cung.chinhTinh.length > 0 ? (
           cung.chinhTinh.map((star) => (
             <div
               key={star.id}
               className={`
-                text-xs font-medium text-center py-0.5 px-1 rounded
+                text-xs font-bold text-center py-0.5 px-1 rounded
                 ${getStarColorClass(star)}
-                ${star.group === 'TuVi' ? 'bg-purple-900/30' : 'bg-cyan-900/30'}
+                ${star.group === 'TuVi' ? 'bg-purple-900/40' : 'bg-cyan-900/40'}
               `}
             >
               {star.name}
             </div>
           ))
         ) : (
-          <div className="text-xs text-gray-500 text-center italic">
+          <div className="text-[10px] text-gray-500 text-center italic">
             (Vô chính diệu)
           </div>
         )}
       </div>
+      
+      {/* Phụ Tinh - 2 columns: Cát (left) vs Hung (right) */}
+      {(catTinh.length > 0 || hungTinh.length > 0 || trungTinh.length > 0) && (
+        <div className="flex-1 grid grid-cols-2 gap-x-1 text-[9px] overflow-y-auto border-t border-amber-600/20 pt-1 mt-1">
+          {/* Left column - Cát tinh (Tốt) */}
+          <div className="space-y-0.5">
+            {catTinh.slice(0, 6).map((pt) => (
+              <div key={pt.id} className="text-green-400 truncate">
+                {pt.name}
+              </div>
+            ))}
+            {trungTinh.slice(0, 3).map((pt) => (
+              <div key={pt.id} className="text-gray-400 truncate">
+                {pt.name}
+              </div>
+            ))}
+          </div>
+          
+          {/* Right column - Hung tinh (Xấu) */}
+          <div className="space-y-0.5 text-right">
+            {hungTinh.slice(0, 6).map((pt) => (
+              <div key={pt.id} className="text-red-400 truncate">
+                {pt.name}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -214,13 +277,18 @@ function CenterInfo({ birthInfo, cucName }: CenterInfoProps) {
 function StarModal({ cung, onClose }: StarModalProps) {
   if (!cung) return null;
   
+  // Phân loại phụ tinh
+  const catTinh = cung.phuTinh?.filter(pt => pt.nature === 'cát') || [];
+  const hungTinh = cung.phuTinh?.filter(pt => pt.nature === 'hung') || [];
+  const trungTinh = cung.phuTinh?.filter(pt => pt.nature === 'trung_tính') || [];
+  
   return (
     <div 
       className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
       <div 
-        className="bg-slate-800 border border-amber-500/50 rounded-xl max-w-md w-full p-6"
+        className="bg-slate-800 border border-amber-500/50 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -253,9 +321,12 @@ function StarModal({ cung, onClose }: StarModalProps) {
           )}
         </div>
         
-        {/* Stars */}
-        <div className="space-y-3">
-          <h4 className="text-sm font-semibold text-gray-300">Chính Tinh tọa thủ:</h4>
+        {/* Chính Tinh */}
+        <div className="space-y-3 mb-4">
+          <h4 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+            <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+            Chính Tinh tọa thủ
+          </h4>
           {cung.chinhTinh.length > 0 ? (
             cung.chinhTinh.map((star) => (
               <div 
@@ -282,11 +353,81 @@ function StarModal({ cung, onClose }: StarModalProps) {
               </div>
             ))
           ) : (
-            <div className="text-center py-4 text-gray-400 italic">
-              Cung này vô chính diệu (không có chính tinh tọa thủ)
+            <div className="text-center py-3 text-gray-400 italic text-sm">
+              Cung này vô chính diệu
             </div>
           )}
         </div>
+        
+        {/* Phụ Tinh */}
+        {(catTinh.length > 0 || hungTinh.length > 0 || trungTinh.length > 0) && (
+          <div className="space-y-3 border-t border-amber-600/30 pt-4">
+            <h4 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+              <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
+              Phụ Tinh ({catTinh.length + hungTinh.length + trungTinh.length} sao)
+            </h4>
+            
+            {/* Cát Tinh */}
+            {catTinh.length > 0 && (
+              <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-3">
+                <div className="text-xs font-semibold text-green-400 mb-2">
+                  ✓ Cát Tinh ({catTinh.length})
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {catTinh.map((pt) => (
+                    <span 
+                      key={pt.id}
+                      className="px-2 py-0.5 bg-green-800/40 text-green-300 rounded text-xs"
+                      title={pt.category}
+                    >
+                      {pt.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Trung Tính */}
+            {trungTinh.length > 0 && (
+              <div className="bg-gray-900/30 border border-gray-500/30 rounded-lg p-3">
+                <div className="text-xs font-semibold text-gray-400 mb-2">
+                  ○ Trung Tính ({trungTinh.length})
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {trungTinh.map((pt) => (
+                    <span 
+                      key={pt.id}
+                      className="px-2 py-0.5 bg-gray-800/40 text-gray-300 rounded text-xs"
+                      title={pt.category}
+                    >
+                      {pt.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Hung Tinh */}
+            {hungTinh.length > 0 && (
+              <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3">
+                <div className="text-xs font-semibold text-red-400 mb-2">
+                  ✗ Hung Tinh ({hungTinh.length})
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {hungTinh.map((pt) => (
+                    <span 
+                      key={pt.id}
+                      className="px-2 py-0.5 bg-red-800/40 text-red-300 rounded text-xs"
+                      title={pt.category}
+                    >
+                      {pt.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         
         {/* Close button */}
         <button
@@ -382,6 +523,14 @@ export default function TuViChartDisplay({ chart, birthInfo, onCungClick }: TuVi
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded bg-cyan-500"></span>
           <span className="text-gray-300">Thiên Phủ hệ</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded bg-green-500"></span>
+          <span className="text-gray-300">Cát tinh</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded bg-red-500"></span>
+          <span className="text-gray-300">Hung tinh</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded border-2 border-yellow-400 bg-yellow-900/30"></span>
