@@ -1,20 +1,17 @@
 // src/components/TuViChartIztro.tsx - Component hiển thị lá số dùng iztro
 
-import React from 'react';
-import { TuViChartData, PalaceInfo } from '@/services/TuViService';
+import React, { useState } from 'react';
+import { TuViChartData, PalaceInfo, StarInfo } from '@/services/TuViService';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface Props {
   chart: TuViChartData;
 }
 
 // Layout 4x4 grid theo chuẩn Tử Vi
-// Row 0: Tỵ, Ngọ, Mùi, Thân
-// Row 1: Thìn, [center], [center], Dậu
-// Row 2: Mão, [center], [center], Tuất
-// Row 3: Dần, Sửu, Tý, Hợi
-
 const GRID_LAYOUT: (string | null)[][] = [
   ['Tỵ', 'Ngọ', 'Mùi', 'Thân'],
   ['Thìn', null, null, 'Dậu'],
@@ -31,11 +28,161 @@ function getMutagenColor(mutagen: string): string {
   return 'text-yellow-400';
 }
 
-function PalaceCell({ palace }: { palace: PalaceInfo }) {
+function getMutagenBgColor(mutagen: string): string {
+  const m = mutagen.toLowerCase();
+  if (m.includes('lộc') || m === 'loc') return 'bg-green-900/30 border-green-500/50';
+  if (m.includes('quyền') || m === 'quyen') return 'bg-orange-900/30 border-orange-500/50';
+  if (m.includes('khoa')) return 'bg-blue-900/30 border-blue-500/50';
+  if (m.includes('kỵ') || m.includes('kị')) return 'bg-red-900/30 border-red-500/50';
+  return 'bg-yellow-900/30 border-yellow-500/50';
+}
+
+// =============== PALACE DETAIL MODAL ===============
+
+interface PalaceDetailModalProps {
+  palace: PalaceInfo | null;
+  open: boolean;
+  onClose: () => void;
+}
+
+function StarItem({ star, colorClass }: { star: StarInfo; colorClass: string }) {
+  return (
+    <div className={`flex items-center justify-between p-2 rounded-lg bg-slate-800/50 border border-slate-700`}>
+      <span className={`font-medium ${colorClass}`}>{star.name}</span>
+      <div className="flex items-center gap-2">
+        {star.brightness && (
+          <span className="text-xs text-gray-500">{star.brightness}</span>
+        )}
+        {star.mutagen && (
+          <Badge variant="outline" className={`text-xs px-1.5 py-0 ${getMutagenBgColor(star.mutagen)} ${getMutagenColor(star.mutagen)}`}>
+            {star.mutagen}
+          </Badge>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PalaceDetailModal({ palace, open, onClose }: PalaceDetailModalProps) {
+  if (!palace) return null;
+
+  const totalStars = palace.majorStars.length + palace.minorStars.length + (palace.adjectiveStars?.length || 0);
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-lg bg-slate-900 border-amber-600/50 text-white">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-3">
+            <span className={`text-xl ${palace.isSoulPalace ? 'text-yellow-400' : palace.isBodyPalace ? 'text-cyan-400' : 'text-amber-400'}`}>
+              Cung {palace.name}
+            </span>
+            <span className="text-sm text-gray-500">({palace.earthlyBranch})</span>
+            {palace.isSoulPalace && (
+              <Badge className="bg-yellow-500/30 text-yellow-200 border-yellow-500/50">MỆNH</Badge>
+            )}
+            {palace.isBodyPalace && (
+              <Badge className="bg-cyan-500/30 text-cyan-200 border-cyan-500/50">THÂN</Badge>
+            )}
+          </DialogTitle>
+        </DialogHeader>
+
+        <ScrollArea className="max-h-[60vh] pr-4">
+          <div className="space-y-4">
+            {/* Thống kê */}
+            <div className="flex gap-2 text-xs">
+              <span className="px-2 py-1 bg-purple-900/30 text-purple-300 rounded">
+                {palace.majorStars.length} chính tinh
+              </span>
+              <span className="px-2 py-1 bg-green-900/30 text-green-300 rounded">
+                {palace.minorStars.length} phụ tinh
+              </span>
+              <span className="px-2 py-1 bg-orange-900/30 text-orange-300 rounded">
+                {palace.adjectiveStars?.length || 0} tạp diệu
+              </span>
+            </div>
+
+            {/* Trường Sinh */}
+            {palace.changsheng12 && (
+              <div className="p-2 bg-amber-900/20 border border-amber-600/30 rounded-lg">
+                <span className="text-xs text-gray-400">Trường Sinh 12 thần:</span>
+                <span className="ml-2 text-amber-300 font-medium">{palace.changsheng12}</span>
+              </div>
+            )}
+
+            {/* Chính Tinh */}
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-purple-300 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                Chính Tinh ({palace.majorStars.length})
+              </h4>
+              {palace.majorStars.length > 0 ? (
+                <div className="space-y-1.5">
+                  {palace.majorStars.map((star, i) => (
+                    <StarItem key={`major-${i}`} star={star} colorClass="text-purple-300" />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 italic pl-4">(Vô chính diệu)</p>
+              )}
+            </div>
+
+            {/* Phụ Tinh */}
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-green-300 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                Phụ Tinh ({palace.minorStars.length})
+              </h4>
+              {palace.minorStars.length > 0 ? (
+                <div className="space-y-1.5">
+                  {palace.minorStars.map((star, i) => (
+                    <StarItem key={`minor-${i}`} star={star} colorClass="text-green-300" />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 italic pl-4">(Không có)</p>
+              )}
+            </div>
+
+            {/* Tạp Diệu */}
+            {palace.adjectiveStars && palace.adjectiveStars.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold text-orange-300 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                  Tạp Diệu ({palace.adjectiveStars.length})
+                </h4>
+                <div className="space-y-1.5">
+                  {palace.adjectiveStars.map((star, i) => (
+                    <StarItem key={`adj-${i}`} star={star} colorClass="text-orange-300" />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+
+        <div className="pt-2 border-t border-slate-700 text-center">
+          <span className="text-xs text-gray-500">
+            Tổng cộng: {totalStars} sao trong cung
+          </span>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// =============== PALACE CELL ===============
+
+interface PalaceCellProps {
+  palace: PalaceInfo;
+  onClick: () => void;
+}
+
+function PalaceCell({ palace, onClick }: PalaceCellProps) {
   return (
     <div 
+      onClick={onClick}
       className={`
-        relative p-2 border rounded-lg min-h-[140px] flex flex-col
+        relative p-2 border rounded-lg min-h-[140px] flex flex-col cursor-pointer
         transition-all duration-200 hover:scale-[1.02]
         ${palace.isSoulPalace 
           ? 'border-yellow-400 border-2 bg-gradient-to-br from-yellow-900/40 to-amber-900/30' 
@@ -43,7 +190,7 @@ function PalaceCell({ palace }: { palace: PalaceInfo }) {
             ? 'border-cyan-400 border-2 bg-gradient-to-br from-cyan-900/30 to-blue-900/20'
             : 'border-amber-600/50 bg-gradient-to-br from-slate-800/80 to-slate-900/80'
         }
-        hover:border-amber-400
+        hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/10
       `}
     >
       {/* Header */}
@@ -125,9 +272,16 @@ function PalaceCell({ palace }: { palace: PalaceInfo }) {
           </div>
         )}
       </div>
+
+      {/* Click hint */}
+      <div className="absolute bottom-1 right-1 text-[8px] text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">
+        Chi tiết →
+      </div>
     </div>
   );
 }
+
+// =============== CENTER INFO ===============
 
 function CenterInfo({ chart }: { chart: TuViChartData }) {
   return (
@@ -165,84 +319,103 @@ function CenterInfo({ chart }: { chart: TuViChartData }) {
   );
 }
 
+// =============== MAIN COMPONENT ===============
+
 export function TuViChartIztro({ chart }: Props) {
+  const [selectedPalace, setSelectedPalace] = useState<PalaceInfo | null>(null);
+
   // Map earthly branch to palace
   const palaceMap = new Map<string, PalaceInfo>();
   chart.palaces.forEach(p => palaceMap.set(p.earthlyBranch, p));
   
   return (
-    <Card className="w-full max-w-4xl mx-auto bg-slate-900/90 border-amber-600/30">
-      <CardHeader className="text-center pb-2">
-        <CardTitle className="text-xl text-amber-400">
-          Lá Số Tử Vi - {chart.lunarYear}
-        </CardTitle>
-        <p className="text-sm text-gray-400">
-          {chart.solarDate} (DL) | {chart.lunarDate} (ÂL)
-        </p>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-4 gap-2">
-          {GRID_LAYOUT.map((row, rowIndex) => (
-            row.map((branch, colIndex) => {
-              // Center cells
-              if (branch === null) {
-                if (rowIndex === 1 && colIndex === 1) {
-                  return <CenterInfo key={`center-${rowIndex}-${colIndex}`} chart={chart} />;
+    <>
+      <Card className="w-full max-w-4xl mx-auto bg-slate-900/90 border-amber-600/30">
+        <CardHeader className="text-center pb-2">
+          <CardTitle className="text-xl text-amber-400">
+            Lá Số Tử Vi - {chart.lunarYear}
+          </CardTitle>
+          <p className="text-sm text-gray-400">
+            {chart.solarDate} (DL) | {chart.lunarDate} (ÂL) • Click vào cung để xem chi tiết
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-4 gap-2">
+            {GRID_LAYOUT.map((row, rowIndex) => (
+              row.map((branch, colIndex) => {
+                // Center cells
+                if (branch === null) {
+                  if (rowIndex === 1 && colIndex === 1) {
+                    return <CenterInfo key={`center-${rowIndex}-${colIndex}`} chart={chart} />;
+                  }
+                  return null; // Other center cells are part of the span
                 }
-                return null; // Other center cells are part of the span
-              }
-              
-              const palace = palaceMap.get(branch);
-              if (!palace) {
+                
+                const palace = palaceMap.get(branch);
+                if (!palace) {
+                  return (
+                    <div 
+                      key={`empty-${rowIndex}-${colIndex}`} 
+                      className="min-h-[140px] border border-dashed border-gray-700 rounded-lg flex items-center justify-center text-gray-600"
+                    >
+                      {branch}
+                    </div>
+                  );
+                }
+                
                 return (
-                  <div 
-                    key={`empty-${rowIndex}-${colIndex}`} 
-                    className="min-h-[140px] border border-dashed border-gray-700 rounded-lg flex items-center justify-center text-gray-600"
-                  >
-                    {branch}
-                  </div>
+                  <PalaceCell 
+                    key={`palace-${branch}`} 
+                    palace={palace} 
+                    onClick={() => setSelectedPalace(palace)}
+                  />
                 );
-              }
-              
-              return <PalaceCell key={`palace-${branch}`} palace={palace} />;
-            })
-          ))}
-        </div>
-        
-        {/* Legend */}
-        <div className="mt-4 flex flex-wrap justify-center gap-3 text-xs">
-          <div className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded bg-purple-500"></span>
-            <span className="text-gray-400">Chính tinh</span>
+              })
+            ))}
           </div>
-          <div className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded bg-green-500"></span>
-            <span className="text-gray-400">Phụ tinh</span>
+          
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap justify-center gap-3 text-xs">
+            <div className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded bg-purple-500"></span>
+              <span className="text-gray-400">Chính tinh</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded bg-green-500"></span>
+              <span className="text-gray-400">Phụ tinh</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded bg-orange-500"></span>
+              <span className="text-gray-400">Tạp diệu</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded border-2 border-yellow-400 bg-yellow-900/30"></span>
+              <span className="text-gray-400">Cung Mệnh</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded border-2 border-cyan-400 bg-cyan-900/30"></span>
+              <span className="text-gray-400">Cung Thân</span>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded bg-orange-500"></span>
-            <span className="text-gray-400">Tạp diệu</span>
+          
+          {/* Tứ Hóa Legend */}
+          <div className="mt-2 flex flex-wrap justify-center gap-3 text-xs border-t border-slate-700 pt-2">
+            <span className="text-gray-500">Tứ Hóa:</span>
+            <span className="text-green-400">Lộc</span>
+            <span className="text-orange-400">Quyền</span>
+            <span className="text-blue-400">Khoa</span>
+            <span className="text-red-400">Kỵ</span>
           </div>
-          <div className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded border-2 border-yellow-400 bg-yellow-900/30"></span>
-            <span className="text-gray-400">Cung Mệnh</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded border-2 border-cyan-400 bg-cyan-900/30"></span>
-            <span className="text-gray-400">Cung Thân</span>
-          </div>
-        </div>
-        
-        {/* Tứ Hóa Legend */}
-        <div className="mt-2 flex flex-wrap justify-center gap-3 text-xs border-t border-slate-700 pt-2">
-          <span className="text-gray-500">Tứ Hóa:</span>
-          <span className="text-green-400">Lộc</span>
-          <span className="text-orange-400">Quyền</span>
-          <span className="text-blue-400">Khoa</span>
-          <span className="text-red-400">Kỵ</span>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      {/* Palace Detail Modal */}
+      <PalaceDetailModal 
+        palace={selectedPalace}
+        open={!!selectedPalace}
+        onClose={() => setSelectedPalace(null)}
+      />
+    </>
   );
 }
 
