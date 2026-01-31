@@ -305,27 +305,22 @@ export function TuViAnalysis({ chart }: Props) {
           <label className="text-sm font-medium text-gray-700 mb-2 block">
             Chọn loại luận giải:
           </label>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          <div className="flex flex-wrap gap-2">
             {analysisOptions.map((option) => (
               <Button
                 key={option.value}
                 variant={analysisType === option.value ? 'default' : 'outline'}
-                className={`flex flex-col items-center gap-1 h-auto py-3 ${
+                size="sm"
+                className={`flex items-center gap-2 ${
                   analysisType === option.value 
                     ? 'bg-purple-600 hover:bg-purple-700 text-white' 
                     : 'hover:bg-purple-50 hover:border-purple-300'
                 }`}
                 onClick={() => setAnalysisType(option.value)}
+                title={option.description}
               >
-                <div className="flex items-center gap-2">
-                  {option.icon}
-                  <span className="font-medium">{option.label}</span>
-                </div>
-                <span className={`text-xs ${
-                  analysisType === option.value ? 'text-purple-200' : 'text-gray-500'
-                }`}>
-                  {option.description}
-                </span>
+                {option.icon}
+                <span className="font-medium">{option.label}</span>
               </Button>
             ))}
           </div>
