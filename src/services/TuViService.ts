@@ -52,6 +52,43 @@ export interface TuViChartData {
 const EARTHLY_BRANCHES = ['Tý', 'Sửu', 'Dần', 'Mão', 'Thìn', 'Tỵ', 'Ngọ', 'Mùi', 'Thân', 'Dậu', 'Tuất', 'Hợi'];
 const YANG_STEMS = ['Giáp', 'Bính', 'Mậu', 'Canh', 'Nhâm'];
 
+// Mệnh Chủ - xác định theo Địa Chi của giờ sinh
+// Tý, Ngọ: Tham Lang | Sửu, Mùi: Cự Môn | Dần, Thân: Lộc Tồn
+// Mão, Dậu: Văn Khúc | Thìn, Tuất: Liêm Trinh | Tỵ, Hợi: Vũ Khúc
+const MENH_CHU_BY_HOUR: Record<number, string> = {
+  0: 'Tham Lang',   // Tý
+  1: 'Cự Môn',      // Sửu
+  2: 'Lộc Tồn',     // Dần
+  3: 'Văn Khúc',    // Mão
+  4: 'Liêm Trinh',  // Thìn
+  5: 'Vũ Khúc',     // Tỵ
+  6: 'Tham Lang',   // Ngọ
+  7: 'Cự Môn',      // Mùi
+  8: 'Lộc Tồn',     // Thân
+  9: 'Văn Khúc',    // Dậu
+  10: 'Liêm Trinh', // Tuất
+  11: 'Vũ Khúc',    // Hợi
+};
+
+// Thân Chủ - xác định theo Địa Chi của năm sinh
+// Tý: Linh Tinh | Sửu: Thiên Tướng | Dần: Thiên Lương | Mão: Thiên Đồng
+// Thìn: Văn Xương | Tỵ: Thiên Cơ | Ngọ: Hỏa Tinh | Mùi: Thiên Tướng
+// Thân: Thiên Lương | Dậu: Thiên Đồng | Tuất: Văn Xương | Hợi: Thiên Cơ
+const THAN_CHU_BY_YEAR_BRANCH: Record<string, string> = {
+  'Tý': 'Linh Tinh',
+  'Sửu': 'Thiên Tướng',
+  'Dần': 'Thiên Lương',
+  'Mão': 'Thiên Đồng',
+  'Thìn': 'Văn Xương',
+  'Tỵ': 'Thiên Cơ',
+  'Ngọ': 'Hỏa Tinh',
+  'Mùi': 'Thiên Tướng',
+  'Thân': 'Thiên Lương',
+  'Dậu': 'Thiên Đồng',
+  'Tuất': 'Văn Xương',
+  'Hợi': 'Thiên Cơ',
+};
+
 export function solarHourToLunarIndex(hour: number): number {
   if (hour === 23 || hour === 0) return 0;
   return Math.floor((hour + 1) / 2);
@@ -59,6 +96,28 @@ export function solarHourToLunarIndex(hour: number): number {
 
 export function getLunarHourName(index: number): string {
   return EARTHLY_BRANCHES[index % 12];
+}
+
+/**
+ * Tính Mệnh Chủ dựa vào giờ sinh (0-11)
+ */
+function getMenhChu(hourIndex: number): string {
+  return MENH_CHU_BY_HOUR[hourIndex % 12] || '';
+}
+
+/**
+ * Tính Thân Chủ dựa vào Địa Chi năm sinh
+ */
+function getThanChu(yearBranch: string): string {
+  return THAN_CHU_BY_YEAR_BRANCH[yearBranch] || '';
+}
+
+/**
+ * Trích xuất Địa Chi từ chuỗi Can Chi năm (vd: "Kỷ Mùi" -> "Mùi")
+ */
+function extractYearBranch(canChi: string): string {
+  const parts = canChi.trim().split(/\s+/);
+  return parts.length >= 2 ? parts[1] : parts[0];
 }
 
 function parseCuc(cucStr: string): { name: string; value: number } {
@@ -139,23 +198,23 @@ export function createTuViChart(input: BirthInput): TuViChartData {
   
   const palaces = (astrolabe.palaces || []).map(convertPalace);
   const chineseParts = (astrolabe.chineseDate || '').split(' - ');
+  const lunarYear = chineseParts[0] || '';
   
-  // Find soul and body palace stars
-  const soulPalace = palaces.find(p => p.isSoulPalace);
-  const bodyPalace = palaces.find(p => p.isBodyPalace);
-  const soulStar = soulPalace?.majorStars[0]?.name || '';
-  const bodyStar = bodyPalace?.majorStars[0]?.name || '';
+  // Tính Mệnh Chủ và Thân Chủ theo công thức truyền thống
+  const menhChu = getMenhChu(input.hour);
+  const yearBranch = extractYearBranch(lunarYear);
+  const thanChu = getThanChu(yearBranch);
   
   return {
     solarDate: astrolabe.solarDate || '',
     lunarDate: astrolabe.lunarDate || '',
-    lunarYear: chineseParts[0] || '',
+    lunarYear,
     birthHour: getLunarHourName(input.hour),
     gender: input.gender,
     genderYinYang: getYinYang(astrolabe.chineseDate, input.gender),
     cuc: parseCuc(astrolabe.fiveElementsClass),
-    soulStar,
-    bodyStar,
+    soulStar: menhChu,
+    bodyStar: thanChu,
     fiveElements: astrolabe.fiveElementsClass || '',
     palaces,
     tuHoa: extractTuHoa(palaces),
