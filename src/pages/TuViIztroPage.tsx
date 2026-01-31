@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { createTuViChart, TuViChartData, BirthInput } from '@/services/TuViService';
 import TuViChartIztro from '@/components/TuViChartIztro';
 import ChartInterpretationDisplay from '@/components/ChartInterpretationDisplay';
+import TuViAnalysis from '@/components/TuViAnalysis';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -185,6 +186,9 @@ export default function TuViIztroPage() {
             
             {/* Luận giải tự động */}
             <ChartInterpretationDisplay chart={chart} />
+            
+            {/* AI-powered luận giải */}
+            <TuViAnalysis chart={chart} />
             
             {/* Debug info */}
             <Card className="bg-slate-900/50 border-slate-700">
