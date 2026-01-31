@@ -90,6 +90,7 @@ export function ChartInterpretationDisplay({ chart }: Props) {
     interpretation.wealth,
     interpretation.love,
     interpretation.health,
+    interpretation.fortune,
     interpretation.advice,
   ];
   
