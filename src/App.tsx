@@ -38,7 +38,6 @@ const App = () => (
             <Route path="/test" element={<Test />} />
             <Route path="/test-tuvi" element={<TuViTest />} />
             <Route path="/test-chart" element={<TestChartPage />} />
-            <Route path="/tuvi-iztro" element={<TuViIztroPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
