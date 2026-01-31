@@ -16,7 +16,7 @@ import NguHanhTest from "./components/NguHanhTest";
 import CompatibilityTest from "./components/CompatibilityTest";
 import Test from "./pages/Test";
 import TuViTest from "./pages/TuViTest";
-import TestChartPage from "./pages/TestChartPage";
+import TestChartPage from "./components/test-chart-page";
 
 const queryClient = new QueryClient();
 
