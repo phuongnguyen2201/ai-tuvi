@@ -1,7 +1,7 @@
 import Logo from "@/components/Logo";
 import MenuCard from "@/components/MenuCard";
 import DailyWisdom from "@/components/DailyWisdom";
-import { ScrollText, Heart, Calendar, BookOpen } from "lucide-react";
+import { ScrollText, Heart, Calendar, BookOpen, Sparkles } from "lucide-react";
 
 const Index = () => {
   const menuItems = [
@@ -10,6 +10,12 @@ const Index = () => {
       description: "Xem lá số tử vi 12 cung theo ngày sinh",
       icon: ScrollText,
       to: "/lap-la-so",
+    },
+    {
+      title: "Tử Vi Pro",
+      description: "Lá số chính xác với thư viện iztro",
+      icon: Sparkles,
+      to: "/tuvi-iztro",
     },
     {
       title: "Xem Tuổi Hợp",

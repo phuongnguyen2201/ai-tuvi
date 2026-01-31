@@ -59,6 +59,14 @@ export default function TuViIztroPage() {
       };
       
       const result = createTuViChart(input);
+      console.log('TuVi Chart Result:', result);
+      console.log('Palaces:', result.palaces.map(p => ({
+        name: p.name,
+        branch: p.earthlyBranch,
+        isSoul: p.isSoulPalace,
+        isBody: p.isBodyPalace,
+        majorStars: p.majorStars.map(s => s.name),
+      })));
       setChart(result);
     } catch (err) {
       console.error('Error creating chart:', err);
@@ -177,13 +185,54 @@ export default function TuViIztroPage() {
             {/* Debug info */}
             <Card className="bg-slate-900/50 border-slate-700">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-gray-400">Thông tin chi tiết</CardTitle>
+                <CardTitle className="text-sm text-gray-400">📋 Thông tin chi tiết (để so sánh với tuvi.vn)</CardTitle>
               </CardHeader>
-              <CardContent className="text-xs text-gray-500 space-y-1">
-                <p>Mệnh Chủ: {chart.soulStar || '—'}</p>
-                <p>Thân Chủ: {chart.bodyStar || '—'}</p>
-                <p>Ngũ Hành: {chart.fiveElements}</p>
-                <p>Số cung: {chart.palaces.length}</p>
+              <CardContent className="text-xs text-gray-400 space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="font-semibold text-amber-300 mb-1">Thông tin chung:</p>
+                    <p>• Năm sinh: {chart.lunarYear}</p>
+                    <p>• Ngũ Hành Cục: <span className="text-cyan-300">{chart.fiveElements}</span></p>
+                    <p>• Mệnh Chủ: <span className="text-purple-300">{chart.soulStar || '—'}</span></p>
+                    <p>• Thân Chủ: <span className="text-green-300">{chart.bodyStar || '—'}</span></p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-amber-300 mb-1">Tứ Hóa:</p>
+                    <p>• Hóa Lộc: <span className="text-green-400">{chart.tuHoa.hoaLoc.star || '—'}</span> ({chart.tuHoa.hoaLoc.palace || '—'})</p>
+                    <p>• Hóa Quyền: <span className="text-orange-400">{chart.tuHoa.hoaQuyen.star || '—'}</span> ({chart.tuHoa.hoaQuyen.palace || '—'})</p>
+                    <p>• Hóa Khoa: <span className="text-blue-400">{chart.tuHoa.hoaKhoa.star || '—'}</span> ({chart.tuHoa.hoaKhoa.palace || '—'})</p>
+                    <p>• Hóa Kỵ: <span className="text-red-400">{chart.tuHoa.hoaKy.star || '—'}</span> ({chart.tuHoa.hoaKy.palace || '—'})</p>
+                  </div>
+                </div>
+                
+                <div className="border-t border-slate-700 pt-2">
+                  <p className="font-semibold text-amber-300 mb-2">Vị trí các cung và chính tinh:</p>
+                  <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+                    {chart.palaces.map((palace) => (
+                      <div 
+                        key={palace.earthlyBranch}
+                        className={`p-2 rounded text-[10px] ${
+                          palace.isSoulPalace 
+                            ? 'bg-yellow-900/30 border border-yellow-500/50' 
+                            : palace.isBodyPalace 
+                              ? 'bg-cyan-900/30 border border-cyan-500/50'
+                              : 'bg-slate-800/50'
+                        }`}
+                      >
+                        <div className="font-bold text-amber-200">
+                          {palace.name} ({palace.earthlyBranch})
+                          {palace.isSoulPalace && <span className="ml-1 text-yellow-400">★Mệnh</span>}
+                          {palace.isBodyPalace && <span className="ml-1 text-cyan-400">★Thân</span>}
+                        </div>
+                        <div className="text-purple-300">
+                          {palace.majorStars.length > 0 
+                            ? palace.majorStars.map(s => s.name).join(', ')
+                            : '(vô chính diệu)'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
