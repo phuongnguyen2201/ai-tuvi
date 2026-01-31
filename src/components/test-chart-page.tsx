@@ -209,7 +209,7 @@ export default function TestChartPage() {
               <div>
                 <span className="text-gray-400">Tử Vi tại:</span>
                 <div className="font-semibold text-purple-300">
-                  {chart.cung.find(c => c.chinhTinh.some(s => s.id === 'tu-vi'))?.diaChi || 'N/A'}
+                  {chart.cung.find(c => c.chinhTinh.some(s => s.id === 'tuVi'))?.diaChi || 'N/A'}
                 </div>
               </div>
             </div>
