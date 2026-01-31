@@ -23,8 +23,10 @@ export interface PalaceInfo {
   name: string;
   earthlyBranch: string;
   heavenlyStem?: string;
-  majorStars: StarInfo[];
-  minorStars: StarInfo[];
+  majorStars: StarInfo[];      // 14 Chính tinh (Tử Vi, Thiên Cơ, Thái Dương...)
+  minorStars: StarInfo[];      // Phụ tinh (Lộc Tồn, Văn Xương, Văn Khúc, Tả Phụ, Hữu Bật...)
+  adjectiveStars: StarInfo[];  // Tạp diệu (Hỏa Tinh, Linh Tinh, Kình Dương, Đà La, Địa Không...)
+  changsheng12?: string;       // Trường Sinh 12 thần (Trường Sinh, Mộc Dục, Quan Đới...)
   isSoulPalace: boolean;
   isBodyPalace: boolean;
 }
@@ -162,6 +164,13 @@ function convertPalace(palace: any): PalaceInfo {
       mutagen: s.mutagen,
       brightness: s.brightness,
     })),
+    adjectiveStars: (palace.adjectiveStars || []).map((s: any) => ({
+      name: s.name,
+      type: 'minor' as const,
+      mutagen: s.mutagen,
+      brightness: s.brightness,
+    })),
+    changsheng12: palace.changsheng12,
     isSoulPalace: palace.isSoulPalace || false,
     isBodyPalace: palace.isBodyPalace || false,
   };
