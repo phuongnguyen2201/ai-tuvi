@@ -28,6 +28,9 @@ export interface PalaceInfo {
   minorStars: StarInfo[];      // Phụ tinh (Lộc Tồn, Văn Xương, Văn Khúc, Tả Phụ, Hữu Bật...)
   adjectiveStars: StarInfo[];  // Tạp diệu (Hỏa Tinh, Linh Tinh, Kình Dương, Đà La, Địa Không...)
   changsheng12?: string;       // Trường Sinh 12 thần (Trường Sinh, Mộc Dục, Quan Đới...)
+  boshi12?: string;            // Bác Sĩ 12 thần (Bác Sĩ, Lực Sĩ, Thanh Long, Tiểu Hao...)
+  jiangqian12?: string;        // Tướng Tiền 12 thần (Tướng Tinh, Phan An, Tuế Dịch, Tức Thần...)
+  suiqian12?: string;          // Tuế Tiền 12 thần (Tuế Kiến, Hối Khí, Táng Môn, Điếu Khách...)
   isSoulPalace: boolean;
   isBodyPalace: boolean;
 }
@@ -234,6 +237,9 @@ function convertPalace(palace: any): PalaceInfo {
       brightness: s.brightness,
     })),
     changsheng12: palace.changsheng12,
+    boshi12: palace.boshi12,           // Bác Sĩ 12 thần
+    jiangqian12: palace.jiangqian12,   // Tướng Tiền 12 thần
+    suiqian12: palace.suiqian12,       // Tuế Tiền 12 thần
     isSoulPalace: palace.isSoulPalace || false,
     isBodyPalace: palace.isBodyPalace || false,
   };
