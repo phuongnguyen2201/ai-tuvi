@@ -6,7 +6,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { getStarMeaning, StarMeaning } from '@/lib/tuvi/starMeanings';
 interface Props {
   chart: TuViChartData;
 }
@@ -45,20 +46,85 @@ interface PalaceDetailModalProps {
   onClose: () => void;
 }
 
-function StarItem({ star, colorClass }: { star: StarInfo; colorClass: string }) {
+function StarItem({ star, colorClass, palaceName }: { star: StarInfo; colorClass: string; palaceName?: string }) {
+  const meaning = getStarMeaning(star.name);
+  const [showMeaning, setShowMeaning] = useState(false);
+  
+  // Lấy ý nghĩa theo cung nếu có
+  const getPalaceMeaning = (m: StarMeaning, palace?: string): string | undefined => {
+    if (!palace) return undefined;
+    const palaceMap: Record<string, keyof StarMeaning> = {
+      'Mệnh': 'inMenh',
+      'Tài Bạch': 'inTaiBach',
+      'Quan Lộc': 'inQuanLoc',
+      'Phu Thê': 'inPhuThe',
+    };
+    const key = palaceMap[palace];
+    return key ? (m[key] as string) : undefined;
+  };
+  
   return (
-    <div className={`flex items-center justify-between p-2 rounded-lg bg-slate-800/50 border border-slate-700`}>
-      <span className={`font-medium ${colorClass}`}>{star.name}</span>
-      <div className="flex items-center gap-2">
-        {star.brightness && (
-          <span className="text-xs text-gray-500">{star.brightness}</span>
-        )}
-        {star.mutagen && (
-          <Badge variant="outline" className={`text-xs px-1.5 py-0 ${getMutagenBgColor(star.mutagen)} ${getMutagenColor(star.mutagen)}`}>
-            {star.mutagen}
-          </Badge>
-        )}
+    <div className="space-y-1">
+      <div 
+        onClick={() => meaning && setShowMeaning(!showMeaning)}
+        className={`flex items-center justify-between p-2 rounded-lg bg-slate-800/50 border border-slate-700 ${meaning ? 'cursor-pointer hover:bg-slate-700/50' : ''}`}
+      >
+        <span className={`font-medium ${colorClass}`}>
+          {star.name}
+          {meaning && <span className="ml-1 text-[10px] text-gray-500">ⓘ</span>}
+        </span>
+        <div className="flex items-center gap-2">
+          {star.brightness && (
+            <span className="text-xs text-gray-500">{star.brightness}</span>
+          )}
+          {star.mutagen && (
+            <Badge variant="outline" className={`text-xs px-1.5 py-0 ${getMutagenBgColor(star.mutagen)} ${getMutagenColor(star.mutagen)}`}>
+              {star.mutagen}
+            </Badge>
+          )}
+        </div>
       </div>
+      
+      {/* Hiển thị ý nghĩa khi click */}
+      {showMeaning && meaning && (
+        <div className="ml-2 p-2 rounded bg-slate-900/80 border border-slate-600 text-xs space-y-1.5">
+          {/* Tính chất và ngũ hành */}
+          <div className="flex gap-2 flex-wrap">
+            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${
+              meaning.nature === 'cát' ? 'bg-green-900/50 text-green-300 border-green-500/50' :
+              meaning.nature === 'hung' ? 'bg-red-900/50 text-red-300 border-red-500/50' :
+              'bg-gray-900/50 text-gray-300 border-gray-500/50'
+            }`}>
+              {meaning.nature === 'cát' ? '✨ Cát tinh' : meaning.nature === 'hung' ? '⚠️ Hung tinh' : '⚖️ Trung tính'}
+            </Badge>
+            {meaning.element && (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-slate-800 text-gray-300 border-slate-600">
+                {meaning.element}
+              </Badge>
+            )}
+          </div>
+          
+          {/* Từ khóa */}
+          <div className="flex gap-1 flex-wrap">
+            {meaning.keywords.map((kw, i) => (
+              <span key={i} className="px-1.5 py-0.5 bg-amber-900/30 text-amber-300 rounded text-[10px]">
+                {kw}
+              </span>
+            ))}
+          </div>
+          
+          {/* Ý nghĩa chung */}
+          <p className="text-gray-300 leading-relaxed">{meaning.meaning}</p>
+          
+          {/* Ý nghĩa theo cung */}
+          {palaceName && getPalaceMeaning(meaning, palaceName) && (
+            <div className="pt-1 border-t border-slate-700">
+              <p className="text-[10px] text-amber-400 mb-0.5">Tại cung {palaceName}:</p>
+              <p className="text-gray-300 leading-relaxed">{getPalaceMeaning(meaning, palaceName)}</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -141,7 +207,7 @@ function PalaceDetailModal({ palace, open, onClose }: PalaceDetailModalProps) {
               {palace.majorStars.length > 0 ? (
                 <div className="space-y-1.5">
                   {palace.majorStars.map((star, i) => (
-                    <StarItem key={`major-${i}`} star={star} colorClass="text-purple-300" />
+                    <StarItem key={`major-${i}`} star={star} colorClass="text-purple-300" palaceName={palace.name} />
                   ))}
                 </div>
               ) : (
@@ -158,7 +224,7 @@ function PalaceDetailModal({ palace, open, onClose }: PalaceDetailModalProps) {
               {palace.minorStars.length > 0 ? (
                 <div className="space-y-1.5">
                   {palace.minorStars.map((star, i) => (
-                    <StarItem key={`minor-${i}`} star={star} colorClass="text-green-300" />
+                    <StarItem key={`minor-${i}`} star={star} colorClass="text-green-300" palaceName={palace.name} />
                   ))}
                 </div>
               ) : (
@@ -175,7 +241,7 @@ function PalaceDetailModal({ palace, open, onClose }: PalaceDetailModalProps) {
                 </h4>
                 <div className="space-y-1.5">
                   {palace.adjectiveStars.map((star, i) => (
-                    <StarItem key={`adj-${i}`} star={star} colorClass="text-orange-300" />
+                    <StarItem key={`adj-${i}`} star={star} colorClass="text-orange-300" palaceName={palace.name} />
                   ))}
                 </div>
               </div>
