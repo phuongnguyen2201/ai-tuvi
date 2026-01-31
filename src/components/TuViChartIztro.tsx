@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { getStarMeaning, StarMeaning } from '@/lib/tuvi/starMeanings';
+import { getPalaceMeaning, PalaceMeaning } from '@/lib/tuvi/palaceMeanings';
 interface Props {
   chart: TuViChartData;
 }
@@ -133,6 +134,7 @@ function PalaceDetailModal({ palace, open, onClose }: PalaceDetailModalProps) {
   if (!palace) return null;
 
   const totalStars = palace.majorStars.length + palace.minorStars.length + (palace.adjectiveStars?.length || 0);
+  const palaceMeaning = getPalaceMeaning(palace.name);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -157,6 +159,40 @@ function PalaceDetailModal({ palace, open, onClose }: PalaceDetailModalProps) {
 
         <ScrollArea className="max-h-[60vh] pr-4">
           <div className="space-y-4">
+            {/* Ý nghĩa cung */}
+            {palaceMeaning && (
+              <div className="p-3 bg-gradient-to-br from-amber-900/30 to-orange-900/20 border border-amber-600/40 rounded-lg space-y-2">
+                <div className="flex gap-1.5 flex-wrap">
+                  {palaceMeaning.keywords.map((kw, i) => (
+                    <span key={i} className="px-2 py-0.5 bg-amber-800/50 text-amber-200 rounded text-xs">
+                      {kw}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-sm text-gray-300 leading-relaxed">{palaceMeaning.meaning}</p>
+                
+                <div className="pt-2 border-t border-amber-600/30">
+                  <p className="text-xs text-amber-400 mb-1.5">📋 Cung này chi phối:</p>
+                  <ul className="text-xs text-gray-400 space-y-0.5 list-disc list-inside">
+                    {palaceMeaning.aspects.slice(0, 4).map((aspect, i) => (
+                      <li key={i}>{aspect}</li>
+                    ))}
+                  </ul>
+                </div>
+                
+                <div className="pt-2 border-t border-amber-600/30">
+                  <p className="text-xs text-cyan-400 mb-1.5">❓ Câu hỏi thường gặp:</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {palaceMeaning.questions.map((q, i) => (
+                      <span key={i} className="px-2 py-0.5 bg-cyan-900/30 text-cyan-300 rounded text-[10px] italic">
+                        {q}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {/* Thống kê */}
             <div className="flex gap-2 text-xs">
               <span className="px-2 py-1 bg-purple-900/30 text-purple-300 rounded">
