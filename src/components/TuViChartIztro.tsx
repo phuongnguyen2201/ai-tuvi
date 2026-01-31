@@ -320,6 +320,20 @@ function CenterInfo({ chart }: { chart: TuViChartData }) {
             {chart.napAm?.napAm || '—'}
           </p>
           <p className="text-[10px] text-gray-400">({chart.napAm?.meaning})</p>
+          
+          {/* Màu và Hướng may mắn */}
+          {chart.napAm && (
+            <div className="mt-1 grid grid-cols-2 gap-1 text-[9px]">
+              <div className="flex items-center gap-1">
+                <span className="text-gray-500">🎨</span>
+                <span className="text-gray-300">{chart.napAm.color}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-gray-500">🧭</span>
+                <span className="text-gray-300">{chart.napAm.direction}</span>
+              </div>
+            </div>
+          )}
         </div>
         
         {/* Cục */}
