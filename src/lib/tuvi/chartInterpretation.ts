@@ -324,9 +324,10 @@ function interpretFortune(chart: TuViChartData): InterpretationSection {
   const content: string[] = [];
   let level: 'positive' | 'neutral' | 'negative' = 'neutral';
   
-  // Tính tuổi hiện tại (ước lượng)
+  // Tính tuổi hiện tại (tuổi mụ = năm hiện tại - năm sinh + 1)
   const currentYear = new Date().getFullYear();
-  const birthYear = parseInt(chart.lunarYear.split(' ')[0]) || currentYear - 30;
+  // solarDate có dạng "YYYY-MM-DD", lấy năm sinh từ đó
+  const birthYear = parseInt(chart.solarDate?.split('-')[0]) || currentYear - 30;
   const currentAge = currentYear - birthYear + 1; // Tuổi mụ
   
   content.push(`📅 Tuổi hiện tại (tính theo tuổi mụ): khoảng ${currentAge} tuổi.`);
