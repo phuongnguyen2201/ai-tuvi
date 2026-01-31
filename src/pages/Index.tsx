@@ -39,7 +39,7 @@ const Index = () => {
         <div className="absolute bottom-1/4 right-0 w-80 h-80 bg-gold/5 rounded-full blur-3xl" />
         <div className="absolute top-1/2 -left-20 w-64 h-64 bg-gold/5 rounded-full blur-3xl" />
       </div>
-      
+
       {/* Main content */}
       <div className="relative z-10 min-h-screen flex flex-col">
         <div className="container max-w-lg mx-auto px-4 py-8 flex flex-col flex-1">
@@ -47,31 +47,25 @@ const Index = () => {
           <div className="flex-shrink-0 pt-8 pb-12 flex justify-center">
             <Logo size="lg" />
           </div>
-          
+
           {/* Menu Grid */}
           <div className="grid grid-cols-2 gap-4 mb-8">
             {menuItems.map((item, index) => (
-              <MenuCard
-                key={item.to}
-                {...item}
-                delay={index * 100}
-              />
+              <MenuCard key={item.to} {...item} delay={index * 100} />
             ))}
           </div>
-          
+
           {/* Spacer */}
           <div className="flex-1" />
-          
+
           {/* Daily Wisdom */}
           <div className="animate-fade-in" style={{ animationDelay: "400ms" }}>
             <DailyWisdom />
           </div>
-          
+
           {/* Footer */}
           <footer className="py-6 text-center">
-            <p className="text-xs text-muted-foreground">
-              © 2024 Tử Vi Việt Nam
-            </p>
+            <p className="text-xs text-muted-foreground">© 2024 Tử Vi Việt Nam</p>
           </footer>
         </div>
       </div>
