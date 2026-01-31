@@ -284,31 +284,66 @@ function PalaceCell({ palace, onClick }: PalaceCellProps) {
 // =============== CENTER INFO ===============
 
 function CenterInfo({ chart }: { chart: TuViChartData }) {
+  // Color mapping for elements
+  const elementColors: Record<string, string> = {
+    'Kim': 'text-yellow-300',
+    'Mộc': 'text-green-300',
+    'Thủy': 'text-blue-300',
+    'Hỏa': 'text-red-300',
+    'Thổ': 'text-amber-300',
+  };
+  
+  const relationColors: Record<string, string> = {
+    'tuong_sinh': 'text-green-400 bg-green-900/30',
+    'tuong_khac': 'text-red-400 bg-red-900/30',
+    'binh_hoa': 'text-yellow-400 bg-yellow-900/30',
+  };
+
   return (
-    <div className="col-span-2 row-span-2 flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-2 border-amber-500/30 rounded-xl p-4 gap-2">
-      <div className="text-2xl font-bold text-amber-400 tracking-wider mb-2">
+    <div className="col-span-2 row-span-2 flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-2 border-amber-500/30 rounded-xl p-3 gap-1">
+      <div className="text-xl font-bold text-amber-400 tracking-wider mb-1">
         紫微斗數
       </div>
       
-      <div className="text-center space-y-1">
-        <p className="text-sm text-gray-300">
+      <div className="text-center space-y-0.5 w-full">
+        <p className="text-xs text-gray-300">
           <span className="text-gray-500">Năm:</span> {chart.lunarYear}
         </p>
-        <p className="text-sm text-gray-300">
-          <span className="text-gray-500">Giờ:</span> {chart.birthHour}
+        <p className="text-xs text-gray-300">
+          <span className="text-gray-500">Giờ:</span> {chart.birthHour} • {chart.genderYinYang}
         </p>
-        <p className="text-sm text-gray-300">
-          <span className="text-gray-500">Giới tính:</span> {chart.genderYinYang}
-        </p>
-        <p className="text-sm font-semibold text-cyan-300">
-          <span className="text-gray-500">Cục:</span> {chart.cuc.name}
-        </p>
+        
+        {/* Nạp Âm - Bản Mệnh */}
+        <div className="mt-1 pt-1 border-t border-amber-600/20">
+          <p className="text-[10px] text-gray-500 mb-0.5">Bản Mệnh (Nạp Âm):</p>
+          <p className={`text-sm font-bold ${elementColors[chart.napAm?.element] || 'text-white'}`}>
+            {chart.napAm?.napAm || '—'}
+          </p>
+          <p className="text-[10px] text-gray-400">({chart.napAm?.meaning})</p>
+        </div>
+        
+        {/* Cục */}
+        <div className="mt-1 pt-1 border-t border-amber-600/20">
+          <p className="text-sm font-semibold text-cyan-300">
+            {chart.cuc.name}
+          </p>
+        </div>
+        
+        {/* Quan hệ Mệnh - Cục */}
+        {chart.cucMenhRelation && (
+          <div className={`mt-1 p-1.5 rounded text-[10px] ${relationColors[chart.cucMenhRelation.relation] || ''}`}>
+            <p className="font-medium">
+              Mệnh {chart.cucMenhRelation.menhElement} {chart.cucMenhRelation.relation === 'tuong_khac' ? '⚔️' : chart.cucMenhRelation.relation === 'tuong_sinh' ? '✨' : '⚖️'} Cục {chart.cucMenhRelation.cucElement}
+            </p>
+            <p className="text-[9px] opacity-80">{chart.cucMenhRelation.description}</p>
+          </div>
+        )}
       </div>
       
       {/* Tứ Hóa */}
-      <div className="mt-2 pt-2 border-t border-amber-600/30 w-full">
-        <p className="text-xs text-gray-400 text-center mb-1">Tứ Hóa:</p>
-        <div className="grid grid-cols-2 gap-1 text-xs">
+      <div className="mt-1 pt-1 border-t border-amber-600/30 w-full">
+        <p className="text-[10px] text-gray-400 text-center mb-0.5">Tứ Hóa:</p>
+        <div className="grid grid-cols-2 gap-0.5 text-[10px]">
           <span className="text-green-400">Lộc: {chart.tuHoa.hoaLoc.star || '—'}</span>
           <span className="text-orange-400">Quyền: {chart.tuHoa.hoaQuyen.star || '—'}</span>
           <span className="text-blue-400">Khoa: {chart.tuHoa.hoaKhoa.star || '—'}</span>

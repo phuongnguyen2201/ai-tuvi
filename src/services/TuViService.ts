@@ -1,6 +1,7 @@
 // src/services/TuViService.ts
 
 import { astro } from 'iztro';
+import { getNguHanhNapAm, checkElementRelation, NguHanhNapAm, NguHanhRelation } from '@/lib/tuvi/nguHanh';
 
 export interface BirthInput {
   year: number;
@@ -31,6 +32,22 @@ export interface PalaceInfo {
   isBodyPalace: boolean;
 }
 
+export interface NapAmInfo {
+  napAm: string;           // Tên Nạp Âm: "Thiên Thượng Hỏa"
+  element: string;         // Ngũ hành: "Hỏa"
+  meaning: string;         // Ý nghĩa
+  color: string;           // Màu may mắn
+  direction: string;       // Hướng tốt
+}
+
+export interface CucMenhRelation {
+  cucElement: string;      // Ngũ hành của Cục: "Kim"
+  menhElement: string;     // Ngũ hành Nạp Âm: "Hỏa"
+  relation: 'tuong_sinh' | 'tuong_khac' | 'binh_hoa';
+  description: string;     // "Mệnh Hỏa khắc Cục Kim"
+  compatibility: number;   // Điểm tương thích
+}
+
 export interface TuViChartData {
   solarDate: string;
   lunarDate: string;
@@ -42,6 +59,8 @@ export interface TuViChartData {
   soulStar: string;
   bodyStar: string;
   fiveElements: string;
+  napAm: NapAmInfo;
+  cucMenhRelation: CucMenhRelation;
   palaces: PalaceInfo[];
   tuHoa: {
     hoaLoc: { star: string; palace: string };
@@ -115,26 +134,70 @@ function getThanChu(yearBranch: string): string {
 }
 
 /**
+ * Trích xuất Can Chi từ chuỗi (vd: "Kỷ Mùi" -> { can: "Kỷ", chi: "Mùi" })
+ */
+function extractCanChi(canChi: string): { can: string; chi: string } {
+  const parts = canChi.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return { can: parts[0], chi: parts[1] };
+  }
+  return { can: '', chi: parts[0] || '' };
+}
+
+/**
  * Trích xuất Địa Chi từ chuỗi Can Chi năm (vd: "Kỷ Mùi" -> "Mùi")
  */
 function extractYearBranch(canChi: string): string {
-  const parts = canChi.trim().split(/\s+/);
-  return parts.length >= 2 ? parts[1] : parts[0];
+  return extractCanChi(canChi).chi;
 }
 
-function parseCuc(cucStr: string): { name: string; value: number } {
-  const cucMap: Record<string, number> = {
-    'Thủy Nhị Cục': 2,
-    'Mộc Tam Cục': 3,
-    'Kim Tứ Cục': 4,
-    'Thổ Ngũ Cục': 5,
-    'Hỏa Lục Cục': 6,
+interface CucInfo {
+  name: string;
+  value: number;
+  element: string;
+}
+
+function parseCuc(cucStr: string): CucInfo {
+  const cucMap: Record<string, { value: number; element: string }> = {
+    'Thủy Nhị Cục': { value: 2, element: 'Thủy' },
+    'Mộc Tam Cục': { value: 3, element: 'Mộc' },
+    'Kim Tứ Cục': { value: 4, element: 'Kim' },
+    'Thổ Ngũ Cục': { value: 5, element: 'Thổ' },
+    'Hỏa Lục Cục': { value: 6, element: 'Hỏa' },
   };
   
-  for (const [name, value] of Object.entries(cucMap)) {
-    if (cucStr?.includes(name)) return { name, value };
+  for (const [name, info] of Object.entries(cucMap)) {
+    if (cucStr?.includes(name)) return { name, ...info };
   }
-  return { name: cucStr || '', value: 0 };
+  return { name: cucStr || '', value: 0, element: '' };
+}
+
+/**
+ * Tính quan hệ giữa Mệnh (Nạp Âm) và Cục
+ */
+function getCucMenhRelation(napAmElement: string, cucElement: string): CucMenhRelation {
+  const relation = checkElementRelation(napAmElement, cucElement);
+  
+  let description = '';
+  if (relation.relation === 'tuong_sinh') {
+    if (napAmElement === cucElement) {
+      description = `Mệnh ${napAmElement} tương đồng Cục ${cucElement} - Bình hòa`;
+    } else {
+      description = `Mệnh ${napAmElement} sinh/được sinh bởi Cục ${cucElement} - Thuận lợi`;
+    }
+  } else if (relation.relation === 'tuong_khac') {
+    description = `Mệnh ${napAmElement} khắc/bị khắc Cục ${cucElement} - Cần lưu ý`;
+  } else {
+    description = `Mệnh ${napAmElement} và Cục ${cucElement} - Bình hòa`;
+  }
+
+  return {
+    cucElement,
+    menhElement: napAmElement,
+    relation: relation.relation,
+    description,
+    compatibility: relation.compatibility,
+  };
 }
 
 function getYinYang(chineseDate: string, gender: string): string {
@@ -211,8 +274,22 @@ export function createTuViChart(input: BirthInput): TuViChartData {
   
   // Tính Mệnh Chủ và Thân Chủ theo công thức truyền thống
   const menhChu = getMenhChu(input.hour);
-  const yearBranch = extractYearBranch(lunarYear);
+  const { can: yearCan, chi: yearBranch } = extractCanChi(lunarYear);
   const thanChu = getThanChu(yearBranch);
+  
+  // Tính Nạp Âm từ Can Chi năm sinh
+  const napAmData = getNguHanhNapAm(yearCan, yearBranch);
+  const napAm: NapAmInfo = {
+    napAm: napAmData.napAm,
+    element: napAmData.name,
+    meaning: napAmData.meaning,
+    color: napAmData.color,
+    direction: napAmData.direction,
+  };
+  
+  // Tính quan hệ Cục - Mệnh
+  const cucInfo = parseCuc(astrolabe.fiveElementsClass);
+  const cucMenhRelation = getCucMenhRelation(napAm.element, cucInfo.element);
   
   return {
     solarDate: astrolabe.solarDate || '',
@@ -221,10 +298,12 @@ export function createTuViChart(input: BirthInput): TuViChartData {
     birthHour: getLunarHourName(input.hour),
     gender: input.gender,
     genderYinYang: getYinYang(astrolabe.chineseDate, input.gender),
-    cuc: parseCuc(astrolabe.fiveElementsClass),
+    cuc: cucInfo,
     soulStar: menhChu,
     bodyStar: thanChu,
     fiveElements: astrolabe.fiveElementsClass || '',
+    napAm,
+    cucMenhRelation,
     palaces,
     tuHoa: extractTuHoa(palaces),
   };
