@@ -192,7 +192,12 @@ export default function TuViIztroPage() {
                   <div>
                     <p className="font-semibold text-amber-300 mb-1">Thông tin chung:</p>
                     <p>• Năm sinh: {chart.lunarYear}</p>
-                    <p>• Ngũ Hành Cục: <span className="text-cyan-300">{chart.fiveElements}</span></p>
+                    <p>• Bản Mệnh: <span className="text-red-300 font-medium">{chart.napAm?.napAm || '—'}</span></p>
+                    <p>• Ngũ Hành Mệnh: <span className="text-red-300">{chart.napAm?.element || '—'}</span></p>
+                    <p>• Ngũ Hành Cục: <span className="text-cyan-300">{chart.cuc.name}</span></p>
+                    <p>• Quan hệ Mệnh-Cục: <span className={chart.cucMenhRelation?.relation === 'tuong_khac' ? 'text-red-400' : 'text-green-400'}>
+                      {chart.cucMenhRelation?.description || '—'}
+                    </span></p>
                     <p>• Mệnh Chủ: <span className="text-purple-300">{chart.soulStar || '—'}</span></p>
                     <p>• Thân Chủ: <span className="text-green-300">{chart.bodyStar || '—'}</span></p>
                   </div>
