@@ -101,13 +101,33 @@ function PalaceDetailModal({ palace, open, onClose }: PalaceDetailModalProps) {
               </span>
             </div>
 
-            {/* Trường Sinh */}
-            {palace.changsheng12 && (
-              <div className="p-2 bg-amber-900/20 border border-amber-600/30 rounded-lg">
-                <span className="text-xs text-gray-400">Trường Sinh 12 thần:</span>
-                <span className="ml-2 text-amber-300 font-medium">{palace.changsheng12}</span>
-              </div>
-            )}
+            {/* Thần Sát 12 thần */}
+            <div className="grid grid-cols-2 gap-2">
+              {palace.changsheng12 && (
+                <div className="p-2 bg-amber-900/20 border border-amber-600/30 rounded-lg">
+                  <span className="text-[10px] text-gray-400 block">Trường Sinh:</span>
+                  <span className="text-amber-300 font-medium text-sm">{palace.changsheng12}</span>
+                </div>
+              )}
+              {palace.boshi12 && (
+                <div className="p-2 bg-cyan-900/20 border border-cyan-600/30 rounded-lg">
+                  <span className="text-[10px] text-gray-400 block">Bác Sĩ:</span>
+                  <span className="text-cyan-300 font-medium text-sm">{palace.boshi12}</span>
+                </div>
+              )}
+              {palace.jiangqian12 && (
+                <div className="p-2 bg-pink-900/20 border border-pink-600/30 rounded-lg">
+                  <span className="text-[10px] text-gray-400 block">Tướng Tiền:</span>
+                  <span className="text-pink-300 font-medium text-sm">{palace.jiangqian12}</span>
+                </div>
+              )}
+              {palace.suiqian12 && (
+                <div className="p-2 bg-indigo-900/20 border border-indigo-600/30 rounded-lg">
+                  <span className="text-[10px] text-gray-400 block">Tuế Tiền:</span>
+                  <span className="text-indigo-300 font-medium text-sm">{palace.suiqian12}</span>
+                </div>
+              )}
+            </div>
 
             {/* Chính Tinh */}
             <div className="space-y-2">
