@@ -9,8 +9,8 @@ import {
   type TuViChart,
   type BirthInfo,
 } from "@/lib/tuvi/tuviChart";
-import { convertSolarToLunar } from "@/lib/tuvi/lunarCalendar";
-import { getNguHanhNapAm } from "@/lib/tuvi/nguHanhNapAm";
+import { solarToLunar, THIEN_CAN, DIA_CHI } from "@/lib/tuvi/lunarCalendar";
+import { getNguHanhNapAm } from "@/lib/tuvi/nguHanh";
 
 // Map star ID to Vietnamese name for Tu Hoa display
 const STAR_NAMES: Record<string, string> = {
@@ -51,11 +51,8 @@ export default function TestChartPage() {
       setError(null);
 
       // Convert solar to lunar
-      const lunar = convertSolarToLunar(solarDay, solarMonth, solarYear);
-      if (!lunar) {
-        setError("Không thể chuyển đổi ngày âm lịch");
-        return;
-      }
+      const solarDate = new Date(solarYear, solarMonth - 1, solarDay);
+      const lunar = solarToLunar(solarDate);
 
       // Get birth hour index - now birthHour IS the index (0-11)
       const birthHourIndex = birthHour;
@@ -80,17 +77,15 @@ export default function TestChartPage() {
       setChart(newChart);
 
       // Get Ngu Hanh Nap Am
-      const napAm = getNguHanhNapAm(solarYear);
-
-      // Get Can Chi name
-      const THIEN_CAN = ["Giáp", "Ất", "Bính", "Đinh", "Mậu", "Kỷ", "Canh", "Tân", "Nhâm", "Quý"];
-      const DIA_CHI = ["Tý", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mùi", "Thân", "Dậu", "Tuất", "Hợi"];
-      const canChiName = `${THIEN_CAN[canNamIndex]} ${DIA_CHI[chiNamIndex]}`;
+      const canName = THIEN_CAN[canNamIndex].name;
+      const chiName = DIA_CHI[chiNamIndex].name;
+      const napAm = getNguHanhNapAm(canName, chiName);
+      const canChiName = `${canName} ${chiName}`;
 
       // Set display info
       setBirthInfoDisplay({
         canChi: canChiName,
-        nguHanh: napAm?.nguHanh || "N/A",
+        nguHanh: napAm?.name || "N/A",
         napAm: napAm?.napAm || "N/A",
         lunarDate: `${lunar.day}/${lunar.month}/${lunar.year}`,
         birthHour: `Giờ ${getBirthHourName(birthHourIndex)}`,
