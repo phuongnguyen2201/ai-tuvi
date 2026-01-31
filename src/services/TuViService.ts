@@ -31,8 +31,14 @@ export interface PalaceInfo {
   boshi12?: string;            // Bác Sĩ 12 thần (Bác Sĩ, Lực Sĩ, Thanh Long, Tiểu Hao...)
   jiangqian12?: string;        // Tướng Tiền 12 thần (Tướng Tinh, Phan An, Tuế Dịch, Tức Thần...)
   suiqian12?: string;          // Tuế Tiền 12 thần (Tuế Kiến, Hối Khí, Táng Môn, Điếu Khách...)
+  stage?: {                    // Đại Hạn (10 năm)
+    range: [number, number];   // VD: [44, 53]
+    heavenlyStem: string;      // Can của đại hạn
+  };
+  ages?: number[];             // Tiểu Hạn - các tuổi vận hạn năm
   isSoulPalace: boolean;
   isBodyPalace: boolean;
+  isOriginalPalace: boolean;   // Lai Nhân Cung
 }
 
 export interface NapAmInfo {
@@ -56,8 +62,11 @@ export interface TuViChartData {
   lunarDate: string;
   lunarYear: string;
   birthHour: string;
+  timeRange: string;           // Khoảng giờ: "01:00~03:00"
   gender: string;
   genderYinYang: string;
+  sign: string;                // Cung hoàng đạo Tây phương: "Bọ Cạp"
+  zodiac: string;              // Con giáp: "Mùi"
   cuc: { name: string; value: number };
   soulStar: string;
   bodyStar: string;
@@ -237,11 +246,17 @@ function convertPalace(palace: any): PalaceInfo {
       brightness: s.brightness,
     })),
     changsheng12: palace.changsheng12,
-    boshi12: palace.boshi12,           // Bác Sĩ 12 thần
-    jiangqian12: palace.jiangqian12,   // Tướng Tiền 12 thần
-    suiqian12: palace.suiqian12,       // Tuế Tiền 12 thần
+    boshi12: palace.boshi12,             // Bác Sĩ 12 thần
+    jiangqian12: palace.jiangqian12,     // Tướng Tiền 12 thần
+    suiqian12: palace.suiqian12,         // Tuế Tiền 12 thần
+    stage: palace.stage ? {              // Đại Hạn
+      range: palace.stage.range,
+      heavenlyStem: palace.stage.heavenlyStem,
+    } : undefined,
+    ages: palace.ages,                   // Tiểu Hạn
     isSoulPalace: palace.isSoulPalace || false,
     isBodyPalace: palace.isBodyPalace || false,
+    isOriginalPalace: palace.isOriginalPalace || false,
   };
 }
 
@@ -302,8 +317,11 @@ export function createTuViChart(input: BirthInput): TuViChartData {
     lunarDate: astrolabe.lunarDate || '',
     lunarYear,
     birthHour: getLunarHourName(input.hour),
+    timeRange: astrolabe.timeRange || '',         // Khoảng giờ
     gender: input.gender,
     genderYinYang: getYinYang(astrolabe.chineseDate, input.gender),
+    sign: astrolabe.sign || '',                   // Cung hoàng đạo
+    zodiac: astrolabe.zodiac || '',               // Con giáp
     cuc: cucInfo,
     soulStar: menhChu,
     bodyStar: thanChu,

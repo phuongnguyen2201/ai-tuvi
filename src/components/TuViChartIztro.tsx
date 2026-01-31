@@ -83,6 +83,9 @@ function PalaceDetailModal({ palace, open, onClose }: PalaceDetailModalProps) {
             {palace.isBodyPalace && (
               <Badge className="bg-cyan-500/30 text-cyan-200 border-cyan-500/50">THÂN</Badge>
             )}
+            {palace.isOriginalPalace && (
+              <Badge className="bg-purple-500/30 text-purple-200 border-purple-500/50">LAI NHÂN</Badge>
+            )}
           </DialogTitle>
         </DialogHeader>
 
@@ -175,6 +178,37 @@ function PalaceDetailModal({ palace, open, onClose }: PalaceDetailModalProps) {
                     <StarItem key={`adj-${i}`} star={star} colorClass="text-orange-300" />
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Đại Hạn & Tiểu Hạn */}
+            {(palace.stage || palace.ages) && (
+              <div className="space-y-2 pt-2 border-t border-slate-700">
+                <h4 className="text-sm font-semibold text-teal-300 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-teal-500"></span>
+                  Vận Hạn
+                </h4>
+                {palace.stage && (
+                  <div className="p-2 bg-teal-900/20 border border-teal-600/30 rounded-lg">
+                    <span className="text-[10px] text-gray-400 block">Đại Hạn (10 năm):</span>
+                    <span className="text-teal-300 font-medium">
+                      {palace.stage.range[0]} - {palace.stage.range[1]} tuổi
+                      <span className="text-gray-500 ml-1">({palace.stage.heavenlyStem})</span>
+                    </span>
+                  </div>
+                )}
+                {palace.ages && palace.ages.length > 0 && (
+                  <div className="p-2 bg-slate-800/50 border border-slate-600/30 rounded-lg">
+                    <span className="text-[10px] text-gray-400 block">Tiểu Hạn (tuổi):</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {palace.ages.map((age, i) => (
+                        <span key={i} className="px-1.5 py-0.5 bg-slate-700 text-gray-300 text-xs rounded">
+                          {age}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -330,7 +364,11 @@ function CenterInfo({ chart }: { chart: TuViChartData }) {
           <span className="text-gray-500">Năm:</span> {chart.lunarYear}
         </p>
         <p className="text-xs text-gray-300">
-          <span className="text-gray-500">Giờ:</span> {chart.birthHour} • {chart.genderYinYang}
+          <span className="text-gray-500">Giờ:</span> {chart.birthHour} ({chart.timeRange}) • {chart.genderYinYang}
+        </p>
+        {/* Sign & Zodiac */}
+        <p className="text-xs text-gray-400">
+          🐾 {chart.zodiac} • ♈ {chart.sign}
         </p>
         
         {/* Nạp Âm - Bản Mệnh */}
