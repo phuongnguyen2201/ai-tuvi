@@ -83,7 +83,7 @@ export default function TuViIztroPage() {
           🔮 Lập Lá Số Tử Vi
         </h1>
         <p className="text-center text-gray-400 text-sm">
-          Sử dụng thư viện <span className="text-cyan-400 font-mono">iztro</span> để tính toán chính xác
+          Nhập thông tin ngày sinh để xem lá số tử vi của bạn
         </p>
         
         {/* Form nhập liệu */}

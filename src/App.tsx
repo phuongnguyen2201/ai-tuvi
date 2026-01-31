@@ -5,8 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
-import BirthInput from "./pages/BirthInput";
-import TuViResult from "./pages/TuViResult";
+import TuViIztroPage from "./pages/TuViIztroPage";
 import Compatibility from "./pages/Compatibility";
 import DayAnalysis from "./pages/DayAnalysis";
 import BoiKieu from "./pages/BoiKieu";
@@ -17,7 +16,6 @@ import CompatibilityTest from "./components/CompatibilityTest";
 import Test from "./pages/Test";
 import TuViTest from "./pages/TuViTest";
 import TestChartPage from "./components/test-chart-page";
-import TuViIztroPage from "./pages/TuViIztroPage";
 
 const queryClient = new QueryClient();
 
@@ -31,8 +29,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/lap-la-so" element={<BirthInput />} />
-            <Route path="/ket-qua" element={<TuViResult />} />
+            <Route path="/lap-la-so" element={<TuViIztroPage />} />
             <Route path="/tuoi-hop" element={<Compatibility />} />
             <Route path="/xem-ngay" element={<DayAnalysis />} />
             <Route path="/boi-kieu" element={<BoiKieu />} />
