@@ -7,10 +7,15 @@ import ChartInterpretationDisplay from '@/components/ChartInterpretationDisplay'
 import TuViAnalysis from '@/components/TuViAnalysis';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import PageLayout from '@/components/PageLayout';
 
 const LUNAR_HOURS = [
@@ -34,7 +39,7 @@ export default function TuViIztroPage() {
   const [isLoading, setIsLoading] = useState(false);
   
   // Form state
-  const [birthDate, setBirthDate] = useState('1979-10-25');
+  const [birthDate, setBirthDate] = useState<Date>(new Date(1979, 9, 25));
   const [birthHour, setBirthHour] = useState('1');
   const [gender, setGender] = useState<'Nam' | 'Nữ'>('Nam');
   const [calendarType, setCalendarType] = useState<'solar' | 'lunar'>('solar');
@@ -45,11 +50,9 @@ export default function TuViIztroPage() {
     setIsLoading(true);
     
     try {
-      const [year, month, day] = birthDate.split('-').map(Number);
-      
-      if (!year || !month || !day) {
-        throw new Error('Ngày sinh không hợp lệ');
-      }
+      const year = birthDate.getFullYear();
+      const month = birthDate.getMonth() + 1;
+      const day = birthDate.getDate();
       
       const input: BirthInput = {
         year,
@@ -115,16 +118,34 @@ export default function TuViIztroPage() {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Birth date */}
+                {/* Birth date with Calendar */}
                 <div className="space-y-2">
                   <Label htmlFor="birthDate" className="text-gray-300">Ngày sinh</Label>
-                  <Input
-                    id="birthDate"
-                    type="date"
-                    value={birthDate}
-                    onChange={(e) => setBirthDate(e.target.value)}
-                    className="bg-slate-800 border-slate-600 text-white"
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal bg-slate-800 border-slate-600 text-white hover:bg-slate-700",
+                          !birthDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {birthDate ? format(birthDate, "dd/MM/yyyy", { locale: vi }) : "Chọn ngày sinh"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-600" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={birthDate}
+                        onSelect={(date) => date && setBirthDate(date)}
+                        captionLayout="dropdown-buttons"
+                        fromYear={1920}
+                        toYear={new Date().getFullYear()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 
                 {/* Birth hour */}
