@@ -1,6 +1,7 @@
 // src/pages/TuViIztroPage.tsx - Page lập lá số dùng iztro library
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { createTuViChart, TuViChartData, BirthInput } from '@/services/TuViService';
 import TuViChartIztro from '@/components/TuViChartIztro';
 import ChartInterpretationDisplay from '@/components/ChartInterpretationDisplay';
@@ -12,12 +13,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Loader2, CheckCircle, XCircle, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import PageLayout from '@/components/PageLayout';
 import { MintMenhNFT } from '@/components/MintMenhNFT';
+import { supabase } from '@/integrations/supabase/client';
 
 const LUNAR_HOURS = [
   { value: '0', label: 'Tý (23:00 - 00:59)' },
@@ -43,6 +45,35 @@ export default function TuViIztroPage() {
   const [birthDate, setBirthDate] = useState<Date>(new Date(1979, 9, 25));
   const [birthHour, setBirthHour] = useState('1');
   const [gender, setGender] = useState<'Nam' | 'Nữ'>('Nam');
+
+  // Mint callback state
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [mintStatus, setMintStatus] = useState<'idle' | 'minting' | 'success' | 'error'>('idle');
+  const [mintResult, setMintResult] = useState<any>(null);
+
+  useEffect(() => {
+    const sessionId = searchParams.get('session_id');
+    const mintSuccess = searchParams.get('mint_success');
+
+    if (sessionId && mintSuccess === 'true' && mintStatus === 'idle') {
+      setMintStatus('minting');
+
+      supabase.functions.invoke('mint-menh-nft', {
+        body: { sessionId }
+      }).then(({ data, error: fnError }) => {
+        if (fnError || !data?.success) {
+          console.error('Mint error:', fnError || data?.error);
+          setMintStatus('error');
+        } else {
+          console.log('Mint success:', data);
+          setMintResult(data);
+          setMintStatus('success');
+        }
+        // Clean URL
+        setSearchParams({});
+      });
+    }
+  }, [searchParams, mintStatus]);
   const [calendarType, setCalendarType] = useState<'solar' | 'lunar'>('solar');
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -91,6 +122,69 @@ export default function TuViIztroPage() {
         <p className="text-center text-gray-400 text-sm">
           Nhập thông tin ngày sinh để xem lá số tử vi của bạn
         </p>
+
+        {/* Mint status banner */}
+        {mintStatus === 'minting' && (
+          <Card className="border-amber-500/50 bg-amber-950/30">
+            <CardContent className="flex items-center gap-3 py-4">
+              <Loader2 className="h-5 w-5 animate-spin text-amber-400" />
+              <div>
+                <p className="font-semibold text-amber-300">Đang mint NFT...</p>
+                <p className="text-sm text-gray-400">Vui lòng chờ trong giây lát, giao dịch đang được xử lý trên blockchain.</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {mintStatus === 'success' && mintResult && (
+          <Card className="border-green-500/50 bg-green-950/30">
+            <CardContent className="flex items-center gap-3 py-4">
+              <CheckCircle className="h-5 w-5 text-green-400 shrink-0" />
+              <div className="flex-1">
+                <p className="font-semibold text-green-300">🎉 Mint NFT thành công!</p>
+                <p className="text-sm text-gray-400">Token ID: #{mintResult.tokenId}</p>
+                {mintResult.basescanUrl && (
+                  <a
+                    href={mintResult.basescanUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm text-blue-400 hover:underline mt-1"
+                  >
+                    Xem giao dịch trên Basescan <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setMintStatus('idle')}
+                className="text-gray-400 hover:text-white"
+              >
+                ✕
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {mintStatus === 'error' && (
+          <Card className="border-red-500/50 bg-red-950/30">
+            <CardContent className="flex items-center gap-3 py-4">
+              <XCircle className="h-5 w-5 text-red-400 shrink-0" />
+              <div className="flex-1">
+                <p className="font-semibold text-red-300">Mint NFT thất bại</p>
+                <p className="text-sm text-gray-400">Có lỗi xảy ra trong quá trình mint. Vui lòng thử lại sau.</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setMintStatus('idle')}
+                className="text-gray-400 hover:text-white"
+              >
+                ✕
+              </Button>
+            </CardContent>
+          </Card>
+        )}
         
         {/* Form nhập liệu */}
         <Card className="bg-slate-900/80 border-amber-600/30">
