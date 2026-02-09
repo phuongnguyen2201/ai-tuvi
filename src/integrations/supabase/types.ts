@@ -93,6 +93,87 @@ export type Database = {
           },
         ]
       }
+      minted_nfts: {
+        Row: {
+          birth_data_hash: string
+          chart_data: Json | null
+          created_at: string | null
+          id: string
+          metadata_uri: string
+          session_id: string | null
+          token_id: number
+          tx_hash: string
+          wallet_address: string
+        }
+        Insert: {
+          birth_data_hash: string
+          chart_data?: Json | null
+          created_at?: string | null
+          id?: string
+          metadata_uri: string
+          session_id?: string | null
+          token_id: number
+          tx_hash: string
+          wallet_address: string
+        }
+        Update: {
+          birth_data_hash?: string
+          chart_data?: Json | null
+          created_at?: string | null
+          id?: string
+          metadata_uri?: string
+          session_id?: string | null
+          token_id?: number
+          tx_hash?: string
+          wallet_address?: string
+        }
+        Relationships: []
+      }
+      pending_mints: {
+        Row: {
+          birth_data: Json
+          chart_data: Json
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          metadata_uri: string | null
+          payment_status: string | null
+          session_id: string
+          stripe_session_id: string | null
+          token_id: number | null
+          tx_hash: string | null
+          wallet_address: string
+        }
+        Insert: {
+          birth_data: Json
+          chart_data: Json
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          metadata_uri?: string | null
+          payment_status?: string | null
+          session_id: string
+          stripe_session_id?: string | null
+          token_id?: number | null
+          tx_hash?: string | null
+          wallet_address: string
+        }
+        Update: {
+          birth_data?: Json
+          chart_data?: Json
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          metadata_uri?: string | null
+          payment_status?: string | null
+          session_id?: string
+          stripe_session_id?: string | null
+          token_id?: number | null
+          tx_hash?: string | null
+          wallet_address?: string
+        }
+        Relationships: []
+      }
       tuvi_readings: {
         Row: {
           birth_date: string
