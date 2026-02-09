@@ -17,6 +17,7 @@ import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import PageLayout from '@/components/PageLayout';
+import { MintMenhNFT } from '@/components/MintMenhNFT';
 
 const LUNAR_HOURS = [
   { value: '0', label: 'Tý (23:00 - 00:59)' },
@@ -210,6 +211,17 @@ export default function TuViIztroPage() {
             
             {/* AI-powered luận giải */}
             <TuViAnalysis chart={chart} />
+            
+            {/* Mint NFT */}
+            <MintMenhNFT
+              chartData={chart}
+              birthData={{
+                solarDate: format(birthDate, 'yyyy-MM-dd'),
+                hour: parseInt(birthHour),
+                gender,
+                isLunar: calendarType === 'lunar',
+              }}
+            />
             
             {/* Debug info */}
             <Card className="bg-slate-900/50 border-slate-700">
