@@ -1,7 +1,6 @@
 import { createRoot } from "react-dom/client";
 import {
   ThirdwebProvider,
-  embeddedWallet,
   metamaskWallet,
   coinbaseWallet,
   walletConnect,
@@ -15,11 +14,6 @@ createRoot(document.getElementById("root")!).render(
     activeChain={BaseSepoliaTestnet}
     clientId="5c576d66882f194b89cee467c1ebaffe"
     supportedWallets={[
-      embeddedWallet({
-        auth: {
-          options: ["email", "google", "apple", "facebook"],
-        },
-      }),
       metamaskWallet(),
       coinbaseWallet(),
       walletConnect(),
