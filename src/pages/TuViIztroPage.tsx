@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import PageLayout from '@/components/PageLayout';
 import { MintMenhNFT } from '@/components/MintMenhNFT';
 import { NFTPreview } from '@/components/NFTPreview';
+import { NFTGallery } from '@/components/NFTGallery';
 import { supabase } from '@/integrations/supabase/client';
 
 const LUNAR_HOURS = [
@@ -328,6 +329,9 @@ export default function TuViIztroPage() {
                 isLunar: calendarType === 'lunar',
               }}
             />
+            
+            {/* NFT Gallery */}
+            <NFTGallery />
             
             {/* Debug info */}
             <Card className="bg-slate-900/50 border-slate-700">
