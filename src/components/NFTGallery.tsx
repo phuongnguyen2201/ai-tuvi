@@ -63,7 +63,16 @@ export function NFTGallery() {
     );
   }
 
-  if (nfts.length === 0) return null;
+  if (nfts.length === 0) {
+    return (
+      <Card className="bg-slate-900/80 border-amber-600/30">
+        <CardContent className="py-8 text-center">
+          <p className="text-amber-200 font-medium">Bạn chưa có NFT nào.</p>
+          <p className="text-sm text-gray-400 mt-1">Lập lá số và mint NFT đầu tiên của bạn!</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="bg-slate-900/80 border-amber-600/30">
