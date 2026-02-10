@@ -188,6 +188,9 @@ export default function TuViIztroPage() {
           </Card>
         )}
         
+        {/* NFT Gallery - always visible when wallet connected */}
+        <NFTGallery />
+
         {/* Form nhập liệu */}
         <Card className="bg-slate-900/80 border-amber-600/30">
           <CardHeader>
@@ -329,9 +332,6 @@ export default function TuViIztroPage() {
                 isLunar: calendarType === 'lunar',
               }}
             />
-            
-            {/* NFT Gallery */}
-            <NFTGallery />
             
             {/* Debug info */}
             <Card className="bg-slate-900/50 border-slate-700">
