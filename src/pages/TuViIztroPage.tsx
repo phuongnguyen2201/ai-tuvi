@@ -19,6 +19,7 @@ import { vi } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import PageLayout from '@/components/PageLayout';
 import { MintMenhNFT } from '@/components/MintMenhNFT';
+import { NFTPreview } from '@/components/NFTPreview';
 import { supabase } from '@/integrations/supabase/client';
 
 const LUNAR_HOURS = [
@@ -305,6 +306,17 @@ export default function TuViIztroPage() {
             
             {/* AI-powered luận giải */}
             <TuViAnalysis chart={chart} />
+            
+            {/* NFT Preview */}
+            <NFTPreview
+              chartData={chart}
+              birthData={{
+                solarDate: format(birthDate, 'yyyy-MM-dd'),
+                hour: parseInt(birthHour),
+                gender,
+                isLunar: calendarType === 'lunar',
+              }}
+            />
             
             {/* Mint NFT */}
             <MintMenhNFT
