@@ -8,6 +8,7 @@ interface NFTData {
   token_id: number;
   wallet_address: string;
   metadata_uri: string;
+  image_uri: string | null;
   tx_hash: string;
   chart_data: any;
   created_at: string;
@@ -42,6 +43,8 @@ export function NFTGallery() {
       .order('created_at', { ascending: false });
 
     console.log("Query result:", data, error);
+    console.log('Fetched NFTs:', data);
+    console.log('Image URIs:', data?.map(n => n.image_uri));
 
     if (error) {
       console.error("Error fetching NFTs:", error);
@@ -54,7 +57,10 @@ export function NFTGallery() {
 
   const getGatewayUrl = (ipfsUrl: string) => {
     if (!ipfsUrl) return '';
-    return ipfsUrl.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
+    if (ipfsUrl.startsWith('ipfs://')) {
+      return ipfsUrl.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
+    }
+    return ipfsUrl;
   };
 
   if (!address) return null;
@@ -98,7 +104,20 @@ export function NFTGallery() {
             >
               {/* NFT Image placeholder */}
               <div className="aspect-square bg-slate-700/50 flex items-center justify-center">
-                <ImageIcon className="h-12 w-12 text-slate-500" />
+                {nft.image_uri ? (
+                  <img 
+                    src={getGatewayUrl(nft.image_uri)} 
+                    alt={`Mệnh NFT #${nft.token_id}`}
+                    className="w-full h-full object-contain rounded-lg"
+                    onError={(e) => {
+                      console.error('Image failed to load:', nft.image_uri);
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                    }}
+                    onLoad={() => console.log('Image loaded:', nft.image_uri)}
+                  />
+                ) : null}
+                <ImageIcon className={`h-12 w-12 text-slate-500 ${nft.image_uri ? 'hidden' : ''}`} />
               </div>
 
               {/* NFT Info */}
