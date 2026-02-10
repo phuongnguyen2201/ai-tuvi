@@ -19,6 +19,7 @@ export function NFTGallery() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    console.log("Address changed:", address);
     if (address) {
       fetchUserNFTs();
     } else {
@@ -27,8 +28,12 @@ export function NFTGallery() {
   }, [address]);
 
   const fetchUserNFTs = async () => {
-    if (!address) return;
+    if (!address) {
+      setNfts([]);
+      return;
+    }
     setLoading(true);
+    console.log("Fetching NFTs for wallet:", address.toLowerCase());
 
     const { data, error } = await supabase
       .from('minted_nfts')
@@ -36,11 +41,13 @@ export function NFTGallery() {
       .eq('wallet_address', address.toLowerCase())
       .order('created_at', { ascending: false });
 
-    if (data) {
-      setNfts(data as NFTData[]);
-    }
+    console.log("Query result:", data, error);
+
     if (error) {
-      console.error('Fetch NFTs error:', error);
+      console.error("Error fetching NFTs:", error);
+      setNfts([]);
+    } else {
+      setNfts((data || []) as NFTData[]);
     }
     setLoading(false);
   };

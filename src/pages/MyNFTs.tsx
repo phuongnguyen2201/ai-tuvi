@@ -1,8 +1,9 @@
 import PageLayout from '@/components/PageLayout';
 import { NFTGallery } from '@/components/NFTGallery';
-import { ConnectWallet } from '@thirdweb-dev/react';
+import { ConnectWallet, useAddress } from '@thirdweb-dev/react';
 
 export default function MyNFTs() {
+  const address = useAddress();
   return (
     <PageLayout title="NFT của tôi">
       <div className="space-y-6">
@@ -13,7 +14,7 @@ export default function MyNFTs() {
             modalTitle="Chọn ví"
           />
         </div>
-        <NFTGallery />
+        <NFTGallery key={address || 'disconnected'} />
       </div>
     </PageLayout>
   );
