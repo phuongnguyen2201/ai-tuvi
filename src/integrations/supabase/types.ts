@@ -99,6 +99,7 @@ export type Database = {
           chart_data: Json | null
           created_at: string | null
           id: string
+          image_uri: string | null
           metadata_uri: string
           session_id: string | null
           token_id: number
@@ -110,6 +111,7 @@ export type Database = {
           chart_data?: Json | null
           created_at?: string | null
           id?: string
+          image_uri?: string | null
           metadata_uri: string
           session_id?: string | null
           token_id: number
@@ -121,6 +123,7 @@ export type Database = {
           chart_data?: Json | null
           created_at?: string | null
           id?: string
+          image_uri?: string | null
           metadata_uri?: string
           session_id?: string | null
           token_id?: number

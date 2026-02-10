@@ -9,6 +9,7 @@ import TuViIztroPage from "./pages/TuViIztroPage";
 import Compatibility from "./pages/Compatibility";
 import DayAnalysis from "./pages/DayAnalysis";
 import BoiKieu from "./pages/BoiKieu";
+import MyNFTs from "./pages/MyNFTs";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import NguHanhTest from "./components/NguHanhTest";
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/tuoi-hop" element={<Compatibility />} />
             <Route path="/xem-ngay" element={<DayAnalysis />} />
             <Route path="/boi-kieu" element={<BoiKieu />} />
+            <Route path="/my-nfts" element={<MyNFTs />} />
             <Route path="/test-nguhanh" element={<NguHanhTest />} />
             <Route path="/test-compatibility" element={<CompatibilityTest />} />
             <Route path="/test" element={<Test />} />

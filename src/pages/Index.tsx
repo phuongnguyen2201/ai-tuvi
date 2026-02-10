@@ -1,7 +1,7 @@
 import Logo from "@/components/Logo";
 import MenuCard from "@/components/MenuCard";
 import DailyWisdom from "@/components/DailyWisdom";
-import { ScrollText, Heart, Calendar, BookOpen } from "lucide-react";
+import { ScrollText, Heart, Calendar, BookOpen, Image } from "lucide-react";
 
 const Index = () => {
   const menuItems = [
@@ -28,6 +28,12 @@ const Index = () => {
       description: "Gieo quẻ theo truyện Kiều của Nguyễn Du",
       icon: BookOpen,
       to: "/boi-kieu",
+    },
+    {
+      title: "NFT Của Tôi",
+      description: "Xem bộ sưu tập NFT lá số đã đúc",
+      icon: Image,
+      to: "/my-nfts",
     },
   ];
 
