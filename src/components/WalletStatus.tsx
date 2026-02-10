@@ -5,10 +5,38 @@ export function WalletStatus() {
   const address = useAddress();
   const disconnect = useDisconnect();
 
-  const handleDisconnect = () => {
-    disconnect();
-    localStorage.removeItem("thirdweb:connected-wallet-ids");
-    localStorage.removeItem("thirdweb:active-chain");
+  const handleDisconnect = async () => {
+    await disconnect();
+    
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (
+        key.startsWith('thirdweb') || 
+        key.startsWith('TW_') ||
+        key.startsWith('walletconnect') ||
+        key.startsWith('wc@') ||
+        key.includes('wallet')
+      )) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    
+    const sessionKeysToRemove: string[] = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i);
+      if (key && (
+        key.startsWith('thirdweb') || 
+        key.startsWith('TW_') ||
+        key.includes('wallet')
+      )) {
+        sessionKeysToRemove.push(key);
+      }
+    }
+    sessionKeysToRemove.forEach(key => sessionStorage.removeItem(key));
+    
+    window.location.reload();
   };
 
   const handleSwitchWallet = async () => {
