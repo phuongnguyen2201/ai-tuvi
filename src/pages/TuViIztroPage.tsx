@@ -1,6 +1,7 @@
 // src/pages/TuViIztroPage.tsx - Page lập lá số dùng iztro library
 
 import React, { useState, useEffect } from 'react';
+import { useAddress } from '@thirdweb-dev/react';
 import { useSearchParams } from 'react-router-dom';
 import { createTuViChart, TuViChartData, BirthInput } from '@/services/TuViService';
 import TuViChartIztro from '@/components/TuViChartIztro';
@@ -39,6 +40,7 @@ const LUNAR_HOURS = [
 ];
 
 export default function TuViIztroPage() {
+  const address = useAddress();
   const [chart, setChart] = useState<TuViChartData | null>(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -189,7 +191,7 @@ export default function TuViIztroPage() {
         )}
         
         {/* NFT Gallery - always visible when wallet connected */}
-        <NFTGallery />
+        <NFTGallery key={address || 'disconnected'} />
 
         {/* Form nhập liệu */}
         <Card className="bg-slate-900/80 border-amber-600/30">
