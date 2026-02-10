@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
+import { WalletStatus } from "@/components/WalletStatus";
 
 interface PageLayoutProps {
   children: React.ReactNode;
@@ -38,6 +39,9 @@ const PageLayout = ({ children, title, showBack = true, className }: PageLayoutP
                   {title}
                 </h1>
               )}
+              <div className="ml-auto">
+                <WalletStatus />
+              </div>
             </div>
           </header>
         )}
