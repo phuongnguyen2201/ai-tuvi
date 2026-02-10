@@ -46,7 +46,7 @@ export default function TuViIztroPage() {
   const [isLoading, setIsLoading] = useState(false);
   
   // Form state
-  const [birthDate, setBirthDate] = useState<Date>(new Date(1979, 9, 25));
+  const [birthDate, setBirthDate] = useState<Date>(new Date(2000, 0, 1));
   const [birthHour, setBirthHour] = useState('1');
   const [gender, setGender] = useState<'Nam' | 'Nữ'>('Nam');
 
