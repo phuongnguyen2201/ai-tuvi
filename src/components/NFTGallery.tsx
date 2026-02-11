@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAddress } from "@thirdweb-dev/react";
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ExternalLink, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -18,6 +19,7 @@ export function NFTGallery({ refreshTrigger }: { refreshTrigger?: number }) {
   const address = useAddress();
   const [nfts, setNfts] = useState<NFTData[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedNFT, setSelectedNFT] = useState<NFTData | null>(null);
 
   useEffect(() => {
     console.log("Address changed:", address);
@@ -103,18 +105,19 @@ export function NFTGallery({ refreshTrigger }: { refreshTrigger?: number }) {
               className="rounded-lg border border-slate-700 bg-slate-800/60 overflow-hidden"
             >
               {/* NFT Image placeholder */}
-              <div className="aspect-square bg-slate-700/50 flex items-center justify-center">
+              <div 
+                className="aspect-square bg-slate-700/50 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => setSelectedNFT(nft)}
+              >
                 {nft.image_uri ? (
                   <img 
                     src={getGatewayUrl(nft.image_uri)} 
                     alt={`Mệnh NFT #${nft.token_id}`}
                     className="w-full h-full object-contain rounded-lg"
                     onError={(e) => {
-                      console.error('Image failed to load:', nft.image_uri);
                       e.currentTarget.style.display = 'none';
                       e.currentTarget.nextElementSibling?.classList.remove('hidden');
                     }}
-                    onLoad={() => console.log('Image loaded:', nft.image_uri)}
                   />
                 ) : null}
                 <ImageIcon className={`h-12 w-12 text-slate-500 ${nft.image_uri ? 'hidden' : ''}`} />
@@ -155,6 +158,51 @@ export function NFTGallery({ refreshTrigger }: { refreshTrigger?: number }) {
           ))}
         </div>
       </CardContent>
+
+      {/* NFT Preview Modal */}
+      <Dialog open={!!selectedNFT} onOpenChange={(open) => !open && setSelectedNFT(null)}>
+        <DialogContent className="sm:max-w-lg bg-slate-900 border-amber-600/30">
+          <DialogHeader>
+            <DialogTitle className="text-amber-300">
+              Mệnh NFT #{selectedNFT?.token_id}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedNFT?.image_uri && (
+              <img
+                src={getGatewayUrl(selectedNFT.image_uri)}
+                alt={`Mệnh NFT #${selectedNFT.token_id}`}
+                className="w-full rounded-lg"
+              />
+            )}
+            <div className="space-y-2">
+              <p className="text-sm text-amber-200">
+                Cục: {(selectedNFT?.chart_data as any)?.cuc?.name || 'N/A'}
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <a
+                  href={`https://sepolia.basescan.org/tx/${selectedNFT?.tx_hash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-400 hover:underline flex items-center gap-1"
+                >
+                  Xem trên Basescan <ExternalLink className="h-3 w-3" />
+                </a>
+                {selectedNFT?.image_uri && (
+                  <a
+                    href={getGatewayUrl(selectedNFT.image_uri)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-400 hover:underline flex items-center gap-1"
+                  >
+                    Mở ảnh gốc <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
