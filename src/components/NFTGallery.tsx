@@ -21,6 +21,23 @@ export function NFTGallery({ refreshTrigger }: { refreshTrigger?: number }) {
   const [loading, setLoading] = useState(false);
   const [selectedNFT, setSelectedNFT] = useState<NFTData | null>(null);
 
+  const formatBirthDate = (dateStr?: string) => {
+    if (!dateStr) return 'N/A';
+    const [year, month, day] = dateStr.split('-');
+    return `${day}/${month}/${year}`;
+  };
+
+  const getHourName = (hour?: number | string) => {
+    const hourNames = [
+      "Tý (23-01h)", "Sửu (01-03h)", "Dần (03-05h)", "Mão (05-07h)",
+      "Thìn (07-09h)", "Tỵ (09-11h)", "Ngọ (11-13h)", "Mùi (13-15h)",
+      "Thân (15-17h)", "Dậu (17-19h)", "Tuất (19-21h)", "Hợi (21-23h)"
+    ];
+    if (hour === undefined || hour === null) return 'N/A';
+    const hourIndex = typeof hour === 'string' ? parseInt(hour) : hour;
+    return hourNames[hourIndex] || 'N/A';
+  };
+
   useEffect(() => {
     console.log("Address changed:", address);
     if (address) {
@@ -124,18 +141,15 @@ export function NFTGallery({ refreshTrigger }: { refreshTrigger?: number }) {
               </div>
 
               {/* NFT Info */}
-              <div className="p-3 space-y-1">
-                <p className="font-semibold text-amber-200 text-sm">
-                  Mệnh NFT #{nft.token_id}
-                </p>
-                <p className="text-xs text-gray-400">
-                  Cục: {(nft.chart_data as any)?.cuc?.name || 'N/A'}
-                </p>
-                <p className="text-xs text-gray-500">
-                  Mint: {new Date(nft.created_at).toLocaleDateString('vi-VN')}
-                </p>
-
-                <div className="flex flex-wrap gap-3 pt-2">
+              <div className="p-3">
+                <h3 className="font-bold text-lg text-purple-400">Mệnh NFT</h3>
+                <div className="text-sm text-gray-300 mt-2 space-y-1">
+                  <p><span className="text-gray-400">Họ tên:</span> {(nft.chart_data as any)?.name || 'Chưa cập nhật'}</p>
+                  <p><span className="text-gray-400">Sinh ngày:</span> {formatBirthDate((nft.chart_data as any)?.solarDate)}</p>
+                  <p><span className="text-gray-400">Giờ sinh:</span> {getHourName((nft.chart_data as any)?.birthHour)}</p>
+                  <p><span className="text-gray-400">Ngày tạo:</span> {new Date(nft.created_at).toLocaleDateString('vi-VN')}</p>
+                </div>
+                <div className="flex gap-3 mt-3">
                   <a
                     href={`https://sepolia.basescan.org/tx/${nft.tx_hash}`}
                     target="_blank"
@@ -164,22 +178,23 @@ export function NFTGallery({ refreshTrigger }: { refreshTrigger?: number }) {
         <DialogContent className="sm:max-w-lg bg-slate-900 border-amber-600/30">
           <DialogHeader>
             <DialogTitle className="text-amber-300">
-              Mệnh NFT #{selectedNFT?.token_id}
+              Mệnh NFT
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {selectedNFT?.image_uri && (
               <img
                 src={getGatewayUrl(selectedNFT.image_uri)}
-                alt={`Mệnh NFT #${selectedNFT.token_id}`}
+                alt="Mệnh NFT"
                 className="w-full rounded-lg"
               />
             )}
-            <div className="space-y-2">
-              <p className="text-sm text-amber-200">
-                Cục: {(selectedNFT?.chart_data as any)?.cuc?.name || 'N/A'}
-              </p>
-              <div className="flex flex-wrap gap-3">
+            <div className="text-sm text-gray-300 space-y-1">
+              <p><span className="text-gray-400">Họ tên:</span> {(selectedNFT?.chart_data as any)?.name || 'Chưa cập nhật'}</p>
+              <p><span className="text-gray-400">Sinh ngày:</span> {formatBirthDate((selectedNFT?.chart_data as any)?.solarDate)}</p>
+              <p><span className="text-gray-400">Giờ sinh:</span> {getHourName((selectedNFT?.chart_data as any)?.birthHour)}</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
                 <a
                   href={`https://sepolia.basescan.org/tx/${selectedNFT?.tx_hash}`}
                   target="_blank"
@@ -198,7 +213,6 @@ export function NFTGallery({ refreshTrigger }: { refreshTrigger?: number }) {
                     Mở ảnh gốc <ExternalLink className="h-3 w-3" />
                   </a>
                 )}
-              </div>
             </div>
           </div>
         </DialogContent>
