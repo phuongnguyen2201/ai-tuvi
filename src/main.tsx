@@ -13,6 +13,7 @@ createRoot(document.getElementById("root")!).render(
   <ThirdwebProvider
     activeChain={BaseSepoliaTestnet}
     clientId="5c576d66882f194b89cee467c1ebaffe"
+    autoConnect={false}
     supportedWallets={[
       metamaskWallet(),
       coinbaseWallet(),
