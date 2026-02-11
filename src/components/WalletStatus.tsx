@@ -8,33 +8,25 @@ export function WalletStatus() {
   const handleDisconnect = async () => {
     await disconnect();
     
-    const keysToRemove: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && (
-        key.startsWith('thirdweb') || 
-        key.startsWith('TW_') ||
-        key.startsWith('walletconnect') ||
-        key.startsWith('wc@') ||
-        key.includes('wallet')
-      )) {
-        keysToRemove.push(key);
+    const clearStorage = (storage: Storage) => {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < storage.length; i++) {
+        const key = storage.key(i);
+        if (key && (
+          key.toLowerCase().includes('thirdweb') ||
+          key.toLowerCase().includes('wallet') ||
+          key.toLowerCase().includes('tw_') ||
+          key.toLowerCase().includes('wc@') ||
+          key.toLowerCase().includes('wagmi')
+        )) {
+          keysToRemove.push(key);
+        }
       }
-    }
-    keysToRemove.forEach(key => localStorage.removeItem(key));
+      keysToRemove.forEach(key => storage.removeItem(key));
+    };
     
-    const sessionKeysToRemove: string[] = [];
-    for (let i = 0; i < sessionStorage.length; i++) {
-      const key = sessionStorage.key(i);
-      if (key && (
-        key.startsWith('thirdweb') || 
-        key.startsWith('TW_') ||
-        key.includes('wallet')
-      )) {
-        sessionKeysToRemove.push(key);
-      }
-    }
-    sessionKeysToRemove.forEach(key => sessionStorage.removeItem(key));
+    clearStorage(localStorage);
+    clearStorage(sessionStorage);
     
     window.location.reload();
   };
