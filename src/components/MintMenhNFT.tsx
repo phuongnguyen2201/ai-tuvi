@@ -13,9 +13,10 @@ interface MintMenhNFTProps {
     gender: string;
     isLunar?: boolean;
   };
+  onMintSuccess?: () => void;
 }
 
-export function MintMenhNFT({ chartData, birthData }: MintMenhNFTProps) {
+export function MintMenhNFT({ chartData, birthData, onMintSuccess }: MintMenhNFTProps) {
   const address = useAddress();
   const disconnect = useDisconnect();
   
@@ -73,8 +74,9 @@ export function MintMenhNFT({ chartData, birthData }: MintMenhNFTProps) {
         } else {
           setResult(data);
           setStatus('success');
+          onMintSuccess?.();
         }
-        // Clean URL
+        // Clean URL without reloading
         window.history.replaceState({}, '', window.location.pathname);
       });
     }

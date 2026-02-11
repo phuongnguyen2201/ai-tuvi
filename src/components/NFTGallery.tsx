@@ -14,7 +14,7 @@ interface NFTData {
   created_at: string;
 }
 
-export function NFTGallery() {
+export function NFTGallery({ refreshTrigger }: { refreshTrigger?: number }) {
   const address = useAddress();
   const [nfts, setNfts] = useState<NFTData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -26,7 +26,7 @@ export function NFTGallery() {
     } else {
       setNfts([]);
     }
-  }, [address]);
+  }, [address, refreshTrigger]);
 
   const fetchUserNFTs = async () => {
     if (!address) {
