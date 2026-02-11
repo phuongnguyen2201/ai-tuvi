@@ -61,26 +61,29 @@ export function MintMenhNFT({ chartData, birthData, onMintSuccess }: MintMenhNFT
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const sessionId = urlParams.get('session_id');
+    const mintSuccess = urlParams.get('mint_success');
     
-    if (sessionId) {
+    if (sessionId && mintSuccess === 'true' && status === 'idle') {
       setStatus('loading');
       
       supabase.functions.invoke('mint-menh-nft', {
         body: { sessionId }
       }).then(({ data, error }) => {
         if (error || !data?.success) {
+          console.error('Mint error:', error || data?.error);
           setError(error?.message || data?.error || 'Mint failed');
           setStatus('error');
         } else {
+          console.log('Mint success:', data);
           setResult(data);
           setStatus('success');
           onMintSuccess?.();
         }
-        // Clean URL without reloading
-        window.history.replaceState({}, '', window.location.pathname);
+        // Clean URL WITHOUT reloading - use replaceState
+        window.history.replaceState({}, document.title, window.location.pathname);
       });
     }
-  }, []);
+  }, [status]);
 
   return (
     <Card className="w-full max-w-md mx-auto">
