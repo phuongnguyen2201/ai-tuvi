@@ -27,16 +27,6 @@ export function NFTGallery({ refreshTrigger }: { refreshTrigger?: number }) {
     return `${day}/${month}/${year}`;
   };
 
-  const getHourName = (hour?: number | string) => {
-    const hourNames = [
-      "Tý (23-01h)", "Sửu (01-03h)", "Dần (03-05h)", "Mão (05-07h)",
-      "Thìn (07-09h)", "Tỵ (09-11h)", "Ngọ (11-13h)", "Mùi (13-15h)",
-      "Thân (15-17h)", "Dậu (17-19h)", "Tuất (19-21h)", "Hợi (21-23h)"
-    ];
-    if (hour === undefined || hour === null) return 'N/A';
-    const hourIndex = typeof hour === 'string' ? parseInt(hour) : hour;
-    return hourNames[hourIndex] || 'N/A';
-  };
 
   useEffect(() => {
     console.log("Address changed:", address);
@@ -144,26 +134,17 @@ export function NFTGallery({ refreshTrigger }: { refreshTrigger?: number }) {
               <div className="p-3">
                 <h3 className="font-bold text-lg text-purple-400">Mệnh NFT</h3>
                 <div className="text-sm text-gray-300 mt-2 space-y-1">
-                  <p><span className="text-gray-400">Họ tên:</span> {(nft.chart_data as any)?.name || 'Chưa cập nhật'}</p>
                   <p><span className="text-gray-400">Sinh ngày:</span> {formatBirthDate((nft.chart_data as any)?.solarDate)}</p>
-                  <p><span className="text-gray-400">Giờ sinh:</span> {getHourName((nft.chart_data as any)?.birthHour)}</p>
+                  <p><span className="text-gray-400">Giờ sinh:</span> {(nft.chart_data as any)?.birthHour} ({(nft.chart_data as any)?.timeRange})</p>
+                  <p><span className="text-gray-400">Giới tính:</span> {(nft.chart_data as any)?.gender || 'N/A'}</p>
+                  <p><span className="text-gray-400">Cục:</span> {(nft.chart_data as any)?.cuc?.name || 'N/A'}</p>
                   <p><span className="text-gray-400">Ngày tạo:</span> {new Date(nft.created_at).toLocaleDateString('vi-VN')}</p>
                 </div>
                 <div className="flex gap-3 mt-3">
-                  <a
-                    href={`https://sepolia.basescan.org/tx/${nft.tx_hash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-blue-400 hover:underline flex items-center gap-1"
-                  >
+                  <a href={`https://sepolia.basescan.org/tx/${nft.tx_hash}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:underline flex items-center gap-1">
                     Basescan <ExternalLink className="h-3 w-3" />
                   </a>
-                  <a
-                    href={getGatewayUrl(nft.metadata_uri)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-blue-400 hover:underline flex items-center gap-1"
-                  >
+                  <a href={getGatewayUrl(nft.metadata_uri)} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-400 hover:underline flex items-center gap-1">
                     Metadata <ExternalLink className="h-3 w-3" />
                   </a>
                 </div>
@@ -190,9 +171,10 @@ export function NFTGallery({ refreshTrigger }: { refreshTrigger?: number }) {
               />
             )}
             <div className="text-sm text-gray-300 space-y-1">
-              <p><span className="text-gray-400">Họ tên:</span> {(selectedNFT?.chart_data as any)?.name || 'Chưa cập nhật'}</p>
               <p><span className="text-gray-400">Sinh ngày:</span> {formatBirthDate((selectedNFT?.chart_data as any)?.solarDate)}</p>
-              <p><span className="text-gray-400">Giờ sinh:</span> {getHourName((selectedNFT?.chart_data as any)?.birthHour)}</p>
+              <p><span className="text-gray-400">Giờ sinh:</span> {(selectedNFT?.chart_data as any)?.birthHour} ({(selectedNFT?.chart_data as any)?.timeRange})</p>
+              <p><span className="text-gray-400">Giới tính:</span> {(selectedNFT?.chart_data as any)?.gender || 'N/A'}</p>
+              <p><span className="text-gray-400">Cục:</span> {(selectedNFT?.chart_data as any)?.cuc?.name || 'N/A'}</p>
             </div>
             <div className="flex flex-wrap gap-3">
                 <a
