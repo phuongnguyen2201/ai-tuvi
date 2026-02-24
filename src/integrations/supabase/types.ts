@@ -132,6 +132,54 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          feature_unlocked: string | null
+          id: string
+          notes: string | null
+          payment_type: string | null
+          plan: string
+          status: string | null
+          transaction_id: string | null
+          transfer_content: string | null
+          user_id: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          feature_unlocked?: string | null
+          id?: string
+          notes?: string | null
+          payment_type?: string | null
+          plan: string
+          status?: string | null
+          transaction_id?: string | null
+          transfer_content?: string | null
+          user_id?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          feature_unlocked?: string | null
+          id?: string
+          notes?: string | null
+          payment_type?: string | null
+          plan?: string
+          status?: string | null
+          transaction_id?: string | null
+          transfer_content?: string | null
+          user_id?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
       pending_mints: {
         Row: {
           birth_data: Json
@@ -174,6 +222,42 @@ export type Database = {
           token_id?: number | null
           tx_hash?: string | null
           wallet_address?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          display_name: string | null
+          email: string | null
+          id: string
+          is_premium: boolean | null
+          premium_expires_at: string | null
+          premium_plan: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          email?: string | null
+          id: string
+          is_premium?: boolean | null
+          premium_expires_at?: string | null
+          premium_plan?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          is_premium?: boolean | null
+          premium_expires_at?: string | null
+          premium_plan?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
