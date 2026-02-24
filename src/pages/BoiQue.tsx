@@ -342,37 +342,37 @@ const BoiQue = () => {
 
         {/* Result */}
         {result && style && (
-          <div className="space-y-4 animate-fade-in">
+          <div className="space-y-4">
             {/* Quẻ header - FREE */}
             <div className={cn(
-              "rounded-2xl p-6 border bg-gradient-to-br",
+              "rounded-2xl p-6 border bg-gradient-to-br ink-splash",
               style.bg, style.border
             )}>
-              <div className="flex justify-center mb-3">
+              <div className="flex justify-center mb-3 ink-drip" style={{ animationDelay: '0.3s' }}>
                 <span className={cn("px-4 py-1 rounded-full text-xs font-bold", style.badge)}>
                   {style.label}
                 </span>
               </div>
-              <h3 className="text-center font-display text-2xl text-foreground mb-1">
+              <h3 className="text-center font-display text-2xl text-foreground mb-1 brush-stroke" style={{ animationDelay: '0.5s' }}>
                 Quẻ {String(result.id).padStart(2, "0")} — {result.name}
               </h3>
-              <p className="text-center text-3xl tracking-widest text-gold mb-4">
+              <p className="text-center text-3xl tracking-widest text-gold mb-4 ink-reveal" style={{ animationDelay: '0.7s' }}>
                 {result.symbol}
               </p>
-              <p className="text-sm text-muted-foreground text-center italic">
+              <p className="text-sm text-muted-foreground text-center italic ink-drip" style={{ animationDelay: '0.9s' }}>
                 Ngũ hành: {result.element}
               </p>
 
               {/* Free summary */}
-              <div className="mt-4 p-4 rounded-xl bg-surface-2/60">
+              <div className="mt-4 p-4 rounded-xl bg-surface-2/60 ink-reveal" style={{ animationDelay: '1.1s' }}>
                 <p className="text-sm text-foreground leading-relaxed">
                   {result.summary}
                 </p>
               </div>
             </div>
 
-            {/* Action buttons - above PaymentGate so they're always clickable */}
-            <div className="flex gap-3">
+            {/* Action buttons */}
+            <div className="flex gap-3 ink-drip" style={{ animationDelay: '1.3s' }}>
               <Button variant="goldOutline" className="flex-1" onClick={handleShare}>
                 <Share2 className="w-4 h-4 mr-2" />
                 Chia Sẻ
