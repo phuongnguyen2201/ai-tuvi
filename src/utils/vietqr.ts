@@ -9,6 +9,9 @@ const BANK_CONFIG = {
 export const PRICING = {
   luan_giai: 29000,
   van_han: 39000,
+  van_han_week: 9000,
+  van_han_month: 19000,
+  van_han_year: 39000,
   boi_que: 19000,
   boi_kieu: 19000,
   premium_monthly: 49000,
@@ -35,9 +38,12 @@ export function generateTransferContent(userId: string, feature: FeatureKey): st
 }
 
 export function getFeatureLabel(feature: FeatureKey): string {
-  const labels = {
+  const labels: Record<FeatureKey, string> = {
     luan_giai: 'Luận giải lá số chi tiết',
     van_han: 'Dự đoán vận hạn năm',
+    van_han_week: 'Luận giải vận hạn tuần',
+    van_han_month: 'Luận giải vận hạn tháng',
+    van_han_year: 'Luận giải vận hạn năm',
     boi_que: 'Bói quẻ (10 lần)',
     boi_kieu: 'Bói Kiều (10 lần)',
     premium_monthly: 'Premium 1 tháng',

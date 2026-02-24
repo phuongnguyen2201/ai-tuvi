@@ -4,15 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 
-type Feature = 'luan_giai' | 'van_han' | 'boi_que' | 'boi_kieu' | 'premium';
-
 interface PaymentGateProps {
-  feature: Feature;
+  feature: string;
   children: ReactNode;
   onUnlocked?: () => void;
+  title?: string;
+  price?: string;
+  description?: string;
 }
 
-const FEATURE_CONFIG: Record<Feature, { title: string; price: string; description: string }> = {
+const DEFAULT_CONFIGS: Record<string, { title: string; price: string; description: string }> = {
   luan_giai: {
     title: "Luận giải chi tiết lá số",
     price: "29.000đ / lần",
@@ -20,8 +21,23 @@ const FEATURE_CONFIG: Record<Feature, { title: string; price: string; descriptio
   },
   van_han: {
     title: "Xem vận hạn năm",
-    price: "29.000đ / lần",
+    price: "39.000đ / lần",
     description: "Phân tích chi tiết vận hạn, lưu niên và đại hạn trong năm",
+  },
+  van_han_week: {
+    title: "Luận giải tuần",
+    price: "9.000đ / lần",
+    description: "Luận giải chi tiết 7 ngày, ngày tốt/xấu, lời khuyên hành động",
+  },
+  van_han_month: {
+    title: "Luận giải tháng",
+    price: "19.000đ / lần",
+    description: "Phân tích chi tiết theo tuần, tài lộc/tình duyên/sự nghiệp tháng này",
+  },
+  van_han_year: {
+    title: "Luận giải năm",
+    price: "39.000đ / lần",
+    description: "Phân tích 12 tháng, 4 quý, đỉnh điểm vận hạn, thời điểm cần cẩn thận",
   },
   boi_que: {
     title: "Bói quẻ Kinh Dịch",
@@ -40,11 +56,16 @@ const FEATURE_CONFIG: Record<Feature, { title: string; price: string; descriptio
   },
 };
 
-const PaymentGate = ({ feature, children, onUnlocked }: PaymentGateProps) => {
+const PaymentGate = ({ feature, children, onUnlocked, title, price, description }: PaymentGateProps) => {
   const [unlocked, setUnlocked] = useState<boolean | null>(null);
   const [showPayment, setShowPayment] = useState(false);
 
-  const config = FEATURE_CONFIG[feature];
+  const defaultConfig = DEFAULT_CONFIGS[feature] || { title: "Mở khóa tính năng", price: "", description: "" };
+  const config = {
+    title: title || defaultConfig.title,
+    price: price || defaultConfig.price,
+    description: description || defaultConfig.description,
+  };
 
   useEffect(() => {
     checkFeatureAccess();
@@ -104,7 +125,7 @@ const PaymentGate = ({ feature, children, onUnlocked }: PaymentGateProps) => {
             className="w-full mb-3"
             onClick={() => setShowPayment(true)}
           >
-            Thanh toán QR
+            Mở khóa với QR
           </Button>
           <p className="text-xs text-muted-foreground">
             Thanh toán nhanh qua ngân hàng
