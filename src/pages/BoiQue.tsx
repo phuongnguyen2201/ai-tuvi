@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import PageLayout from "@/components/PageLayout";
 import PaymentGate from "@/components/PaymentGate";
 import { Button } from "@/components/ui/button";
@@ -153,6 +153,55 @@ const BoiQue = () => {
   const [showLookup, setShowLookup] = useState(false);
   const [selectedQue, setSelectedQue] = useState<typeof QUE_DATA[0] | null>(null);
 
+  // Audio context ref
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  const getAudioCtx = () => {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    return audioCtxRef.current;
+  };
+
+  const playCoinFlip = () => {
+    try {
+      const ctx = getAudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.05);
+      osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.15);
+    } catch {}
+  };
+
+  const playResultReveal = () => {
+    try {
+      const ctx = getAudioCtx();
+      const notes = [523, 659, 784, 1047]; // C5 E5 G5 C6
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = "triangle";
+        osc.frequency.value = freq;
+        const t = ctx.currentTime + i * 0.12;
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.12, t + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.01, t + 0.35);
+        osc.start(t);
+        osc.stop(t + 0.35);
+      });
+    } catch {}
+  };
+
   const filteredQue = searchTerm.trim()
     ? QUE_DATA.filter(q =>
         q.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -181,15 +230,16 @@ const BoiQue = () => {
         const isHeads = Math.random() > 0.5;
         newCoins.push(isHeads);
         setCoins([...newCoins]);
+        playCoinFlip();
 
         if (index === 2) {
           setTimeout(() => {
             const randomQue = QUE_DATA[Math.floor(Math.random() * QUE_DATA.length)];
-            // Generate 6 lines for the hexagram
             const lines = Array.from({ length: 6 }, () => Math.random() > 0.5 ? 'yang' : 'yin');
             setHexLines(lines);
             setResult(randomQue);
             setIsAnimating(false);
+            playResultReveal();
             const newCount = useCount + 1;
             setUseCount(newCount);
             setTodayUsage(newCount);
