@@ -3,9 +3,7 @@ import { ArrowLeft, LogIn, User as UserIcon } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { WalletStatus } from "@/components/WalletStatus";
 import ThemeToggle from "@/components/ThemeToggle";
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { User } from "@supabase/supabase-js";
+import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -22,49 +20,12 @@ interface PageLayoutProps {
   className?: string;
 }
 
-const getDisplayName = (user: User, profileName?: string | null): string => {
-  if (profileName) return profileName;
-  if (user.user_metadata?.full_name) return user.user_metadata.full_name;
-  if (user.email) return user.email.split("@")[0];
-  return "User";
-};
-
 const PageLayout = ({ children, title, showBack = true, className }: PageLayoutProps) => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(null);
-  const [displayName, setDisplayName] = useState<string>("");
-
-  useEffect(() => {
-    const fetchUser = async (u: User | null) => {
-      if (!u) {
-        setUser(null);
-        setDisplayName("");
-        return;
-      }
-      setUser(u);
-      // Try to get display_name from profiles
-      let profileName: string | null = null;
-      try {
-        const { data } = await supabase
-          .from("profiles")
-          .select("display_name")
-          .eq("id", u.id)
-          .single();
-        profileName = (data as any)?.display_name ?? null;
-      } catch {}
-      setDisplayName(getDisplayName(u, profileName));
-    };
-
-    supabase.auth.getUser().then(({ data: { user } }) => fetchUser(user));
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => fetchUser(session?.user ?? null)
-    );
-    return () => subscription.unsubscribe();
-  }, []);
+  const { user, displayName, signOut } = useAuth();
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await signOut();
     navigate("/");
   };
 
