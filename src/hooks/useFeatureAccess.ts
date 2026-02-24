@@ -13,25 +13,31 @@ export function useFeatureAccess(feature: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setIsLoading(false); return; }
 
+    const now = new Date().toISOString();
+
     // Check premium trước (premium unlock tất cả)
+    // expires_at IS NULL = lifetime, OR expires_at > now = còn hạn
     const { data: premium } = await supabase
       .from('user_features')
-      .select('id')
+      .select('id, expires_at')
       .eq('user_id', user.id)
       .eq('feature', 'premium')
-      .maybeSingle();
+      .maybeSingle() as { data: { id: string; expires_at: string | null } | null };
 
-    if (premium) { setHasAccess(true); setIsLoading(false); return; }
+    if (premium && (!premium.expires_at || premium.expires_at > now)) {
+      setHasAccess(true); setIsLoading(false); return;
+    }
 
     // Check feature cụ thể
     const { data } = await supabase
       .from('user_features')
-      .select('id')
+      .select('id, expires_at')
       .eq('user_id', user.id)
       .eq('feature', feature)
-      .maybeSingle();
+      .maybeSingle() as { data: { id: string; expires_at: string | null } | null };
 
-    setHasAccess(!!data);
+    const isValid = data && (!data.expires_at || data.expires_at > now);
+    setHasAccess(!!isValid);
     setIsLoading(false);
   }
 

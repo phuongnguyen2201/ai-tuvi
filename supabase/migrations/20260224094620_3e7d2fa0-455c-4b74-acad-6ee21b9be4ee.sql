@@ -1,0 +1,1 @@
+ALTER TABLE public.user_features ADD COLUMN IF NOT EXISTS expires_at timestamptz DEFAULT NULL;
