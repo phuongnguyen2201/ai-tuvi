@@ -1,6 +1,6 @@
 // src/pages/TuViIztroPage.tsx - Page lập lá số dùng iztro library
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAddress } from '@thirdweb-dev/react';
 import { useSearchParams } from 'react-router-dom';
 import { createTuViChart, TuViChartData, BirthInput } from '@/services/TuViService';
@@ -23,6 +23,7 @@ import { MintMenhNFT } from '@/components/MintMenhNFT';
 import { NFTPreview } from '@/components/NFTPreview';
 import { NFTGallery } from '@/components/NFTGallery';
 import { supabase } from '@/integrations/supabase/client';
+import PaymentGate from '@/components/PaymentGate';
 
 const LUNAR_HOURS = [
   { value: '0', label: 'Tý (23:00 - 00:59)' },
@@ -307,11 +308,13 @@ export default function TuViIztroPage() {
           <div className="space-y-6">
             <TuViChartIztro chart={chart} />
             
-            {/* Luận giải tự động */}
-            <ChartInterpretationDisplay chart={chart} />
+            {/* Luận giải chi tiết - cần thanh toán */}
+            <PaymentGate feature="luan_giai">
+              <ChartInterpretationDisplay chart={chart} />
             
-            {/* AI-powered luận giải */}
-            <TuViAnalysis chart={chart} />
+              {/* AI-powered luận giải */}
+              <TuViAnalysis chart={chart} />
+            </PaymentGate>
             
             {/* NFT Preview */}
             <NFTPreview
