@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PageLayout from "@/components/PageLayout";
+import PaymentGate from "@/components/PaymentGate";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Sparkles, RefreshCw, BookOpen, Share2 } from "lucide-react";
@@ -76,9 +77,16 @@ const fortuneStyles = {
   },
 };
 
+const FREE_USES = 3;
+const STORAGE_KEY = 'boikieu_count';
+
 const BoiKieu = () => {
   const [result, setResult] = useState<typeof kieuVerses[0] | null>(null);
   const [isShaking, setIsShaking] = useState(false);
+  const [useCount, setUseCount] = useState(() => {
+    return parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
+  });
+  const needsPayment = useCount >= FREE_USES;
 
   const handleGieoQue = () => {
     setIsShaking(true);
@@ -89,6 +97,9 @@ const BoiKieu = () => {
       const randomIndex = Math.floor(Math.random() * kieuVerses.length);
       setResult(kieuVerses[randomIndex]);
       setIsShaking(false);
+      const newCount = useCount + 1;
+      setUseCount(newCount);
+      localStorage.setItem(STORAGE_KEY, String(newCount));
     }, 1500);
   };
 
@@ -117,35 +128,66 @@ const BoiKieu = () => {
         </div>
 
         {/* Shake Button */}
-        <div className="flex justify-center py-8">
-          <button
-            onClick={handleGieoQue}
-            disabled={isShaking}
-            className={cn(
-              "relative w-32 h-32 rounded-full",
-              "bg-gradient-to-br from-gold to-gold/70",
-              "flex items-center justify-center",
-              "shadow-[0_0_40px_hsl(43,74%,53%,0.3)]",
-              "hover:shadow-[0_0_60px_hsl(43,74%,53%,0.5)]",
-              "transition-all duration-300",
-              "hover:scale-105 active:scale-95",
-              isShaking && "animate-[shake_0.5s_ease-in-out_infinite]"
-            )}
-          >
-            <div className="text-center">
-              {isShaking ? (
-                <RefreshCw className="w-10 h-10 text-background animate-spin" />
-              ) : (
-                <>
+        {needsPayment ? (
+          <PaymentGate feature="boi_kieu" onUnlocked={() => { setUseCount(0); localStorage.setItem(STORAGE_KEY, '0'); }}>
+            <div className="flex justify-center py-8">
+              <button
+                disabled
+                className={cn(
+                  "relative w-32 h-32 rounded-full",
+                  "bg-gradient-to-br from-primary to-primary/70",
+                  "flex items-center justify-center",
+                  "opacity-50 cursor-not-allowed"
+                )}
+              >
+                <div className="text-center">
                   <Sparkles className="w-10 h-10 text-background mx-auto" />
                   <span className="text-sm font-semibold text-background mt-1 block">
                     Gieo Quẻ
                   </span>
-                </>
-              )}
+                </div>
+              </button>
             </div>
-          </button>
-        </div>
+            <p className="text-center text-sm text-muted-foreground">
+              Bạn đã hết {FREE_USES} lượt miễn phí
+            </p>
+          </PaymentGate>
+        ) : (
+          <>
+            <div className="flex justify-center py-8">
+              <button
+                onClick={handleGieoQue}
+                disabled={isShaking}
+                className={cn(
+                  "relative w-32 h-32 rounded-full",
+                  "bg-gradient-to-br from-primary to-primary/70",
+                  "flex items-center justify-center",
+                  "shadow-[0_0_40px_hsl(var(--primary)/0.3)]",
+                  "hover:shadow-[0_0_60px_hsl(var(--primary)/0.5)]",
+                  "transition-all duration-300",
+                  "hover:scale-105 active:scale-95",
+                  isShaking && "animate-[shake_0.5s_ease-in-out_infinite]"
+                )}
+              >
+                <div className="text-center">
+                  {isShaking ? (
+                    <RefreshCw className="w-10 h-10 text-background animate-spin" />
+                  ) : (
+                    <>
+                      <Sparkles className="w-10 h-10 text-background mx-auto" />
+                      <span className="text-sm font-semibold text-background mt-1 block">
+                        Gieo Quẻ
+                      </span>
+                    </>
+                  )}
+                </div>
+              </button>
+            </div>
+            <p className="text-center text-xs text-muted-foreground">
+              Còn {FREE_USES - useCount}/{FREE_USES} lượt miễn phí
+            </p>
+          </>
+        )}
 
         {/* Result Card */}
         {result && style && (
