@@ -1,8 +1,10 @@
 import { ReactNode, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
+import type { User } from "@supabase/supabase-js";
 
 interface PaymentGateProps {
   feature: string;
@@ -59,6 +61,8 @@ const DEFAULT_CONFIGS: Record<string, { title: string; price: string; descriptio
 const PaymentGate = ({ feature, children, onUnlocked, title, price, description }: PaymentGateProps) => {
   const [unlocked, setUnlocked] = useState<boolean | null>(null);
   const [showPayment, setShowPayment] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const navigate = useNavigate();
 
   const defaultConfig = DEFAULT_CONFIGS[feature] || { title: "Mở khóa tính năng", price: "", description: "" };
   const config = {
@@ -69,6 +73,9 @@ const PaymentGate = ({ feature, children, onUnlocked, title, price, description 
 
   useEffect(() => {
     checkFeatureAccess();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setCurrentUser(user);
+    });
   }, [feature]);
 
   const checkFeatureAccess = async () => {
@@ -123,7 +130,13 @@ const PaymentGate = ({ feature, children, onUnlocked, title, price, description 
             variant="gold"
             size="lg"
             className="w-full mb-3"
-            onClick={() => setShowPayment(true)}
+            onClick={() => {
+              if (!currentUser) {
+                navigate('/auth?redirect=' + encodeURIComponent(window.location.pathname));
+                return;
+              }
+              setShowPayment(true);
+            }}
           >
             Mở khóa với QR
           </Button>
