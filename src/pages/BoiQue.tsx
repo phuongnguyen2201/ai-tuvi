@@ -78,10 +78,10 @@ const QUE_DATA = [
 ];
 
 const fortuneConfig = {
-  excellent: { bg: "from-gold/20 to-gold/5", border: "border-gold/40", badge: "bg-gold text-background", label: "Đại Cát 大吉" },
-  good: { bg: "from-emerald-500/20 to-emerald-500/5", border: "border-emerald-500/40", badge: "bg-emerald-500 text-background", label: "Cát 吉" },
-  neutral: { bg: "from-blue-400/20 to-blue-400/5", border: "border-blue-400/40", badge: "bg-blue-400 text-background", label: "Bình 平" },
-  challenging: { bg: "from-red-500/20 to-red-500/5", border: "border-red-500/40", badge: "bg-red-500 text-foreground", label: "Hung 凶" },
+  excellent: { bg: "from-gold/20 to-gold/5", border: "border-gold/40", badge: "bg-gold text-white dark:text-background font-bold", label: "Đại Cát 大吉" },
+  good: { bg: "from-emerald-600/20 to-emerald-600/5", border: "border-emerald-600/40", badge: "bg-emerald-600 text-white font-bold", label: "Cát 吉" },
+  neutral: { bg: "from-blue-500/20 to-blue-500/5", border: "border-blue-500/40", badge: "bg-blue-600 text-white font-bold", label: "Bình 平" },
+  challenging: { bg: "from-red-600/20 to-red-600/5", border: "border-red-600/40", badge: "bg-red-600 text-white font-bold", label: "Hung 凶" },
 };
 
 const FREE_USES = 3;
