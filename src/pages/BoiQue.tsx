@@ -1,26 +1,27 @@
-import { useState } from "react";
+import React, { useState, useCallback } from "react";
 import PageLayout from "@/components/PageLayout";
 import PaymentGate from "@/components/PaymentGate";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { Share2, RotateCcw } from "lucide-react";
+import { Share2, RotateCcw, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 // 64 quẻ Kinh Dịch (subset representative)
 const QUE_DATA = [
-  { id: 1, name: "Thuần Càn", symbol: "☰☰", element: "Trời", summary: "Quẻ của sức mạnh, sáng tạo và thành công lớn. Mọi việc hanh thông nếu giữ chính đạo.", detail: "Càn tượng trưng cho Trời, cho sự cứng cỏi mạnh mẽ. Quẻ này cho thấy bạn đang trong giai đoạn đầy năng lượng, thuận lợi để khởi sự. Tuy nhiên cần tránh kiêu ngạo, giữ khiêm tốn thì mọi việc mới bền vững.", advice: "Hãy hành động quyết đoán nhưng giữ đạo đức. Thời điểm tốt để khởi nghiệp, đầu tư.", fortune: "excellent" },
-  { id: 2, name: "Thuần Khôn", symbol: "☷☷", element: "Đất", summary: "Quẻ của sự bao dung, nhẫn nại. Thuận theo tự nhiên, không nên gượng ép.", detail: "Khôn tượng trưng cho Đất, cho sự nhu thuận. Quẻ khuyên bạn nên kiên nhẫn, theo người dẫn dắt tốt, không nên tự ý hành động một mình. Hợp tác và lắng nghe sẽ mang lại kết quả.", advice: "Hãy kiên nhẫn chờ đợi, hợp tác với người khác. Không phải lúc để đơn độc hành động.", fortune: "good" },
-  { id: 3, name: "Thủy Lôi Truân", symbol: "☵☳", element: "Nước/Sấm", summary: "Khởi đầu gian nan nhưng sẽ thành công nếu kiên trì.", detail: "Truân là quẻ của sự khó khăn ban đầu. Như mầm cây phải xuyên qua lớp đất cứng, bạn đang gặp trở ngại nhưng đây là bước đệm cần thiết. Kiên trì sẽ được đền đáp xứng đáng.", advice: "Đừng vội vàng, từ từ xây dựng nền tảng. Tìm người giúp đỡ, đừng cố gắng một mình.", fortune: "challenging" },
-  { id: 4, name: "Sơn Thủy Mông", symbol: "☶☵", element: "Núi/Nước", summary: "Quẻ của sự học hỏi và khai sáng. Cần tìm thầy chỉ đường.", detail: "Mông nghĩa là mông muội, chưa sáng tỏ. Quẻ khuyên bạn nên khiêm tốn học hỏi, tìm người hướng dẫn. Đừng tự phụ cho rằng mình biết hết, vì đó là nguồn gốc của sai lầm.", advice: "Hãy tìm cố vấn, mentor hoặc người có kinh nghiệm. Học hỏi là con đường ngắn nhất.", fortune: "neutral" },
-  { id: 5, name: "Thủy Thiên Nhu", symbol: "☵☰", element: "Nước/Trời", summary: "Chờ đợi đúng thời cơ. Kiên nhẫn sẽ được thưởng.", detail: "Nhu là chờ đợi. Như mây tụ trên trời chờ mưa xuống, bạn cần đợi thời điểm chín muồi. Hành động vội vàng sẽ thất bại, nhưng chờ đợi không có nghĩa là thụ động — hãy chuẩn bị sẵn sàng.", advice: "Chuẩn bị kỹ lưỡng và chờ đợi cơ hội. Đừng nôn nóng, thời cơ sẽ đến.", fortune: "good" },
-  { id: 6, name: "Thiên Thủy Tụng", symbol: "☰☵", element: "Trời/Nước", summary: "Tranh chấp, xung đột. Nên tìm trọng tài, tránh kiện cáo.", detail: "Tụng là tranh tụng, kiện cáo. Quẻ cảnh báo về mâu thuẫn, bất đồng trong các mối quan hệ hoặc công việc. Nên tìm người hòa giải, nhượng bộ một phần để giữ hòa khí.", advice: "Tránh tranh chấp, tìm cách hòa giải. Nhượng bộ đôi chút để được nhiều hơn.", fortune: "challenging" },
-  { id: 7, name: "Địa Thủy Sư", symbol: "☷☵", element: "Đất/Nước", summary: "Quẻ của sự lãnh đạo và tổ chức. Cần kỷ luật để thành công.", detail: "Sư là quân đội, tượng trưng cho tổ chức và kỷ luật. Quẻ cho thấy bạn cần lãnh đạo hoặc được lãnh đạo tốt. Hành động có chiến lược, có tổ chức sẽ mang lại thắng lợi.", advice: "Hãy lên kế hoạch chi tiết, hành động có tổ chức. Kỷ luật là chìa khóa.", fortune: "good" },
-  { id: 8, name: "Thủy Địa Tỷ", symbol: "☵☷", element: "Nước/Đất", summary: "Đoàn kết, hợp tác. Tìm đồng minh, liên kết sức mạnh.", detail: "Tỷ là thân cận, hợp tác. Như nước thấm vào đất, sự gắn kết tự nhiên mang lại lợi ích cho cả hai bên. Đây là thời điểm tốt để xây dựng mối quan hệ, tìm đối tác.", advice: "Mở rộng mối quan hệ, tìm đối tác đáng tin cậy. Hợp tác sẽ nhân đôi sức mạnh.", fortune: "excellent" },
-  { id: 9, name: "Phong Thiên Tiểu Súc", symbol: "☴☰", element: "Gió/Trời", summary: "Tích lũy nhỏ, tiến từng bước. Chưa đủ lực để làm lớn.", detail: "Tiểu Súc là tích trữ nhỏ. Sức chưa đủ mạnh để làm việc lớn, nên tích lũy dần dần. Hãy bắt đầu từ việc nhỏ, không nên tham lam vội vàng.", advice: "Bắt đầu từ việc nhỏ, tích lũy kinh nghiệm và nguồn lực. Kiên nhẫn là vàng.", fortune: "neutral" },
-  { id: 10, name: "Thiên Trạch Lý", symbol: "☰☱", element: "Trời/Hồ", summary: "Cẩn thận từng bước, như đi trên lưng hổ. Thận trọng sẽ an toàn.", detail: "Lý là bước đi, lễ nghĩa. Như đạp lên đuôi hổ mà hổ không cắn, nghĩa là dù tình huống nguy hiểm nhưng nếu cư xử đúng mực sẽ vượt qua an toàn.", advice: "Cẩn thận trong mọi việc, giữ lễ nghĩa. Đừng liều lĩnh nhưng cũng đừng sợ hãi.", fortune: "neutral" },
-  { id: 11, name: "Địa Thiên Thái", symbol: "☷☰", element: "Đất/Trời", summary: "Quẻ đại cát! Thông suốt, hanh thông, vạn sự như ý.", detail: "Thái là thông thái, hanh thông. Trời đất giao hòa, âm dương cân bằng. Đây là một trong những quẻ tốt nhất, báo hiệu giai đoạn thuận lợi, thành công trong mọi lĩnh vực.", advice: "Tận dụng giai đoạn tốt đẹp này! Hành động quyết đoán, mở rộng và phát triển.", fortune: "excellent" },
-  { id: 12, name: "Thiên Địa Bĩ", symbol: "☰☷", element: "Trời/Đất", summary: "Bế tắc, trì trệ. Cần ẩn nhẫn chờ thời, không nên hành động.", detail: "Bĩ là bế tắc, trái ngược với Thái. Trời đất không giao hòa, mọi việc đình trệ. Đây là lúc cần ẩn nhẫn, giữ gìn sức lực, đợi thời cơ thay đổi.", advice: "Không nên khởi sự mới. Giữ nguyên hiện trạng, tiết kiệm nguồn lực, chờ thời.", fortune: "challenging" },
+  { id: 1, name: "Thuần Càn", symbol: "☰☰", element: "Trời", summary: "Quẻ của sức mạnh, sáng tạo và thành công lớn. Mọi việc hanh thông nếu giữ chính đạo.", fortune: "excellent" },
+  { id: 2, name: "Thuần Khôn", symbol: "☷☷", element: "Đất", summary: "Quẻ của sự bao dung, nhẫn nại. Thuận theo tự nhiên, không nên gượng ép.", fortune: "good" },
+  { id: 3, name: "Thủy Lôi Truân", symbol: "☵☳", element: "Nước/Sấm", summary: "Khởi đầu gian nan nhưng sẽ thành công nếu kiên trì.", fortune: "challenging" },
+  { id: 4, name: "Sơn Thủy Mông", symbol: "☶☵", element: "Núi/Nước", summary: "Quẻ của sự học hỏi và khai sáng. Cần tìm thầy chỉ đường.", fortune: "neutral" },
+  { id: 5, name: "Thủy Thiên Nhu", symbol: "☵☰", element: "Nước/Trời", summary: "Chờ đợi đúng thời cơ. Kiên nhẫn sẽ được thưởng.", fortune: "good" },
+  { id: 6, name: "Thiên Thủy Tụng", symbol: "☰☵", element: "Trời/Nước", summary: "Tranh chấp, xung đột. Nên tìm trọng tài, tránh kiện cáo.", fortune: "challenging" },
+  { id: 7, name: "Địa Thủy Sư", symbol: "☷☵", element: "Đất/Nước", summary: "Quẻ của sự lãnh đạo và tổ chức. Cần kỷ luật để thành công.", fortune: "good" },
+  { id: 8, name: "Thủy Địa Tỷ", symbol: "☵☷", element: "Nước/Đất", summary: "Đoàn kết, hợp tác. Tìm đồng minh, liên kết sức mạnh.", fortune: "excellent" },
+  { id: 9, name: "Phong Thiên Tiểu Súc", symbol: "☴☰", element: "Gió/Trời", summary: "Tích lũy nhỏ, tiến từng bước. Chưa đủ lực để làm lớn.", fortune: "neutral" },
+  { id: 10, name: "Thiên Trạch Lý", symbol: "☰☱", element: "Trời/Hồ", summary: "Cẩn thận từng bước, như đi trên lưng hổ. Thận trọng sẽ an toàn.", fortune: "neutral" },
+  { id: 11, name: "Địa Thiên Thái", symbol: "☷☰", element: "Đất/Trời", summary: "Quẻ đại cát! Thông suốt, hanh thông, vạn sự như ý.", fortune: "excellent" },
+  { id: 12, name: "Thiên Địa Bĩ", symbol: "☰☷", element: "Trời/Đất", summary: "Bế tắc, trì trệ. Cần ẩn nhẫn chờ thời, không nên hành động.", fortune: "challenging" },
 ];
 
 const fortuneConfig = {
@@ -48,13 +49,51 @@ function setTodayUsage(count: number) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: today, count }));
 }
 
+function getQuestionHash(question: string, hexNum: number): string {
+  return `${question.length}${hexNum}`;
+}
+
+function getCacheKey(hexNum: number, question: string): string {
+  return `boi_que_${hexNum}_${getQuestionHash(question, hexNum)}`;
+}
+
+// Simple markdown renderer for AI results
+function renderMarkdown(text: string): React.ReactNode[] {
+  return text.split('\n').map((line, i) => {
+    if (line.startsWith('## ')) return <h2 key={i} className="text-lg font-bold text-gold mt-5 mb-2 border-b border-gold/20 pb-1">{line.replace('## ', '')}</h2>;
+    if (line.startsWith('### ')) return <h3 key={i} className="text-md font-semibold text-gold/80 mt-4 mb-2">{line.replace('### ', '')}</h3>;
+    if (line.startsWith('# ')) return <h1 key={i} className="text-xl font-bold text-gold mt-5 mb-3">{line.replace('# ', '')}</h1>;
+    if (line.startsWith('> ')) return <blockquote key={i} className="border-l-4 border-gold/40 pl-4 italic text-muted-foreground my-3 bg-gold/5 py-2 rounded-r">{line.replace('> ', '')}</blockquote>;
+    if (line.startsWith('- ') || line.startsWith('* ')) return <li key={i} className="text-muted-foreground ml-4 list-disc text-sm">{renderBold(line.replace(/^[-*] /, ''))}</li>;
+    if (/^\d+\. /.test(line)) return <li key={i} className="text-muted-foreground ml-4 list-decimal text-sm">{renderBold(line.replace(/^\d+\. /, ''))}</li>;
+    if (line === '---' || line === '***') return <hr key={i} className="border-gold/20 my-4" />;
+    if (line.trim() === '') return <div key={i} className="h-2" />;
+    return <p key={i} className="text-muted-foreground leading-relaxed text-sm">{renderBold(line)}</p>;
+  });
+}
+
+function renderBold(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i} className="text-foreground font-semibold">{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
+
 const BoiQue = () => {
   const [question, setQuestion] = useState("");
   const [result, setResult] = useState<typeof QUE_DATA[0] | null>(null);
-  const [coins, setCoins] = useState<boolean[]>([]); // true = ngửa, false = sấp
+  const [hexLines, setHexLines] = useState<string[]>([]);
+  const [coins, setCoins] = useState<boolean[]>([]);
   const [isAnimating, setIsAnimating] = useState(false);
   const [useCount, setUseCount] = useState(getTodayUsage);
   const needsPayment = useCount >= FREE_USES;
+
+  // AI state
+  const [aiResult, setAiResult] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const handleGieoQue = () => {
     if (!question.trim()) {
@@ -64,6 +103,8 @@ const BoiQue = () => {
 
     setIsAnimating(true);
     setResult(null);
+    setAiResult(null);
+    setHexLines([]);
     setCoins([]);
 
     // Animate coins one by one
@@ -75,9 +116,11 @@ const BoiQue = () => {
         setCoins([...newCoins]);
 
         if (index === 2) {
-          // All 3 coins flipped → pick a quẻ
           setTimeout(() => {
             const randomQue = QUE_DATA[Math.floor(Math.random() * QUE_DATA.length)];
+            // Generate 6 lines for the hexagram
+            const lines = Array.from({ length: 6 }, () => Math.random() > 0.5 ? 'yang' : 'yin');
+            setHexLines(lines);
             setResult(randomQue);
             setIsAnimating(false);
             const newCount = useCount + 1;
@@ -93,17 +136,58 @@ const BoiQue = () => {
     flipCoin(2);
   };
 
+  const handleAnalyze = useCallback(async () => {
+    if (!result) return;
+
+    // Check cache
+    const cacheKey = getCacheKey(result.id, question);
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      setAiResult(cached);
+      return;
+    }
+
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-chart", {
+        body: {
+          analysisType: "hexagram",
+          question: question.trim(),
+          hexagramNumber: result.id,
+          hexagramName: result.name,
+          hexagramSymbol: result.symbol,
+          lines: hexLines,
+        },
+      });
+
+      if (error) throw error;
+      const analysis = data?.analysis || "Không nhận được kết quả.";
+      setAiResult(analysis);
+      localStorage.setItem(cacheKey, analysis);
+    } catch (err) {
+      console.error("AI analysis error:", err);
+      toast.error("Lỗi khi phân tích. Vui lòng thử lại.");
+    } finally {
+      setAiLoading(false);
+    }
+  }, [result, question, hexLines]);
+
   const handleReset = () => {
     setResult(null);
     setCoins([]);
+    setHexLines([]);
     setQuestion("");
+    setAiResult(null);
   };
 
   const handleShare = () => {
-    if (!result) return;
-    const text = `🎴 Bói Quẻ Dịch\nQuẻ ${result.id} - ${result.name} ${result.symbol}\n${result.summary}`;
-    navigator.clipboard.writeText(text);
-    toast.success("Đã sao chép quẻ!");
+    if (aiResult) {
+      navigator.clipboard.writeText(aiResult);
+    } else if (result) {
+      const text = `🎴 Bói Quẻ Dịch\nQuẻ ${result.id} - ${result.name} ${result.symbol}\n${result.summary}`;
+      navigator.clipboard.writeText(text);
+    }
+    toast.success("Đã sao chép!");
   };
 
   const style = result ? fortuneConfig[result.fortune as keyof typeof fortuneConfig] : null;
@@ -158,17 +242,18 @@ const BoiQue = () => {
           {needsPayment && !result ? (
             <PaymentGate
               feature="boi_que"
-              title="Bói Quẻ Không Giới Hạn"
-              price="19.000đ"
+              title="Bói Quẻ Không Giới Hạn - 19.000đ"
               description="Mua 1 lần, dùng mãi mãi. Gieo quẻ Kinh Dịch không giới hạn lượt."
               onUnlocked={() => { setUseCount(0); setTodayUsage(0); }}
             >
-              <Button disabled variant="gold" size="lg" className="w-full">
-                Gieo Quẻ 🎴
-              </Button>
-              <p className="text-center text-xs text-muted-foreground mt-2">
-                Đã hết {FREE_USES} lượt miễn phí hôm nay
-              </p>
+              <div className="text-center space-y-2">
+                <Button disabled variant="gold" size="lg" className="w-full">
+                  Gieo Quẻ 🎴
+                </Button>
+                <p className="text-xs text-destructive font-medium">
+                  ⚠️ Bạn đã dùng hết {FREE_USES} lần miễn phí hôm nay
+                </p>
+              </div>
             </PaymentGate>
           ) : !result ? (
             <>
@@ -191,7 +276,7 @@ const BoiQue = () => {
         {/* Result */}
         {result && style && (
           <div className="space-y-4 animate-fade-in">
-            {/* Quẻ header */}
+            {/* Quẻ header - FREE */}
             <div className={cn(
               "rounded-2xl p-6 border bg-gradient-to-br",
               style.bg, style.border
@@ -219,45 +304,40 @@ const BoiQue = () => {
               </div>
             </div>
 
-            {/* Locked detailed section */}
+            {/* Locked AI detailed section */}
             <PaymentGate
               feature="boi_que"
-              title="Bói Quẻ Không Giới Hạn"
-              price="19.000đ"
-              description="Mua 1 lần, dùng mãi mãi. Xem giải nghĩa chi tiết, lời khuyên hành động."
+              title="Bói Quẻ Không Giới Hạn - 19.000đ"
+              description="Mua 1 lần, dùng mãi mãi. Xem giải nghĩa chi tiết AI, lời khuyên hành động."
+              onUnlocked={handleAnalyze}
             >
               <div className="space-y-4">
-                {/* Detailed interpretation */}
-                <div className="rounded-2xl p-5 bg-gradient-to-br from-surface-3 to-surface-2 border border-border">
-                  <h4 className="font-display text-gold text-base mb-3 flex items-center gap-2">
-                    📜 Giải Nghĩa Chi Tiết
-                  </h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {result.detail}
-                  </p>
-                </div>
-
-                {/* Advice */}
-                <div className="rounded-2xl p-5 bg-gradient-to-br from-gold/10 to-gold/5 border border-gold/20">
-                  <h4 className="font-display text-gold text-base mb-3 flex items-center gap-2">
-                    💡 Lời Khuyên Hành Động
-                  </h4>
-                  <p className="text-sm text-foreground leading-relaxed">
-                    {result.advice}
-                  </p>
-                </div>
-
-                {/* Quẻ biến hint */}
-                <div className="rounded-2xl p-5 bg-surface-3/50 border border-border">
-                  <h4 className="font-display text-foreground text-base mb-3 flex items-center gap-2">
-                    🔄 Quẻ Biến
-                  </h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Hào động ở vị trí {coins.filter(c => c).length + 1}: Quẻ có xu hướng biến chuyển theo chiều{" "}
-                    {coins.filter(c => c).length >= 2 ? "tích cực" : "cần cẩn thận"}.
-                    Nên chú ý thời điểm hành động để đạt kết quả tốt nhất.
-                  </p>
-                </div>
+                {/* AI Result or trigger */}
+                {aiLoading ? (
+                  <div className={cn("rounded-2xl p-8 text-center bg-gradient-to-br from-surface-3 to-surface-2 border border-gold/20")}>
+                    <div className="relative inline-block mb-4">
+                      <Sparkles className="w-10 h-10 text-gold animate-spin" />
+                    </div>
+                    <p className="font-display text-lg text-foreground mb-1">Đang luận giải quẻ...</p>
+                    <p className="text-sm text-muted-foreground">AI đang phân tích quẻ {result.name} theo câu hỏi của bạn</p>
+                  </div>
+                ) : aiResult ? (
+                  <div className={cn("rounded-2xl p-5 bg-gradient-to-br from-surface-3 to-surface-2 border border-gold/20")}>
+                    <div className="space-y-1">
+                      {renderMarkdown(aiResult)}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-6">
+                    <Button variant="gold" size="lg" onClick={handleAnalyze}>
+                      <Sparkles className="w-5 h-5 mr-2" />
+                      Luận Giải AI Quẻ {result.name}
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Phân tích chuyên sâu bằng AI dựa trên câu hỏi của bạn
+                    </p>
+                  </div>
+                )}
               </div>
             </PaymentGate>
 
