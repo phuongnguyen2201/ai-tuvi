@@ -41,9 +41,9 @@ export function getFeatureLabel(feature: FeatureKey): string {
   const labels: Record<FeatureKey, string> = {
     luan_giai: 'Luận giải lá số chi tiết',
     van_han: 'Dự đoán vận hạn năm',
-    van_han_week: 'Luận giải vận hạn tuần',
-    van_han_month: 'Luận giải vận hạn tháng',
-    van_han_year: 'Luận giải vận hạn năm',
+    van_han_week: 'Luận giải vận hạn tuần này',
+    van_han_month: 'Luận giải vận hạn tháng này',
+    van_han_year: 'Luận giải vận hạn năm 2026',
     boi_que: 'Bói quẻ (10 lần)',
     boi_kieu: 'Bói Kiều (10 lần)',
     premium_monthly: 'Premium 1 tháng',
