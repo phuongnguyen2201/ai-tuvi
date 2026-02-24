@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { generateVietQRUrl, generateTransferContent, getFeatureLabel, PRICING, type FeatureKey } from "@/utils/vietqr";
 import { Copy, Check, Loader2, ExternalLink } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 type Step = "select_plan" | "show_qr" | "pending" | "success";
 
@@ -32,6 +33,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess }: VietQRPa
   const [copied, setCopied] = useState(false);
   const [userId, setUserId] = useState("");
   const [transferContent, setTransferContent] = useState("");
+  const { toast } = useToast();
 
   const isPremium = feature === "premium";
   const activeFeature: FeatureKey = isPremium ? selectedPlan : (feature as FeatureKey);
@@ -63,21 +65,32 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess }: VietQRPa
   };
 
   const handleConfirmTransfer = async () => {
-    setStep("pending");
-
-    // Save payment record
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      await supabase.from("payments").insert({
+
+    if (!user) {
+      toast({ title: "Vui lòng đăng nhập trước" });
+      return;
+    }
+
+    const { error } = await supabase
+      .from('payments')
+      .insert({
         user_id: user.id,
         amount: amount,
         plan: activeFeature,
-        status: "pending",
-        payment_type: "bank_transfer",
-        transfer_content: transferContent,
+        payment_type: 'vietqr',
         feature_unlocked: activeFeature,
+        status: 'pending',
+        transfer_content: transferContent,
       });
+
+    if (error) {
+      console.error('Payment insert error:', error);
+      toast({ title: "Lỗi", description: error.message });
+      return;
     }
+
+    setStep("pending");
   };
 
   const handleClose = () => {
