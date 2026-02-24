@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import PageLayout from "@/components/PageLayout";
 import PaymentGate from "@/components/PaymentGate";
@@ -151,10 +151,23 @@ const VanHan = () => {
     soulPalace?: string;
   } | null>(null);
 
-  // AI analysis state
-  const [aiResult, setAiResult] = useState<string | null>(null);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiSaved, setAiSaved] = useState(false);
+  // Per-tab AI analysis state
+  const [aiResults, setAiResults] = useState<Record<string, string>>({});
+  const [aiLoadings, setAiLoadings] = useState<Record<TimeFrame, boolean>>({ week: false, month: false, year: false });
+  const [aiSavedKeys, setAiSavedKeys] = useState<Set<string>>(new Set());
+
+  // Load cached results from localStorage on mount
+  useEffect(() => {
+    const cached: Record<string, string> = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith("van_han_")) {
+        const val = localStorage.getItem(key);
+        if (val) cached[key] = val;
+      }
+    }
+    if (Object.keys(cached).length) setAiResults(cached);
+  }, []);
 
   useEffect(() => {
     const savedChart = localStorage.getItem("tuvi_last_chart");
@@ -178,8 +191,6 @@ const VanHan = () => {
   // Reset offset when switching tabs
   useEffect(() => {
     setTimeOffset(0);
-    setAiResult(null);
-    setAiSaved(false);
   }, [activeTab]);
 
   const currentTab = TABS.find((t) => t.key === activeTab)!;
@@ -191,10 +202,23 @@ const VanHan = () => {
 
   const maxOffset = activeTab === "year" ? 1 : 2;
 
-  const handleAnalyze = useCallback(async () => {
+  const getCacheKey = useCallback(() => {
+    // Use a simple key; userId can be added later
+    return `van_han_${timeInfo.period}`;
+  }, [timeInfo.period]);
+
+  const currentResult = aiResults[getCacheKey()] || null;
+  const currentLoading = aiLoadings[activeTab];
+  const currentSaved = aiSavedKeys.has(getCacheKey());
+
+  const handleAnalyze = useCallback(async (forceRefresh = false) => {
     if (!chartData) return;
-    setAiLoading(true);
-    setAiResult(null);
+
+    // Check cache first (unless forcing refresh)
+    const cacheKey = getCacheKey();
+    if (!forceRefresh && aiResults[cacheKey]) return;
+
+    setAiLoadings(prev => ({ ...prev, [activeTab]: true }));
 
     try {
       const { data, error } = await supabase.functions.invoke("analyze-chart", {
@@ -207,37 +231,39 @@ const VanHan = () => {
       });
 
       if (error) throw error;
-      setAiResult(data?.analysis || "Không nhận được kết quả phân tích.");
+      const result = data?.analysis || "Không nhận được kết quả phân tích.";
+      setAiResults(prev => ({ ...prev, [cacheKey]: result }));
+      localStorage.setItem(cacheKey, result);
     } catch (err) {
       console.error("AI analysis error:", err);
       toast.error("Lỗi khi phân tích. Vui lòng thử lại.");
     } finally {
-      setAiLoading(false);
+      setAiLoadings(prev => ({ ...prev, [activeTab]: false }));
     }
-  }, [chartData, activeTab, timeInfo.period]);
+  }, [chartData, activeTab, timeInfo.period, getCacheKey, aiResults]);
 
   const handleSave = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user || !aiResult) return;
+    if (!user || !currentResult) return;
 
     const { error } = await supabase.from("day_analyses").insert({
       user_id: user.id,
       solar_date: new Date().toISOString().split("T")[0],
-      analysis: { type: "van_han", timeFrame: activeTab, period: timeInfo.period, content: aiResult },
+      analysis: { type: "van_han", timeFrame: activeTab, period: timeInfo.period, content: currentResult },
       day_quality: "van_han",
     });
 
     if (error) {
       toast.error("Lỗi khi lưu kết quả");
     } else {
-      setAiSaved(true);
+      setAiSavedKeys(prev => new Set(prev).add(getCacheKey()));
       toast.success("Đã lưu kết quả!");
     }
   };
 
   const handleShare = () => {
-    if (aiResult) {
-      navigator.clipboard.writeText(aiResult);
+    if (currentResult) {
+      navigator.clipboard.writeText(currentResult);
       toast.success("Đã sao chép kết quả!");
     }
   };
@@ -450,7 +476,7 @@ const VanHan = () => {
 
   // ── AI Result Display ──
   const renderAiResult = () => {
-    if (aiLoading) {
+    if (currentLoading) {
       return (
         <div className={cn("rounded-2xl p-8 text-center bg-gradient-to-br from-surface-3 to-surface-2 border border-primary/20")}>
           <div className="relative inline-block mb-4">
@@ -462,10 +488,10 @@ const VanHan = () => {
       );
     }
 
-    if (!aiResult) {
+    if (!currentResult) {
       return (
         <div className="text-center py-6">
-          <Button variant="gold" size="lg" onClick={handleAnalyze}>
+          <Button variant="gold" size="lg" onClick={() => handleAnalyze(false)}>
             <Sparkles className="w-5 h-5 mr-2" />
             Luận Giải AI {timeInfo.label}
           </Button>
@@ -476,24 +502,61 @@ const VanHan = () => {
       );
     }
 
+    // Render markdown-style content
+    const renderMarkdown = (text: string) => {
+      return text.split('\n').map((line, i) => {
+        if (line.startsWith('## ')) return <h2 key={i} className="text-lg font-bold text-primary mt-5 mb-2 border-b border-primary/20 pb-1">{line.replace('## ', '')}</h2>;
+        if (line.startsWith('### ')) return <h3 key={i} className="text-md font-semibold text-secondary mt-4 mb-2">{line.replace('### ', '')}</h3>;
+        if (line.startsWith('# ')) return <h1 key={i} className="text-xl font-bold text-foreground mt-5 mb-3">{line.replace('# ', '')}</h1>;
+        if (line.startsWith('> ')) return <blockquote key={i} className="border-l-4 border-primary/40 pl-4 italic text-muted-foreground my-3 bg-primary/5 py-2 rounded-r">{line.replace('> ', '')}</blockquote>;
+        if (line.startsWith('- ') || line.startsWith('* ')) return <li key={i} className="text-muted-foreground ml-4 list-disc text-sm">{renderBold(line.replace(/^[-*] /, ''))}</li>;
+        if (/^\d+\. /.test(line)) return <li key={i} className="text-muted-foreground ml-4 list-decimal text-sm">{renderBold(line.replace(/^\d+\. /, ''))}</li>;
+        if (line === '---' || line === '***') return <hr key={i} className="border-primary/20 my-4" />;
+        if (line.trim() === '') return <div key={i} className="h-2" />;
+        return <p key={i} className="text-muted-foreground leading-relaxed text-sm">{renderBold(line)}</p>;
+      });
+    };
+
+    const renderBold = (text: string): React.ReactNode => {
+      const parts = text.split(/(\*\*[^*]+\*\*)/g);
+      return parts.map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return <strong key={i} className="text-foreground font-semibold">{part.slice(2, -2)}</strong>;
+        }
+        return part;
+      });
+    };
+
     return (
       <div className={cn("rounded-2xl p-5 bg-gradient-to-br from-secondary/5 to-surface-2 border border-secondary/20")}>
-        <h3 className="font-display text-lg text-secondary mb-4 flex items-center gap-2">
-          <Sparkles className="w-5 h-5" />
-          Luận Giải AI - {timeInfo.label}
-        </h3>
-        <div className="prose prose-invert prose-sm max-w-none text-muted-foreground leading-relaxed whitespace-pre-wrap">
-          {aiResult}
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-display text-lg text-secondary flex items-center gap-2">
+            <Sparkles className="w-5 h-5" />
+            Luận Giải AI - {timeInfo.label}
+          </h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleAnalyze(true)}
+            disabled={currentLoading}
+            title="Làm mới kết quả"
+          >
+            <Loader2 className={cn("w-4 h-4 mr-1", currentLoading && "animate-spin")} />
+            Làm mới
+          </Button>
+        </div>
+        <div className="space-y-1">
+          {renderMarkdown(currentResult)}
         </div>
         <div className="flex gap-3 mt-5">
           <Button
             variant="goldOutline"
             size="sm"
             onClick={handleSave}
-            disabled={aiSaved}
+            disabled={currentSaved}
           >
-            {aiSaved ? <Star className="w-4 h-4 mr-1" /> : <Save className="w-4 h-4 mr-1" />}
-            {aiSaved ? "Đã lưu" : "Lưu kết quả"}
+            {currentSaved ? <Star className="w-4 h-4 mr-1" /> : <Save className="w-4 h-4 mr-1" />}
+            {currentSaved ? "Đã lưu" : "Lưu kết quả"}
           </Button>
           <Button variant="ghost" size="sm" onClick={handleShare}>
             <Share2 className="w-4 h-4 mr-1" />
@@ -630,7 +693,7 @@ const VanHan = () => {
               feature={currentTab.featureKey}
               title={`Luận giải ${activeTab === "week" ? "tuần" : activeTab === "month" ? "tháng" : "năm"} - ${activeTab === "week" ? "9.000đ" : activeTab === "month" ? "19.000đ" : "39.000đ"}`}
               description={`Mua 1 lần, xem vĩnh viễn cho ${timeInfo.label}`}
-              onUnlocked={handleAnalyze}
+              onUnlocked={() => handleAnalyze(false)}
             >
               <div className="space-y-6">
                 {lockedContentMap[activeTab]()}
