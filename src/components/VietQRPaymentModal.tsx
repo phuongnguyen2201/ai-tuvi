@@ -212,7 +212,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess }: VietQRPa
         variant="goldOutline"
         size="default"
         className="mt-4"
-        onClick={() => window.open("https://zalo.me/0373329042", "_blank")}
+        onClick={() => window.open("https://zalo.me/0702127233", "_blank")}
       >
         <ExternalLink className="w-4 h-4 mr-1" />
         Liên hệ hỗ trợ Zalo
