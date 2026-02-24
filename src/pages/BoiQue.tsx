@@ -3,8 +3,9 @@ import PageLayout from "@/components/PageLayout";
 import PaymentGate from "@/components/PaymentGate";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Share2, RotateCcw, Sparkles, Loader2 } from "lucide-react";
+import { Share2, RotateCcw, Sparkles, Loader2, Search, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -146,6 +147,20 @@ const BoiQue = () => {
   // AI state
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+
+  // Search/lookup state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showLookup, setShowLookup] = useState(false);
+  const [selectedQue, setSelectedQue] = useState<typeof QUE_DATA[0] | null>(null);
+
+  const filteredQue = searchTerm.trim()
+    ? QUE_DATA.filter(q =>
+        q.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        q.id.toString() === searchTerm.trim() ||
+        q.element.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        q.symbol.includes(searchTerm)
+      )
+    : QUE_DATA;
 
   const handleGieoQue = () => {
     if (!question.trim()) {
@@ -411,6 +426,99 @@ const BoiQue = () => {
             Tập trung vào câu hỏi, thành tâm rồi nhấn "Gieo Quẻ"
           </p>
         )}
+
+        {/* Lookup / Tra cứu 64 quẻ */}
+        <div className="rounded-2xl bg-gradient-to-br from-surface-3 to-surface-2 border border-border overflow-hidden">
+          <button
+            onClick={() => { setShowLookup(!showLookup); setSelectedQue(null); }}
+            className="w-full flex items-center justify-between p-4 text-left"
+          >
+            <div className="flex items-center gap-2">
+              <Search className="w-4 h-4 text-gold" />
+              <span className="font-display text-foreground">Tra Cứu 64 Quẻ Dịch</span>
+            </div>
+            {showLookup ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+          </button>
+
+          {showLookup && (
+            <div className="px-4 pb-4 space-y-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Tìm theo tên, số, ngũ hành..."
+                  value={searchTerm}
+                  onChange={(e) => { setSearchTerm(e.target.value); setSelectedQue(null); }}
+                  className="pl-9 bg-surface-2 border-border text-foreground"
+                />
+              </div>
+
+              {/* Selected quẻ detail */}
+              {selectedQue && (
+                <div className={cn(
+                  "rounded-xl p-4 border bg-gradient-to-br animate-fade-in",
+                  fortuneConfig[selectedQue.fortune as keyof typeof fortuneConfig].bg,
+                  fortuneConfig[selectedQue.fortune as keyof typeof fortuneConfig].border
+                )}>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-display text-lg text-foreground">
+                      {String(selectedQue.id).padStart(2, "0")}. {selectedQue.name}
+                    </h4>
+                    <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold", fortuneConfig[selectedQue.fortune as keyof typeof fortuneConfig].badge)}>
+                      {fortuneConfig[selectedQue.fortune as keyof typeof fortuneConfig].label}
+                    </span>
+                  </div>
+                  <p className="text-2xl tracking-widest text-gold mb-2">{selectedQue.symbol}</p>
+                  <p className="text-xs text-muted-foreground italic mb-2">Ngũ hành: {selectedQue.element}</p>
+                  <p className="text-sm text-foreground leading-relaxed">{selectedQue.summary}</p>
+                  <button
+                    onClick={() => setSelectedQue(null)}
+                    className="mt-3 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    ← Quay lại danh sách
+                  </button>
+                </div>
+              )}
+
+              {/* Quẻ list */}
+              {!selectedQue && (
+                <div className="max-h-[400px] overflow-y-auto space-y-1.5 pr-1">
+                  {filteredQue.length === 0 ? (
+                    <p className="text-center text-sm text-muted-foreground py-4">Không tìm thấy quẻ nào</p>
+                  ) : (
+                    filteredQue.map((q) => {
+                      const cfg = fortuneConfig[q.fortune as keyof typeof fortuneConfig];
+                      return (
+                        <button
+                          key={q.id}
+                          onClick={() => setSelectedQue(q)}
+                          className={cn(
+                            "w-full text-left rounded-lg p-3 border transition-all hover:scale-[1.01]",
+                            "bg-surface-2/50 border-border hover:border-gold/30"
+                          )}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2.5">
+                              <span className="text-lg text-gold">{q.symbol}</span>
+                              <div>
+                                <p className="text-sm font-medium text-foreground">
+                                  {String(q.id).padStart(2, "0")}. {q.name}
+                                </p>
+                                <p className="text-[11px] text-muted-foreground">{q.element}</p>
+                              </div>
+                            </div>
+                            <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold", cfg.badge)}>
+                              {cfg.label}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </PageLayout>
   );
