@@ -6,6 +6,8 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  displayName: string;
+  profile: { display_name: string | null; is_premium: boolean | null } | null;
   signUp: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
@@ -17,6 +19,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<{ display_name: string | null; is_premium: boolean | null } | null>(null);
+  const [displayName, setDisplayName] = useState("");
+
+  const fetchProfile = async (u: User | null) => {
+    if (!u) {
+      setProfile(null);
+      setDisplayName("");
+      return;
+    }
+    let profileData: any = null;
+    try {
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name, is_premium")
+        .eq("id", u.id)
+        .single();
+      profileData = data;
+      setProfile(data);
+    } catch {
+      setProfile(null);
+    }
+    const name = profileData?.display_name
+      || u.user_metadata?.full_name
+      || u.email?.split("@")[0]
+      || "User";
+    setDisplayName(name);
+  };
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -25,6 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        fetchProfile(session?.user ?? null);
       }
     );
 
@@ -33,6 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      fetchProfile(session?.user ?? null);
     });
 
     return () => {
@@ -64,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, displayName, profile, signUp, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,12 +1,10 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Logo from "@/components/Logo";
 import MenuCard from "@/components/MenuCard";
 import DailyWisdom from "@/components/DailyWisdom";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ScrollText, Heart, Calendar, BookOpen, Image, Sparkles, Layers, LogIn } from "lucide-react";
-import { supabase } from "@/lib/supabase";
-import { User } from "@supabase/supabase-js";
+import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -18,30 +16,10 @@ import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(null);
-  const [displayName, setDisplayName] = useState("");
-
-  useEffect(() => {
-    const fetchProfile = async (u: User | null) => {
-      if (!u) { setUser(null); setDisplayName(""); return; }
-      setUser(u);
-      let name: string | null = null;
-      try {
-        const { data } = await supabase.from("profiles").select("display_name").eq("id", u.id).single();
-        name = (data as any)?.display_name ?? null;
-      } catch {}
-      setDisplayName(name || u.user_metadata?.full_name || u.email?.split("@")[0] || "User");
-    };
-
-    supabase.auth.getUser().then(({ data: { user } }) => fetchProfile(user));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => fetchProfile(session?.user ?? null)
-    );
-    return () => subscription.unsubscribe();
-  }, []);
+  const { user, displayName, signOut } = useAuth();
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await signOut();
     navigate("/");
   };
 
@@ -102,7 +80,7 @@ const Index = () => {
       {/* Main content */}
       <div className="relative z-10 min-h-screen flex flex-col">
         <div className="container max-w-lg mx-auto px-4 py-8 flex flex-col flex-1">
-          {/* Theme toggle */}
+          {/* Header */}
           <div className="flex items-center justify-between mb-2">
             {user ? (
               <div className="flex items-center gap-2">
