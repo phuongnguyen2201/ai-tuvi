@@ -1,10 +1,50 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Logo from "@/components/Logo";
 import MenuCard from "@/components/MenuCard";
 import DailyWisdom from "@/components/DailyWisdom";
 import ThemeToggle from "@/components/ThemeToggle";
-import { ScrollText, Heart, Calendar, BookOpen, Image, Sparkles, Layers } from "lucide-react";
+import { ScrollText, Heart, Calendar, BookOpen, Image, Sparkles, Layers, LogIn } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { User } from "@supabase/supabase-js";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<User | null>(null);
+  const [displayName, setDisplayName] = useState("");
+
+  useEffect(() => {
+    const fetchProfile = async (u: User | null) => {
+      if (!u) { setUser(null); setDisplayName(""); return; }
+      setUser(u);
+      let name: string | null = null;
+      try {
+        const { data } = await supabase.from("profiles").select("display_name").eq("id", u.id).single();
+        name = (data as any)?.display_name ?? null;
+      } catch {}
+      setDisplayName(name || u.user_metadata?.full_name || u.email?.split("@")[0] || "User");
+    };
+
+    supabase.auth.getUser().then(({ data: { user } }) => fetchProfile(user));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => fetchProfile(session?.user ?? null)
+    );
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/");
+  };
+
   const menuItems = [
     {
       title: "Lập Lá Số",
@@ -63,8 +103,44 @@ const Index = () => {
       <div className="relative z-10 min-h-screen flex flex-col">
         <div className="container max-w-lg mx-auto px-4 py-8 flex flex-col flex-1">
           {/* Theme toggle */}
-          <div className="flex justify-end mb-2">
-            <ThemeToggle />
+          <div className="flex items-center justify-between mb-2">
+            {user ? (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">✨ Xin chào, <span className="text-foreground font-medium">{displayName}</span>!</span>
+              </div>
+            ) : (
+              <div />
+            )}
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center gap-1.5 rounded-lg bg-surface-3 border border-border px-2 py-1.5 hover:border-gold/50 transition-all">
+                      <Avatar className="h-6 w-6">
+                        <AvatarImage src={user.user_metadata?.avatar_url} />
+                        <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                          {displayName.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs text-foreground max-w-[80px] truncate hidden sm:inline">{displayName}</span>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => navigate("/auth")}>Hồ sơ</DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
+                      <LogIn className="mr-2 h-4 w-4 rotate-180" />
+                      Đăng xuất
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button variant="goldOutline" size="sm" className="h-8 text-xs" onClick={() => navigate("/auth")}>
+                  <LogIn className="h-3.5 w-3.5 mr-1" />
+                  Đăng nhập
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Logo Section */}
