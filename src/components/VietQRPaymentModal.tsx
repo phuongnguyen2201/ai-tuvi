@@ -8,11 +8,16 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { generateVietQRUrl, generateTransferContent, BANK_INFO } from "@/utils/vietqr";
+import { generateVietQRUrl, generateTransferContent, getFeatureLabel, PRICING, type FeatureKey } from "@/utils/vietqr";
 import { Copy, Check, Loader2, ExternalLink } from "lucide-react";
 
-type Feature = "luan_giai" | "van_han" | "boi_que" | "boi_kieu" | "premium_monthly" | "premium_yearly" | "premium";
 type Step = "select_plan" | "show_qr" | "pending" | "success";
+
+const BANK_DISPLAY = {
+  bankName: "VPBank",
+  accountNo: "238898706",
+  accountName: "NGUYEN MINH PHUONG",
+};
 
 interface VietQRPaymentModalProps {
   open: boolean;
@@ -20,16 +25,6 @@ interface VietQRPaymentModalProps {
   feature: string;
   onSuccess: () => void;
 }
-
-const FEATURE_PRICES: Record<string, { label: string; amount: number }> = {
-  luan_giai: { label: "Luận giải chi tiết", amount: 29000 },
-  van_han: { label: "Xem vận hạn năm", amount: 29000 },
-  boi_que: { label: "Bói quẻ Kinh Dịch", amount: 19000 },
-  boi_kieu: { label: "Bói Kiều", amount: 19000 },
-  premium_monthly: { label: "Premium 1 tháng", amount: 49000 },
-  premium_yearly: { label: "Premium 1 năm", amount: 399000 },
-  premium: { label: "Premium trọn đời", amount: 199000 },
-};
 
 const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess }: VietQRPaymentModalProps) => {
   const [step, setStep] = useState<Step>("show_qr");
@@ -39,8 +34,9 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess }: VietQRPa
   const [transferContent, setTransferContent] = useState("");
 
   const isPremium = feature === "premium";
-  const activeFeature = isPremium ? selectedPlan : feature;
-  const priceInfo = FEATURE_PRICES[activeFeature] || FEATURE_PRICES["luan_giai"];
+  const activeFeature: FeatureKey = isPremium ? selectedPlan : (feature as FeatureKey);
+  const amount = PRICING[activeFeature] || 0;
+  const label = getFeatureLabel(activeFeature);
 
   useEffect(() => {
     if (open) {
@@ -54,11 +50,11 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess }: VietQRPa
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       setUserId(user.id);
-      setTransferContent(generateTransferContent(user.id));
+      setTransferContent(generateTransferContent(user.id, activeFeature));
     }
   };
 
-  const qrUrl = generateVietQRUrl(priceInfo.amount, transferContent);
+  const qrUrl = generateVietQRUrl(activeFeature, transferContent);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(transferContent);
@@ -74,7 +70,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess }: VietQRPa
     if (user) {
       await supabase.from("payments").insert({
         user_id: user.id,
-        amount: priceInfo.amount,
+        amount: amount,
         plan: activeFeature,
         status: "pending",
         payment_type: "bank_transfer",
@@ -159,19 +155,19 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess }: VietQRPa
       <div className="rounded-xl bg-muted/50 border border-border p-4 space-y-2 text-sm">
         <div className="flex justify-between">
           <span className="text-muted-foreground">Ngân hàng</span>
-          <span className="font-medium text-foreground">{BANK_INFO.bankName}</span>
+          <span className="font-medium text-foreground">{BANK_DISPLAY.bankName}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Số TK</span>
-          <span className="font-medium text-foreground">{BANK_INFO.accountNo}</span>
+          <span className="font-medium text-foreground">{BANK_DISPLAY.accountNo}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Chủ TK</span>
-          <span className="font-medium text-foreground">{BANK_INFO.accountName}</span>
+          <span className="font-medium text-foreground">{BANK_DISPLAY.accountName}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Số tiền</span>
-          <span className="font-bold text-primary">{formatAmount(priceInfo.amount)}</span>
+          <span className="font-bold text-primary">{formatAmount(amount)}</span>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-muted-foreground">Nội dung</span>
@@ -230,7 +226,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess }: VietQRPa
       <div className="text-6xl animate-scale-in">🎉</div>
       <div>
         <p className="font-bold text-xl text-foreground">Đã mở khóa thành công!</p>
-        <p className="text-sm text-muted-foreground mt-1">{priceInfo.label}</p>
+        <p className="text-sm text-muted-foreground mt-1">{label}</p>
       </div>
 
       <Button variant="gold" size="lg" className="w-full" onClick={handleClose}>
@@ -255,7 +251,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess }: VietQRPa
           </DialogTitle>
           <DialogDescription className="text-center">
             {step === "select_plan" && "Chọn gói phù hợp"}
-            {step === "show_qr" && priceInfo.label}
+            {step === "show_qr" && label}
             {step === "pending" && "Vui lòng chờ xác nhận"}
             {step === "success" && "Cảm ơn bạn đã ủng hộ!"}
           </DialogDescription>
