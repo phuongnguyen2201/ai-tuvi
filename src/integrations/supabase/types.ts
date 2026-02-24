@@ -337,6 +337,7 @@ export type Database = {
       }
       user_features: {
         Row: {
+          expires_at: string | null
           feature: string
           id: string
           payment_ref: string | null
@@ -344,6 +345,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          expires_at?: string | null
           feature: string
           id?: string
           payment_ref?: string | null
@@ -351,6 +353,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          expires_at?: string | null
           feature?: string
           id?: string
           payment_ref?: string | null
