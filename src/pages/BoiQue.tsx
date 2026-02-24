@@ -304,6 +304,18 @@ const BoiQue = () => {
               </div>
             </div>
 
+            {/* Action buttons - above PaymentGate so they're always clickable */}
+            <div className="flex gap-3">
+              <Button variant="goldOutline" className="flex-1" onClick={handleShare}>
+                <Share2 className="w-4 h-4 mr-2" />
+                Chia Sẻ
+              </Button>
+              <Button variant="outline" className="flex-1" onClick={handleReset}>
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Gieo Lại
+              </Button>
+            </div>
+
             {/* Locked AI detailed section */}
             <PaymentGate
               feature="boi_que"
@@ -312,7 +324,6 @@ const BoiQue = () => {
               onUnlocked={handleAnalyze}
             >
               <div className="space-y-4">
-                {/* AI Result or trigger */}
                 {aiLoading ? (
                   <div className={cn("rounded-2xl p-8 text-center bg-gradient-to-br from-surface-3 to-surface-2 border border-gold/20")}>
                     <div className="relative inline-block mb-4">
@@ -340,22 +351,9 @@ const BoiQue = () => {
                 )}
               </div>
             </PaymentGate>
-
-            {/* Action buttons */}
-            <div className="flex gap-3">
-              <Button variant="goldOutline" className="flex-1" onClick={handleShare}>
-                <Share2 className="w-4 h-4 mr-2" />
-                Chia Sẻ
-              </Button>
-              <Button variant="outline" className="flex-1" onClick={handleReset}>
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Gieo Lại
-              </Button>
-            </div>
           </div>
         )}
 
-        {/* Empty state hint */}
         {!result && !isAnimating && (
           <p className="text-center text-xs text-muted-foreground opacity-60">
             Tập trung vào câu hỏi, thành tâm rồi nhấn "Gieo Quẻ"
