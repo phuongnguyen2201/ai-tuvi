@@ -241,6 +241,7 @@ const BoiQue = () => {
         newCoins.push(isHeads);
         setCoins([...newCoins]);
         playCoinFlip();
+        navigator.vibrate?.(30);
 
         if (index === 2) {
           setTimeout(() => {
@@ -250,6 +251,7 @@ const BoiQue = () => {
             setResult(randomQue);
             setIsAnimating(false);
             playResultReveal();
+            navigator.vibrate?.([20, 40, 20, 40, 50]);
             const newCount = useCount + 1;
             setUseCount(newCount);
             setTodayUsage(newCount);
