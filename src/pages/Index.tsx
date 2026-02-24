@@ -1,6 +1,7 @@
 import Logo from "@/components/Logo";
 import MenuCard from "@/components/MenuCard";
 import DailyWisdom from "@/components/DailyWisdom";
+import ThemeToggle from "@/components/ThemeToggle";
 import { ScrollText, Heart, Calendar, BookOpen, Image, Sparkles, Layers } from "lucide-react";
 
 const Index = () => {
@@ -61,8 +62,13 @@ const Index = () => {
       {/* Main content */}
       <div className="relative z-10 min-h-screen flex flex-col">
         <div className="container max-w-lg mx-auto px-4 py-8 flex flex-col flex-1">
+          {/* Theme toggle */}
+          <div className="flex justify-end mb-2">
+            <ThemeToggle />
+          </div>
+
           {/* Logo Section */}
-          <div className="flex-shrink-0 pt-8 pb-12 flex justify-center">
+          <div className="flex-shrink-0 pb-12 flex justify-center">
             <Logo size="lg" />
           </div>
 

@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { WalletStatus } from "@/components/WalletStatus";
+import ThemeToggle from "@/components/ThemeToggle";
 
 interface PageLayoutProps {
   children: React.ReactNode;
@@ -39,7 +40,8 @@ const PageLayout = ({ children, title, showBack = true, className }: PageLayoutP
                   {title}
                 </h1>
               )}
-              <div className="ml-auto">
+              <div className="ml-auto flex items-center gap-2">
+                <ThemeToggle />
                 <WalletStatus />
               </div>
             </div>
