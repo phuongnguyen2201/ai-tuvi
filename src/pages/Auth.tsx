@@ -1,26 +1,36 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Logo from "@/components/Logo";
-import { Mail, Lock, Eye, EyeOff, Sparkles } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Sparkles, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const [nameError, setNameError] = useState("");
+  const { signIn } = useAuth();
   const navigate = useNavigate();
   const searchParams = new URLSearchParams(window.location.search);
   const redirectTo = searchParams.get('redirect') || '/';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setNameError("");
+
+    if (!isLogin && !fullName.trim()) {
+      setNameError("Vui lòng nhập họ và tên");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -33,14 +43,29 @@ const Auth = () => {
           navigate(redirectTo);
         }
       } else {
-        const { error } = await signUp(email, password);
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: fullName.trim() },
+            emailRedirectTo: window.location.origin,
+          },
+        });
         if (error) {
           toast.error(error.message);
         } else {
+          // Upsert profile with display_name
+          if (data.user) {
+            await supabase.from("profiles").upsert({
+              id: data.user.id,
+              email,
+              display_name: fullName.trim(),
+            } as any);
+          }
           toast.success("Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.");
         }
       }
-    } catch (error) {
+    } catch {
       toast.error("Đã có lỗi xảy ra");
     } finally {
       setLoading(false);
@@ -57,12 +82,10 @@ const Auth = () => {
       </div>
 
       <div className="relative z-10 w-full max-w-md px-4">
-        {/* Logo */}
         <div className="flex justify-center mb-8">
           <Logo size="lg" />
         </div>
 
-        {/* Auth Card */}
         <div className="bg-surface-2/80 backdrop-blur-xl rounded-2xl border border-gold/20 p-8 shadow-2xl">
           <div className="text-center mb-6">
             <h1 className="font-display text-2xl text-foreground mb-2">
@@ -76,6 +99,29 @@ const Auth = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {!isLogin && (
+              <div className="space-y-2">
+                <Label htmlFor="fullName" className="text-foreground">
+                  Họ và tên
+                </Label>
+                <div className="relative">
+                  <UserRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Input
+                    id="fullName"
+                    type="text"
+                    placeholder="Họ và tên của bạn"
+                    value={fullName}
+                    onChange={(e) => { setFullName(e.target.value); setNameError(""); }}
+                    className={`pl-10 bg-surface-3 border-gold/20 focus:border-gold ${nameError ? "border-destructive" : ""}`}
+                    maxLength={100}
+                  />
+                </div>
+                {nameError && (
+                  <p className="text-destructive text-xs">{nameError}</p>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email" className="text-foreground">
                 Email
@@ -115,29 +161,15 @@ const Auth = () => {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
             </div>
 
-            <Button
-              type="submit"
-              variant="gold"
-              size="lg"
-              className="w-full"
-              disabled={loading}
-            >
+            <Button type="submit" variant="gold" size="lg" className="w-full" disabled={loading}>
               {loading ? (
                 <Sparkles className="w-5 h-5 animate-spin" />
-              ) : isLogin ? (
-                "Đăng Nhập"
-              ) : (
-                "Đăng Ký"
-              )}
+              ) : isLogin ? "Đăng Nhập" : "Đăng Ký"}
             </Button>
           </form>
 
@@ -145,7 +177,7 @@ const Auth = () => {
             <p className="text-muted-foreground text-sm">
               {isLogin ? "Chưa có tài khoản?" : "Đã có tài khoản?"}{" "}
               <button
-                onClick={() => setIsLogin(!isLogin)}
+                onClick={() => { setIsLogin(!isLogin); setNameError(""); }}
                 className="text-gold hover:text-gold/80 font-medium transition-colors"
               >
                 {isLogin ? "Đăng ký ngay" : "Đăng nhập"}
