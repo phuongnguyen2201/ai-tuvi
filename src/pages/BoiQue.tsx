@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Share2, RotateCcw, Sparkles, Loader2, Search, ChevronDown, ChevronUp } from "lucide-react";
+import { Share2, RotateCcw, Sparkles, Loader2, Search, ChevronDown, ChevronUp, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -152,9 +152,17 @@ const BoiQue = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showLookup, setShowLookup] = useState(false);
   const [selectedQue, setSelectedQue] = useState<typeof QUE_DATA[0] | null>(null);
-
-  // Audio context ref
+  // Audio
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    try { return localStorage.getItem("boique_sound") !== "off"; } catch { return true; }
+  });
   const audioCtxRef = useRef<AudioContext | null>(null);
+
+  const toggleSound = () => {
+    const next = !soundEnabled;
+    setSoundEnabled(next);
+    localStorage.setItem("boique_sound", next ? "on" : "off");
+  };
 
   const getAudioCtx = () => {
     if (!audioCtxRef.current) {
@@ -164,6 +172,7 @@ const BoiQue = () => {
   };
 
   const playCoinFlip = () => {
+    if (!soundEnabled) return;
     try {
       const ctx = getAudioCtx();
       const osc = ctx.createOscillator();
@@ -182,6 +191,7 @@ const BoiQue = () => {
   };
 
   const playResultReveal = () => {
+    if (!soundEnabled) return;
     try {
       const ctx = getAudioCtx();
       const notes = [523, 659, 784, 1047]; // C5 E5 G5 C6
@@ -313,7 +323,14 @@ const BoiQue = () => {
     <PageLayout title="Bói Quẻ Dịch">
       <div className="space-y-6">
         {/* Header */}
-        <div className="text-center p-6 rounded-2xl bg-gradient-to-br from-surface-3 to-surface-2 border border-border">
+        <div className="text-center p-6 rounded-2xl bg-gradient-to-br from-surface-3 to-surface-2 border border-border relative">
+          <button
+            onClick={toggleSound}
+            className="absolute top-3 right-3 p-2 rounded-lg text-muted-foreground hover:text-gold hover:bg-surface-3 transition-colors"
+            title={soundEnabled ? "Tắt âm thanh" : "Bật âm thanh"}
+          >
+            {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          </button>
           <div className="text-5xl mb-3">🎴</div>
           <h2 className="font-display text-xl text-foreground mb-2">
             Bói Quẻ 卦
