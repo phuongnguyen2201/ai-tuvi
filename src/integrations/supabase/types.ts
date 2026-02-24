@@ -251,6 +251,30 @@ export type Database = {
           },
         ]
       }
+      user_features: {
+        Row: {
+          feature: string
+          id: string
+          payment_ref: string | null
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          feature: string
+          id?: string
+          payment_ref?: string | null
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          feature?: string
+          id?: string
+          payment_ref?: string | null
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           birth_date: string | null
