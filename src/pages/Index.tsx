@@ -1,7 +1,7 @@
 import Logo from "@/components/Logo";
 import MenuCard from "@/components/MenuCard";
 import DailyWisdom from "@/components/DailyWisdom";
-import { ScrollText, Heart, Calendar, BookOpen, Image } from "lucide-react";
+import { ScrollText, Heart, Calendar, BookOpen, Image, Sparkles } from "lucide-react";
 
 const Index = () => {
   const menuItems = [
@@ -22,6 +22,12 @@ const Index = () => {
       description: "Xem ngày tốt xấu, hoàng đạo hắc đạo",
       icon: Calendar,
       to: "/xem-ngay",
+    },
+    {
+      title: "Vận Hạn Năm",
+      description: "Dự đoán vận mệnh chi tiết theo từng tháng",
+      icon: Sparkles,
+      to: "/van-han",
     },
     {
       title: "Bói Kiều",
