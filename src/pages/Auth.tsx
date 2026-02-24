@@ -16,6 +16,8 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
+  const searchParams = new URLSearchParams(window.location.search);
+  const redirectTo = searchParams.get('redirect') || '/';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +30,7 @@ const Auth = () => {
           toast.error(error.message);
         } else {
           toast.success("Đăng nhập thành công!");
-          navigate("/");
+          navigate(redirectTo);
         }
       } else {
         const { error } = await signUp(email, password);
