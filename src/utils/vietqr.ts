@@ -1,24 +1,47 @@
-// VietQR API utility
-// Docs: https://vietqr.io/danh-sach-api/link-tao-qr
+// === CẤU HÌNH NGÂN HÀNG CỦA BẠN ===
 
-const BANK_ID = "970422"; // MB Bank (Ngân hàng Quân Đội)
-const ACCOUNT_NO = "0373329042"; // Số tài khoản
-const ACCOUNT_NAME = "NGUYEN VAN A"; // Tên chủ tài khoản
-const BANK_NAME = "MB Bank";
-const TEMPLATE = "compact2";
-
-export const BANK_INFO = {
-  bankName: BANK_NAME,
-  accountNo: ACCOUNT_NO,
-  accountName: ACCOUNT_NAME,
+const BANK_CONFIG = {
+  bankId: 'VPBank',           // Đổi thành ngân hàng bạn dùng
+  accountNo: '238898706', // Số tài khoản của bạn
+  accountName: 'NGUYEN MINH PHUONG', // Tên chủ TK (UPPERCASE)
 };
 
-export function generateVietQRUrl(amount: number, content: string): string {
-  const encodedContent = encodeURIComponent(content);
-  return `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-${TEMPLATE}.png?amount=${amount}&addInfo=${encodedContent}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
+export const PRICING = {
+  luan_giai: 29000,
+  van_han: 39000,
+  boi_que: 19000,
+  boi_kieu: 19000,
+  premium_monthly: 49000,
+  premium_yearly: 399000,
+} as const;
+
+export type FeatureKey = keyof typeof PRICING;
+
+export function generateVietQRUrl(feature: FeatureKey, transferContent: string): string {
+  const amount = PRICING[feature];
+  const { bankId, accountNo, accountName } = BANK_CONFIG;
+  
+  return `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png`
+    + `?amount=${amount}`
+    + `&addInfo=${encodeURIComponent(transferContent)}`
+    + `&accountName=${encodeURIComponent(accountName)}`;
 }
 
-export function generateTransferContent(userId: string): string {
-  const shortId = userId.replace(/-/g, "").substring(0, 8).toUpperCase();
-  return `TUVI ${shortId}`;
+export function generateTransferContent(userId: string, feature: FeatureKey): string {
+  const shortId = userId.slice(0, 8).toUpperCase();
+  const prefix = feature === 'premium_monthly' || feature === 'premium_yearly' 
+    ? 'PREMIUM' : 'TUVI';
+  return `${prefix} ${shortId}`;
+}
+
+export function getFeatureLabel(feature: FeatureKey): string {
+  const labels = {
+    luan_giai: 'Luận giải lá số chi tiết',
+    van_han: 'Dự đoán vận hạn năm',
+    boi_que: 'Bói quẻ (10 lần)',
+    boi_kieu: 'Bói Kiều (10 lần)',
+    premium_monthly: 'Premium 1 tháng',
+    premium_yearly: 'Premium 1 năm',
+  };
+  return labels[feature];
 }
