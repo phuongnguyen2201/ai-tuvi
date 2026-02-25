@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,11 +18,25 @@ export function NFTPreview({ chartData, birthData }: NFTPreviewProps) {
   const [svgContent, setSvgContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Track last request to avoid duplicate calls
+  const lastRequestRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!chartData) return;
+    if (!chartData || !birthData?.solarDate) return;
+
+    // Deduplicate: skip if same request
+    const requestKey = `${birthData.solarDate}_${birthData.hour}_${birthData.gender}`;
+    if (lastRequestRef.current === requestKey) return;
 
     const generatePreview = async () => {
+      // Check auth first — generate-image requires a valid session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        // No session → skip silently, don't spam 401 errors
+        return;
+      }
+
+      lastRequestRef.current = requestKey;
       setLoading(true);
       setError(null);
       try {
@@ -50,7 +64,7 @@ export function NFTPreview({ chartData, birthData }: NFTPreviewProps) {
     };
 
     generatePreview();
-  }, [chartData, birthData]);
+  }, [chartData, birthData?.solarDate, birthData?.hour, birthData?.gender]);
 
   return (
     <Card className="bg-slate-900/80 border-amber-600/30">
