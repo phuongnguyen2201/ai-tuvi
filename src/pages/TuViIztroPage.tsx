@@ -67,6 +67,7 @@ export default function TuViIztroPage() {
   const [cachedAnalysis, setCachedAnalysis] = useState<string | null>(null);
   const [analysisUnlocked, setAnalysisUnlocked] = useState(false);
   const [checkingAnalysis, setCheckingAnalysis] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
 
   // Mint callback state
@@ -104,6 +105,31 @@ export default function TuViIztroPage() {
   // Check for cached analysis when chart changes
   const chartHash = chart ? generateChartHash(birthDate, birthHour, gender, calendarType) : null;
 
+  const runAnalysis = useCallback(async (analysisRecord: any) => {
+    setIsAnalyzing(true);
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke('analyze-chart', {
+        body: {
+          analysisType: 'luan_giai',
+          chartData: analysisRecord.chart_data,
+          personName: (analysisRecord.birth_data as any)?.personName,
+        },
+      });
+      if (fnError || !data?.analysis) throw new Error(fnError?.message || 'AI analysis failed');
+      // Save result to DB for cache
+      await (supabase.from('chart_analyses') as any)
+        .update({ analysis_result: data.analysis })
+        .eq('id', analysisRecord.id);
+      setCachedAnalysis(data.analysis);
+      setAnalysisUnlocked(true);
+    } catch (err: any) {
+      console.error('Analysis error:', err);
+      toast.error('Luận giải thất bại, vui lòng thử lại sau.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!chart || !user || !chartHash) {
       setCachedAnalysis(null);
@@ -112,22 +138,26 @@ export default function TuViIztroPage() {
     }
     setCheckingAnalysis(true);
     (supabase.from('chart_analyses') as any)
-      .select('analysis_result')
+      .select('*')
       .eq('user_id', user.id)
       .eq('chart_hash', chartHash)
-      .eq('analysis_type', 'full')
       .maybeSingle()
       .then(({ data }: any) => {
+        setCheckingAnalysis(false);
         if (data?.analysis_result) {
+          // Has cached result → show immediately
           setCachedAnalysis(data.analysis_result);
           setAnalysisUnlocked(true);
+        } else if (data && !data.analysis_result) {
+          // Record exists but no result → call Claude
+          setAnalysisUnlocked(true);
+          runAnalysis(data);
         } else {
           setCachedAnalysis(null);
           setAnalysisUnlocked(false);
         }
-        setCheckingAnalysis(false);
       });
-  }, [chart, user, chartHash]);
+  }, [chart, user, chartHash, runAnalysis]);
 
   const handlePaymentSuccess = (analysisResult?: string) => {
     setShowPayment(false);
@@ -400,6 +430,12 @@ export default function TuViIztroPage() {
               <Card className="p-6 bg-surface-3 border-gold/20 text-center">
                 <Loader2 className="h-6 w-6 animate-spin text-gold mx-auto mb-2" />
                 <p className="text-muted-foreground text-sm">Đang kiểm tra...</p>
+              </Card>
+            ) : isAnalyzing ? (
+              <Card className="p-6 bg-surface-3 border-gold/20 text-center space-y-3">
+                <Loader2 className="h-8 w-8 animate-spin text-gold mx-auto" />
+                <p className="text-foreground font-semibold">✨ Đang luận giải lá số...</p>
+                <p className="text-muted-foreground text-sm">AI đang phân tích 12 cung và các sao. Thường mất 15-30 giây.</p>
               </Card>
             ) : analysisUnlocked && cachedAnalysis ? (
               <>
