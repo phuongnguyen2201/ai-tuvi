@@ -251,7 +251,7 @@ const Admin = () => {
                             </Badge>
                           </TableCell>
                           <TableCell className="font-medium">{formatCurrency(p.amount)}</TableCell>
-                          <TableCell className="text-xs max-w-[120px] truncate">{p.transfer_content || "—"}</TableCell>
+                          <TableCell className="text-xs whitespace-normal break-words">{p.transfer_content || "—"}</TableCell>
                           <TableCell>
                             <div className="flex gap-1">
                               <Button
