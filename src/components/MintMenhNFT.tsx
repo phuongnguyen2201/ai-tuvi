@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface MintMenhNFTProps {
   chartData: any;
   birthData: {
+    name?: string;
     solarDate: string;
     hour: number;
     gender: string;

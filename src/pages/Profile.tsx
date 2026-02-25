@@ -267,7 +267,11 @@ const Profile = () => {
             <CardContent className="space-y-3">
               {chartAnalyses.map((a) => {
                 const bd = a.birth_data || {};
-                const label = bd.name || `Ngày sinh: ${bd.birthDate || a.chart_hash}`;
+                const birthDateStr = bd.solarDate || bd.birthDate || '';
+                const genderStr = bd.gender || '';
+                const label = bd.name
+                  ? `${bd.name} - ${birthDateStr}${genderStr ? ` - ${genderStr}` : ''}`
+                  : `Ngày sinh: ${birthDateStr || a.chart_hash}`;
                 return (
                   <div key={a.id} className="flex items-center justify-between rounded-xl border border-border bg-surface-3/50 p-4">
                     <div className="min-w-0 flex-1">

@@ -10,6 +10,7 @@ import TuViAnalysis from '@/components/TuViAnalysis';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Calendar } from '@/components/ui/calendar';
@@ -57,6 +58,7 @@ export default function TuViIztroPage() {
   const [isLoading, setIsLoading] = useState(false);
   
   // Form state
+  const [personName, setPersonName] = useState('');
   const [birthDate, setBirthDate] = useState<Date>(new Date(2000, 0, 1));
   const [birthHour, setBirthHour] = useState('1');
   const [gender, setGender] = useState<'Nam' | 'Nữ'>('Nam');
@@ -171,11 +173,13 @@ export default function TuViIztroPage() {
     <PageLayout>
       <div className="max-w-5xl mx-auto space-y-6 p-4">
         <h1 className="text-3xl font-bold text-center text-amber-400">
-          🔮 Lập Lá Số Tử Vi
+          {chart && personName ? `🔮 Lá số của ${personName}` : '🔮 Lập Lá Số Tử Vi'}
         </h1>
-        <p className="text-center text-gray-400 text-sm">
-          Nhập thông tin ngày sinh để xem lá số tử vi của bạn
-        </p>
+        {!chart && (
+          <p className="text-center text-gray-400 text-sm">
+            Nhập thông tin ngày sinh để xem lá số tử vi của bạn
+          </p>
+        )}
 
         {/* Mint status banner */}
         {mintStatus === 'minting' && (
@@ -250,6 +254,19 @@ export default function TuViIztroPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Person name */}
+              <div className="space-y-2">
+                <Label htmlFor="personName" className="text-gray-300">Họ và tên <span className="text-red-400">*</span></Label>
+                <Input
+                  id="personName"
+                  value={personName}
+                  onChange={(e) => setPersonName(e.target.value)}
+                  placeholder="VD: Nguyễn Văn A, Mẹ, Chồng..."
+                  required
+                  className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
+                />
+              </div>
+
               {/* Calendar type */}
               <div className="space-y-2">
                 <Label className="text-gray-300">Loại lịch</Label>
@@ -379,7 +396,7 @@ export default function TuViIztroPage() {
                     <h3 className="text-lg font-bold text-foreground mb-1">Luận giải chi tiết lá số</h3>
                     <p className="text-2xl font-bold text-primary mb-2">29.000đ</p>
                     <p className="text-sm text-muted-foreground mb-5">
-                      Xem đầy đủ luận giải 12 cung, AI phân tích chuyên sâu. Mua 1 lần, xem mãi mãi.
+                      {personName ? `Luận giải chi tiết cho ${personName}.` : 'Xem đầy đủ luận giải 12 cung.'} AI phân tích chuyên sâu. Mua 1 lần, xem mãi mãi.
                     </p>
                     <Button
                       variant="gold"
@@ -404,7 +421,7 @@ export default function TuViIztroPage() {
                   onOpenChange={setShowPayment}
                   feature="luan_giai"
                   onSuccess={handlePaymentSuccess}
-                  metadata={{ chartHash, birthDate: format(birthDate, 'yyyy-MM-dd'), birthHour, gender, calendarType }}
+                  metadata={{ chartHash, birthDate: format(birthDate, 'yyyy-MM-dd'), birthHour, gender, calendarType, personName }}
                 />
               </div>
             )}
@@ -413,6 +430,7 @@ export default function TuViIztroPage() {
             <NFTPreview
               chartData={chart}
               birthData={{
+                name: personName,
                 solarDate: format(birthDate, 'yyyy-MM-dd'),
                 hour: parseInt(birthHour),
                 gender,
@@ -424,6 +442,7 @@ export default function TuViIztroPage() {
             <MintMenhNFT
               chartData={chart}
               birthData={{
+                name: personName,
                 solarDate: format(birthDate, 'yyyy-MM-dd'),
                 hour: parseInt(birthHour),
                 gender,
