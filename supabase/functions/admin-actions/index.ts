@@ -170,12 +170,12 @@ serve(async (req) => {
         }
 
         // CRITICAL: Also insert into user_features so PaymentGate unlocks
-        const { error: featureErr } = await adminClient.from("user_features").insert({
+        const { error: featureErr } = await adminClient.from("user_features").upsert({
           user_id: userId,
           feature: "luan_giai",
           expires_at: null,
           payment_ref: paymentId,
-        });
+        }, { onConflict: "user_id,feature" });
         if (featureErr) {
           console.error("Error inserting user_features for luan_giai:", featureErr);
         }
