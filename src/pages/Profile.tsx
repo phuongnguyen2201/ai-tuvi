@@ -127,11 +127,9 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <PageLayout title="Hồ sơ">
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin w-8 h-8 border-2 border-gold border-t-transparent rounded-full" />
-        </div>
-      </PageLayout>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin text-4xl">✨</div>
+      </div>
     );
   }
 
