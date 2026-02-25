@@ -67,9 +67,8 @@ export default function TuViIztroPage() {
   // Chart analysis state
   const [cachedAnalysis, setCachedAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [showAnalysis, setShowAnalysis] = useState(false);
+  const [analysisError, setAnalysisError] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
-  const [showRetryButton, setShowRetryButton] = useState(false);
 
   // Feature access via realtime hook
   const { hasAccess, isLoading: accessLoading } = useFeatureAccess('luan_giai');
@@ -132,14 +131,14 @@ export default function TuViIztroPage() {
     if (existing?.analysis_result) {
       console.log('[loadAnalysis] Cache found, showing result');
       setCachedAnalysis(existing.analysis_result);
-      setShowAnalysis(true);
+      setAnalysisError(false);
       return;
     }
 
     if (existing && !existing.analysis_result) {
       console.log('[loadAnalysis] No cache, calling Claude...');
       setIsAnalyzing(true);
-      setShowRetryButton(false);
+      setAnalysisError(false);
       try {
         const { data, error: fnError } = await supabase.functions.invoke('analyze-chart', {
           body: {
@@ -157,11 +156,10 @@ export default function TuViIztroPage() {
           .eq('id', existing.id);
 
         setCachedAnalysis(data.analysis);
-        setShowAnalysis(true);
       } catch (err: any) {
         console.error('[loadAnalysis] Error:', err);
         toast.error('AI đang bận. Vui lòng thử lại sau 1-2 phút.');
-        setShowRetryButton(true);
+        setAnalysisError(true);
       } finally {
         setIsAnalyzing(false);
       }
@@ -177,7 +175,6 @@ export default function TuViIztroPage() {
   useEffect(() => {
     if (!chart || !user || !chartHash) {
       setCachedAnalysis(null);
-      setShowAnalysis(false);
       return;
     }
     (supabase.from('chart_analyses') as any)
@@ -188,7 +185,6 @@ export default function TuViIztroPage() {
       .then(({ data }: any) => {
         if (data?.analysis_result) {
           setCachedAnalysis(data.analysis_result);
-          setShowAnalysis(true);
         }
       });
   }, [chartHash, user]);
@@ -197,9 +193,7 @@ export default function TuViIztroPage() {
     setShowPayment(false);
     if (analysisResult) {
       setCachedAnalysis(analysisResult);
-      setShowAnalysis(true);
     } else {
-      // Trigger loadAnalysis with current chartHash
       console.log('[Page] onSuccess, chartHash:', chartHash);
       loadAnalysis(chartHash || undefined);
     }
@@ -453,27 +447,30 @@ export default function TuViIztroPage() {
                 <Loader2 className="h-6 w-6 animate-spin text-gold mx-auto mb-2" />
                 <p className="text-muted-foreground text-sm">Đang kiểm tra...</p>
               </Card>
-            ) : isAnalyzing ? (
+            ) : hasAccess && isAnalyzing ? (
               <Card className="p-6 bg-surface-3 border-gold/20 text-center space-y-3">
                 <Loader2 className="h-8 w-8 animate-spin text-gold mx-auto" />
                 <p className="text-foreground font-semibold">✨ Đang luận giải lá số...</p>
                 <p className="text-muted-foreground text-sm">AI đang phân tích 12 cung và các sao. Thường mất 15-30 giây.</p>
               </Card>
-            ) : showRetryButton && !showAnalysis ? (
-              <Card className="p-6 bg-surface-3 border-destructive/30 text-center space-y-3">
-                <p className="text-foreground font-semibold">⚠️ Luận giải chưa thành công</p>
-                <p className="text-muted-foreground text-sm">AI đang bận, vui lòng thử lại sau 1-2 phút.</p>
+            ) : hasAccess && analysisError && !cachedAnalysis ? (
+              <Card className="p-6 bg-surface-3 border-primary/30 text-center space-y-3">
+                <div className="text-4xl">🔮</div>
+                <p className="text-primary font-semibold">Lá số của bạn đã được mở khóa!</p>
+                <p className="text-muted-foreground text-sm">Hệ thống AI đang bận, vui lòng thử lại sau ít phút.</p>
+                <p className="text-muted-foreground text-xs">Quyền truy cập của bạn được bảo lưu vĩnh viễn.</p>
                 <Button
                   variant="gold"
                   onClick={() => {
-                    setShowRetryButton(false);
+                    setAnalysisError(false);
                     loadAnalysis(chartHash || undefined);
                   }}
                 >
-                  🔄 Thử lại
+                  🔄 Thử lại ngay
                 </Button>
+                <p className="text-muted-foreground text-xs">Nếu vẫn lỗi sau nhiều lần thử, vui lòng liên hệ hỗ trợ qua Zalo.</p>
               </Card>
-            ) : showAnalysis && cachedAnalysis ? (
+            ) : (hasAccess || cachedAnalysis) && cachedAnalysis ? (
               <>
                 <div id="analysis-result">
                   <ChartInterpretationDisplay chart={chart} />
