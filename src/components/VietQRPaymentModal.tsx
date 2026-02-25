@@ -117,8 +117,21 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
           (payload: any) => {
             console.log('[Modal] Payment updated:', payload.new.status);
             if (payload.new.status === 'verified') {
-              console.log('[Modal] Payment verified, reloading in 2s');
+              console.log('[Modal] Payment verified, saving flag & reloading in 2s');
               setStep('success');
+              
+              // Save verification info to localStorage before reload
+              try {
+                const notes = JSON.parse(payload.new.notes || '{}');
+                localStorage.setItem('payment_just_verified', JSON.stringify({
+                  feature: payload.new.feature_unlocked,
+                  chartHash: notes.chartHash,
+                  timestamp: Date.now(),
+                }));
+              } catch (e) {
+                console.error('Error saving payment flag:', e);
+              }
+              
               setTimeout(() => {
                 window.location.reload();
               }, 2000);
