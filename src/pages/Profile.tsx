@@ -295,7 +295,6 @@ const Profile = () => {
                         if (bd.name || bd.personName) params.set('name', bd.name || bd.personName);
                         navigate(`/lap-la-so?${params.toString()}`);
                       }}
-                      disabled={!a.analysis_result}
                     >
                       <Eye className="h-4 w-4 mr-1" />
                       Xem lại
