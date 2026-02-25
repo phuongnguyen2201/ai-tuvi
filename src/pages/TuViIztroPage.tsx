@@ -27,6 +27,7 @@ import { supabase } from '@/integrations/supabase/client';
 import PaymentGate from '@/components/PaymentGate';
 import VietQRPaymentModal from '@/components/VietQRPaymentModal';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
 import { toast } from 'sonner';
 
 // Generate a chart hash from birth data
@@ -65,10 +66,12 @@ export default function TuViIztroPage() {
 
   // Chart analysis state
   const [cachedAnalysis, setCachedAnalysis] = useState<string | null>(null);
-  const [analysisUnlocked, setAnalysisUnlocked] = useState(false);
-  const [checkingAnalysis, setCheckingAnalysis] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showAnalysis, setShowAnalysis] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+
+  // Feature access via realtime hook
+  const { hasAccess, isLoading: accessLoading } = useFeatureAccess('luan_giai');
 
   // Mint callback state
   const [searchParams, setSearchParams] = useSearchParams();
@@ -102,84 +105,87 @@ export default function TuViIztroPage() {
   }, [searchParams, mintStatus]);
   const [calendarType, setCalendarType] = useState<'solar' | 'lunar'>('solar');
 
-  // Check for cached analysis when chart changes
   const chartHash = chart ? generateChartHash(birthDate, birthHour, gender, calendarType) : null;
 
-  const runAnalysis = useCallback(async (analysisRecord: any) => {
-    setIsAnalyzing(true);
-    try {
-      const { data, error: fnError } = await supabase.functions.invoke('analyze-chart', {
-        body: {
-          analysisType: 'luan_giai',
-          chartData: analysisRecord.chart_data,
-          personName: (analysisRecord.birth_data as any)?.personName,
-        },
-      });
-      if (fnError || !data?.analysis) throw new Error(fnError?.message || 'AI analysis failed');
-      // Save result to DB for cache
-      await (supabase.from('chart_analyses') as any)
-        .update({ analysis_result: data.analysis })
-        .eq('id', analysisRecord.id);
-      setCachedAnalysis(data.analysis);
-      setAnalysisUnlocked(true);
-    } catch (err: any) {
-      console.error('Analysis error:', err);
-      toast.error('Luận giải thất bại, vui lòng thử lại sau.');
-    } finally {
-      setIsAnalyzing(false);
-    }
-  }, []);
+  // Load analysis: check cache → call Claude if needed
+  const loadAnalysis = useCallback(async () => {
+    if (!chartHash || !user) return;
 
+    const { data: existing } = await (supabase.from('chart_analyses') as any)
+      .select('*')
+      .eq('chart_hash', chartHash)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (existing?.analysis_result) {
+      setCachedAnalysis(existing.analysis_result);
+      setShowAnalysis(true);
+      return;
+    }
+
+    if (existing && !existing.analysis_result) {
+      // Unlocked but no result yet → call Claude
+      setIsAnalyzing(true);
+      try {
+        const { data, error: fnError } = await supabase.functions.invoke('analyze-chart', {
+          body: {
+            analysisType: 'luan_giai',
+            chartData: existing.chart_data,
+            personName: (existing.birth_data as any)?.personName,
+          },
+        });
+        if (fnError || !data?.analysis) throw new Error(fnError?.message || 'AI analysis failed');
+
+        await (supabase.from('chart_analyses') as any)
+          .update({ analysis_result: data.analysis })
+          .eq('id', existing.id);
+
+        setCachedAnalysis(data.analysis);
+        setShowAnalysis(true);
+      } catch (err: any) {
+        console.error('Analysis error:', err);
+        toast.error('Luận giải thất bại, vui lòng thử lại sau.');
+      } finally {
+        setIsAnalyzing(false);
+      }
+    }
+  }, [chartHash, user]);
+
+  // When hasAccess changes (e.g. after payment verified via realtime), auto-load analysis
+  useEffect(() => {
+    if (!hasAccess || !chartHash || !user) return;
+    loadAnalysis();
+  }, [hasAccess, chartHash, loadAnalysis]);
+
+  // Also check on chart change (for cached results even without hasAccess from user_features)
   useEffect(() => {
     if (!chart || !user || !chartHash) {
       setCachedAnalysis(null);
-      setAnalysisUnlocked(false);
+      setShowAnalysis(false);
       return;
     }
-    setCheckingAnalysis(true);
+    // Check if there's a cached analysis result already
     (supabase.from('chart_analyses') as any)
-      .select('*')
+      .select('analysis_result')
       .eq('user_id', user.id)
       .eq('chart_hash', chartHash)
       .maybeSingle()
       .then(({ data }: any) => {
-        setCheckingAnalysis(false);
         if (data?.analysis_result) {
-          // Has cached result → show immediately
           setCachedAnalysis(data.analysis_result);
-          setAnalysisUnlocked(true);
-        } else if (data && !data.analysis_result) {
-          // Record exists but no result → call Claude
-          setAnalysisUnlocked(true);
-          runAnalysis(data);
-        } else {
-          setCachedAnalysis(null);
-          setAnalysisUnlocked(false);
+          setShowAnalysis(true);
         }
       });
-  }, [chart, user, chartHash, runAnalysis]);
+  }, [chart, user, chartHash]);
 
   const handlePaymentSuccess = (analysisResult?: string) => {
     setShowPayment(false);
     if (analysisResult) {
       setCachedAnalysis(analysisResult);
-      setAnalysisUnlocked(true);
+      setShowAnalysis(true);
     } else {
-      // Reload chart_analyses cache
-      if (chartHash && user) {
-        (supabase.from('chart_analyses') as any)
-          .select('analysis_result')
-          .eq('user_id', user.id)
-          .eq('chart_hash', chartHash)
-          .eq('analysis_type', 'full')
-          .maybeSingle()
-          .then(({ data }: any) => {
-            if (data?.analysis_result) {
-              setCachedAnalysis(data.analysis_result);
-              setAnalysisUnlocked(true);
-            }
-          });
-      }
+      // Trigger loadAnalysis to pick up from DB
+      loadAnalysis();
     }
   };
   
@@ -426,7 +432,7 @@ export default function TuViIztroPage() {
             <TuViChartIztro chart={chart} />
             
             {/* Luận giải chi tiết */}
-            {checkingAnalysis ? (
+            {accessLoading ? (
               <Card className="p-6 bg-surface-3 border-gold/20 text-center">
                 <Loader2 className="h-6 w-6 animate-spin text-gold mx-auto mb-2" />
                 <p className="text-muted-foreground text-sm">Đang kiểm tra...</p>
@@ -437,9 +443,11 @@ export default function TuViIztroPage() {
                 <p className="text-foreground font-semibold">✨ Đang luận giải lá số...</p>
                 <p className="text-muted-foreground text-sm">AI đang phân tích 12 cung và các sao. Thường mất 15-30 giây.</p>
               </Card>
-            ) : analysisUnlocked && cachedAnalysis ? (
+            ) : showAnalysis && cachedAnalysis ? (
               <>
-                <ChartInterpretationDisplay chart={chart} />
+                <div id="analysis-result">
+                  <ChartInterpretationDisplay chart={chart} />
+                </div>
                 <TuViAnalysis chart={chart} />
               </>
             ) : (
