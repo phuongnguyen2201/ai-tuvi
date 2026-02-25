@@ -130,9 +130,11 @@ const PaymentGate = ({ feature, children, onUnlocked, title, price, description 
         open={showPayment}
         onOpenChange={setShowPayment}
         feature={feature}
-        onSuccess={() => {
+        onSuccess={async () => {
+          console.log('[PaymentGate] onSuccess called, refreshing...');
           setShowPayment(false);
-          refresh();
+          await refresh();
+          console.log('[PaymentGate] refresh done, hasAccess will update via state');
           onUnlocked?.();
         }}
       />

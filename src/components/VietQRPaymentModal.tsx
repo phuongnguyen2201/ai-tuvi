@@ -115,8 +115,9 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
             filter: `user_id=eq.${user.id}`,
           },
           (payload: any) => {
-            console.log('Payment updated:', payload.new);
+            console.log('[Modal] Payment updated:', payload.new.status);
             if (payload.new.status === 'verified') {
+              console.log('[Modal] Payment verified, calling onSuccess');
               setStep('success');
               onSuccess?.();
             } else if (payload.new.status === 'rejected') {
