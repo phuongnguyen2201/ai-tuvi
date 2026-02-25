@@ -74,45 +74,7 @@ export default function TuViIztroPage() {
   const [mintStatus, setMintStatus] = useState<'idle' | 'minting' | 'success' | 'error'>('idle');
   const [mintResult, setMintResult] = useState<any>(null);
 
-  // Check for post-payment reload flag
-  useEffect(() => {
-    const verified = localStorage.getItem('payment_just_verified');
-    if (!verified) return;
-
-    try {
-      const data = JSON.parse(verified);
-
-      // Only process if flag is fresh (within 30 seconds)
-      if (Date.now() - data.timestamp > 30000) {
-        localStorage.removeItem('payment_just_verified');
-        return;
-      }
-
-      localStorage.removeItem('payment_just_verified');
-
-      // If luan_giai feature, auto-load the cached analysis
-      if (data.feature === 'luan_giai' && data.chartHash) {
-        supabase
-          .from('chart_analyses')
-          .select('*')
-          .eq('chart_hash', data.chartHash)
-          .maybeSingle()
-          .then(({ data: analysis }) => {
-            if (analysis?.analysis_result) {
-              setCachedAnalysis(analysis.analysis_result);
-              setAnalysisUnlocked(true);
-              setTimeout(() => {
-                document.getElementById('analysis-result')
-                  ?.scrollIntoView({ behavior: 'smooth' });
-              }, 500);
-            }
-          });
-      }
-    } catch (e) {
-      console.error('Error processing payment flag:', e);
-      localStorage.removeItem('payment_just_verified');
-    }
-  }, []);
+  // (localStorage check removed - analysis now handled in modal)
 
   useEffect(() => {
     const sessionId = searchParams.get('session_id');
@@ -167,9 +129,28 @@ export default function TuViIztroPage() {
       });
   }, [chart, user, chartHash]);
 
-  const handlePaymentSuccess = () => {
+  const handlePaymentSuccess = (analysisResult?: string) => {
     setShowPayment(false);
-    toast.success('Thanh toán đã được ghi nhận! Vui lòng chờ admin xác nhận (5-30 phút).');
+    if (analysisResult) {
+      setCachedAnalysis(analysisResult);
+      setAnalysisUnlocked(true);
+    } else {
+      // Reload chart_analyses cache
+      if (chartHash && user) {
+        (supabase.from('chart_analyses') as any)
+          .select('analysis_result')
+          .eq('user_id', user.id)
+          .eq('chart_hash', chartHash)
+          .eq('analysis_type', 'full')
+          .maybeSingle()
+          .then(({ data }: any) => {
+            if (data?.analysis_result) {
+              setCachedAnalysis(data.analysis_result);
+              setAnalysisUnlocked(true);
+            }
+          });
+      }
+    }
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
