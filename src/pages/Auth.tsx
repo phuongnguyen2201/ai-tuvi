@@ -63,6 +63,10 @@ const Auth = () => {
             } as any);
           }
           toast.success("Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.");
+          setIsLogin(true);
+          setEmail("");
+          setPassword("");
+          setFullName("");
         }
       }
     } catch {
