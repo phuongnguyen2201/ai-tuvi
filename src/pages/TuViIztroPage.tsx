@@ -69,6 +69,7 @@ export default function TuViIztroPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+  const [showRetryButton, setShowRetryButton] = useState(false);
 
   // Feature access via realtime hook
   const { hasAccess, isLoading: accessLoading } = useFeatureAccess('luan_giai');
@@ -138,6 +139,7 @@ export default function TuViIztroPage() {
     if (existing && !existing.analysis_result) {
       console.log('[loadAnalysis] No cache, calling Claude...');
       setIsAnalyzing(true);
+      setShowRetryButton(false);
       try {
         const { data, error: fnError } = await supabase.functions.invoke('analyze-chart', {
           body: {
@@ -147,7 +149,8 @@ export default function TuViIztroPage() {
           },
         });
         console.log('[loadAnalysis] Claude response:', data);
-        if (fnError || !data?.analysis) throw new Error(fnError?.message || 'AI analysis failed');
+        if (fnError) throw fnError;
+        if (!data?.analysis) throw new Error('No analysis returned');
 
         await (supabase.from('chart_analyses') as any)
           .update({ analysis_result: data.analysis })
@@ -157,7 +160,8 @@ export default function TuViIztroPage() {
         setShowAnalysis(true);
       } catch (err: any) {
         console.error('[loadAnalysis] Error:', err);
-        toast.error('Luận giải thất bại, vui lòng thử lại sau.');
+        toast.error('AI đang bận. Vui lòng thử lại sau 1-2 phút.');
+        setShowRetryButton(true);
       } finally {
         setIsAnalyzing(false);
       }
@@ -454,6 +458,20 @@ export default function TuViIztroPage() {
                 <Loader2 className="h-8 w-8 animate-spin text-gold mx-auto" />
                 <p className="text-foreground font-semibold">✨ Đang luận giải lá số...</p>
                 <p className="text-muted-foreground text-sm">AI đang phân tích 12 cung và các sao. Thường mất 15-30 giây.</p>
+              </Card>
+            ) : showRetryButton && !showAnalysis ? (
+              <Card className="p-6 bg-surface-3 border-destructive/30 text-center space-y-3">
+                <p className="text-foreground font-semibold">⚠️ Luận giải chưa thành công</p>
+                <p className="text-muted-foreground text-sm">AI đang bận, vui lòng thử lại sau 1-2 phút.</p>
+                <Button
+                  variant="gold"
+                  onClick={() => {
+                    setShowRetryButton(false);
+                    loadAnalysis(chartHash || undefined);
+                  }}
+                >
+                  🔄 Thử lại
+                </Button>
               </Card>
             ) : showAnalysis && cachedAnalysis ? (
               <>
