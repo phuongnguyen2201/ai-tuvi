@@ -117,9 +117,11 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
           (payload: any) => {
             console.log('[Modal] Payment updated:', payload.new.status);
             if (payload.new.status === 'verified') {
-              console.log('[Modal] Payment verified, calling onSuccess');
+              console.log('[Modal] Payment verified, reloading in 2s');
               setStep('success');
-              onSuccess?.();
+              setTimeout(() => {
+                window.location.reload();
+              }, 2000);
             } else if (payload.new.status === 'rejected') {
               setStep('show_qr');
               toast({
@@ -289,12 +291,9 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
       <div className="text-6xl animate-scale-in">🎉</div>
       <div className="space-y-1">
         <p className="font-bold text-xl text-foreground">Thanh toán đã được xác nhận!</p>
-        <p className="text-sm text-muted-foreground">Tính năng <span className="font-semibold text-primary">{label}</span> đã được mở khóa</p>
+        <p className="text-sm text-muted-foreground">Đang tải kết quả...</p>
       </div>
-
-      <Button variant="gold" size="lg" className="w-full" onClick={() => { handleClose(); window.location.reload(); }}>
-        Bắt đầu sử dụng ngay ✨
-      </Button>
+      <Loader2 className="w-6 h-6 text-primary animate-spin" />
     </div>
   );
 
