@@ -80,31 +80,53 @@ ${getAnalysisRequirements(timeFrame)}
 Hãy phân tích chi tiết, đưa ra nhận định cụ thể và lời khuyên thực tế.`;
     }
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": anthropicKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 2000,
-        messages: [
-          { role: "user", content: userPrompt },
-        ],
-        system: systemPrompt,
-      }),
-    });
+    let data: any;
+    let lastError: string = '';
+    
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (attempt > 0) {
+        const delay = Math.pow(2, attempt) * 1000; // 2s, 4s
+        await new Promise(r => setTimeout(r, delay));
+        console.log(`Retry attempt ${attempt + 1}...`);
+      }
 
-    const data = await response.json();
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": anthropicKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 2000,
+          messages: [
+            { role: "user", content: userPrompt },
+          ],
+          system: systemPrompt,
+        }),
+      });
 
-    if (!response.ok) {
-      console.error("Anthropic API error:", data);
-      throw new Error(data.error?.message || "AI analysis failed");
+      data = await response.json();
+
+      if (response.ok) {
+        break;
+      }
+
+      lastError = data.error?.message || "AI analysis failed";
+      console.error(`Anthropic API error (attempt ${attempt + 1}):`, data);
+
+      // Only retry on overloaded errors
+      if (data.error?.type !== 'overloaded_error') {
+        throw new Error(lastError);
+      }
     }
 
-    const analysis = data.content?.[0]?.text || "Không thể phân tích.";
+    if (!data?.content?.[0]?.text) {
+      throw new Error(lastError || "AI analysis failed after retries");
+    }
+
+    const analysis = data.content[0].text;
 
     return new Response(
       JSON.stringify({ analysis, analysisType }),
