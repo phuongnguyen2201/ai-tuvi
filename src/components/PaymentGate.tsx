@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import type { User } from "@supabase/supabase-js";
 
 interface PaymentGateProps {
@@ -59,7 +60,7 @@ const DEFAULT_CONFIGS: Record<string, { title: string; price: string; descriptio
 };
 
 const PaymentGate = ({ feature, children, onUnlocked, title, price, description }: PaymentGateProps) => {
-  const [unlocked, setUnlocked] = useState<boolean | null>(null);
+  const { hasAccess, isLoading, refresh } = useFeatureAccess(feature);
   const [showPayment, setShowPayment] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const navigate = useNavigate();
@@ -72,43 +73,22 @@ const PaymentGate = ({ feature, children, onUnlocked, title, price, description 
   };
 
   useEffect(() => {
-    checkFeatureAccess();
     supabase.auth.getUser().then(({ data: { user } }) => {
       setCurrentUser(user);
     });
   }, [feature]);
 
-  const checkFeatureAccess = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setUnlocked(false);
-      return;
-    }
-
-    const { data } = await supabase
-      .from('user_features')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('feature', feature)
-      .maybeSingle();
-
-    setUnlocked(!!data);
-    if (data) onUnlocked?.();
-  };
-
-  const handlePaymentSuccess = async () => {
-    setShowPayment(false);
-    setUnlocked(true);
-    onUnlocked?.();
-  };
+  useEffect(() => {
+    if (hasAccess) onUnlocked?.();
+  }, [hasAccess]);
 
   // Loading
-  if (unlocked === null) {
+  if (isLoading) {
     return <div className="animate-pulse rounded-lg bg-muted h-48" />;
   }
 
   // Unlocked
-  if (unlocked) {
+  if (hasAccess) {
     return <>{children}</>;
   }
 
@@ -150,7 +130,11 @@ const PaymentGate = ({ feature, children, onUnlocked, title, price, description 
         open={showPayment}
         onOpenChange={setShowPayment}
         feature={feature}
-        onSuccess={handlePaymentSuccess}
+        onSuccess={() => {
+          setShowPayment(false);
+          refresh();
+          onUnlocked?.();
+        }}
       />
     </div>
   );
