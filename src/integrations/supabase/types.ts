@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      chart_analyses: {
+        Row: {
+          analysis_result: string | null
+          analysis_type: string | null
+          birth_data: Json
+          chart_data: Json
+          chart_hash: string
+          created_at: string | null
+          id: string
+          payment_id: string | null
+          user_id: string
+        }
+        Insert: {
+          analysis_result?: string | null
+          analysis_type?: string | null
+          birth_data: Json
+          chart_data: Json
+          chart_hash: string
+          created_at?: string | null
+          id?: string
+          payment_id?: string | null
+          user_id: string
+        }
+        Update: {
+          analysis_result?: string | null
+          analysis_type?: string | null
+          birth_data?: Json
+          chart_data?: Json
+          chart_hash?: string
+          created_at?: string | null
+          id?: string
+          payment_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chart_analyses_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compatibility_checks: {
         Row: {
           chi_1: string
