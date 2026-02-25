@@ -168,6 +168,17 @@ serve(async (req) => {
             // Still proceed - admin can trigger analysis manually later
           }
         }
+
+        // CRITICAL: Also insert into user_features so PaymentGate unlocks
+        const { error: featureErr } = await adminClient.from("user_features").insert({
+          user_id: userId,
+          feature: "luan_giai",
+          expires_at: null,
+          payment_ref: paymentId,
+        });
+        if (featureErr) {
+          console.error("Error inserting user_features for luan_giai:", featureErr);
+        }
       } else {
         // For non-luan_giai features, add to user_features as before
         await adminClient.from("user_features").insert({
