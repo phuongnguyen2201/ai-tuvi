@@ -286,12 +286,13 @@ const Profile = () => {
                       onClick={() => {
                         const bd = a.birth_data || {};
                         const params = new URLSearchParams();
-                        if (bd.solarDate || bd.birthDate) params.set('date', bd.solarDate || bd.birthDate);
-                        if (bd.hour !== undefined) params.set('hour', String(bd.hour));
+                        const dateVal = bd.solarDate || bd.birthDate;
+                        if (dateVal) params.set('date', dateVal);
+                        if (bd.hour !== undefined || bd.birthHour !== undefined) params.set('hour', String(bd.hour ?? bd.birthHour));
                         if (bd.gender) params.set('gender', bd.gender);
                         if (bd.isLunar) params.set('calendar', 'lunar');
                         else params.set('calendar', 'solar');
-                        if (bd.name) params.set('name', bd.name);
+                        if (bd.name || bd.personName) params.set('name', bd.name || bd.personName);
                         navigate(`/lap-la-so?${params.toString()}`);
                       }}
                       disabled={!a.analysis_result}
