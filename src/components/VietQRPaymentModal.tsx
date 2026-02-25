@@ -95,6 +95,50 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
     setStep("pending");
   };
 
+  // Realtime subscription for payment status
+  useEffect(() => {
+    if (step !== 'pending') return;
+
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+
+      channel = supabase
+        .channel('payment-status')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'payments',
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload: any) => {
+            console.log('Payment updated:', payload.new);
+            if (payload.new.status === 'verified') {
+              setStep('success');
+              onSuccess?.();
+            } else if (payload.new.status === 'rejected') {
+              setStep('show_qr');
+              toast({
+                title: "Giao dịch bị từ chối",
+                description: "Vui lòng kiểm tra lại thông tin chuyển khoản",
+                variant: "destructive",
+              });
+            }
+          }
+        )
+        .subscribe();
+    });
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [step]);
+
   const handleClose = () => {
     onOpenChange(false);
     if (step === "success") {
