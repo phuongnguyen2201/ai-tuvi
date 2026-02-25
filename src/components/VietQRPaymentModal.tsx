@@ -105,7 +105,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
       if (!user) return;
 
       channel = supabase
-        .channel('payment-status')
+        .channel('payment-status-' + user.id)
         .on(
           'postgres_changes',
           {
@@ -261,9 +261,12 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
     <div className="flex flex-col items-center py-6 space-y-4 text-center">
       <Loader2 className="w-12 h-12 text-primary animate-spin" />
       <div>
-        <p className="font-semibold text-foreground text-lg">Đang xác nhận giao dịch...</p>
+        <p className="font-semibold text-foreground text-lg">Đang chờ xác nhận thanh toán...</p>
         <p className="text-sm text-muted-foreground mt-1">
-          Thường mất 5-15 phút (8:00 - 22:00)
+          Tự động cập nhật khi admin xác nhận
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          Thường trong vòng 5-30 phút (8:00 - 22:00)
         </p>
       </div>
 
@@ -274,7 +277,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
         onClick={() => window.open("https://zalo.me/0702127233", "_blank")}
       >
         <ExternalLink className="w-4 h-4 mr-1" />
-        Liên hệ hỗ trợ Zalo
+        Liên hệ Zalo hỗ trợ
       </Button>
     </div>
   );
@@ -283,13 +286,13 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
   const renderSuccess = () => (
     <div className="flex flex-col items-center py-6 space-y-4 text-center">
       <div className="text-6xl animate-scale-in">🎉</div>
-      <div>
-        <p className="font-bold text-xl text-foreground">Đã mở khóa thành công!</p>
-        <p className="text-sm text-muted-foreground mt-1">{label}</p>
+      <div className="space-y-1">
+        <p className="font-bold text-xl text-foreground">Thanh toán đã được xác nhận!</p>
+        <p className="text-sm text-muted-foreground">Tính năng <span className="font-semibold text-primary">{label}</span> đã được mở khóa</p>
       </div>
 
-      <Button variant="gold" size="lg" className="w-full" onClick={handleClose}>
-        Bắt đầu ngay
+      <Button variant="gold" size="lg" className="w-full" onClick={() => { handleClose(); window.location.reload(); }}>
+        Bắt đầu sử dụng ngay ✨
       </Button>
     </div>
   );
