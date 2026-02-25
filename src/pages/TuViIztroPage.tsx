@@ -108,23 +108,35 @@ export default function TuViIztroPage() {
   const chartHash = chart ? generateChartHash(birthDate, birthHour, gender, calendarType) : null;
 
   // Load analysis: check cache → call Claude if needed
-  const loadAnalysis = useCallback(async () => {
-    if (!chartHash || !user) return;
+  const loadAnalysis = useCallback(async (hash?: string) => {
+    const targetHash = hash || chartHash;
+    if (!targetHash) {
+      console.error('[loadAnalysis] No chartHash!');
+      return;
+    }
+
+    console.log('[loadAnalysis] Starting for hash:', targetHash);
+
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) return;
 
     const { data: existing } = await (supabase.from('chart_analyses') as any)
       .select('*')
-      .eq('chart_hash', chartHash)
-      .eq('user_id', user.id)
+      .eq('chart_hash', targetHash)
+      .eq('user_id', currentUser.id)
       .maybeSingle();
 
+    console.log('[loadAnalysis] DB result:', existing);
+
     if (existing?.analysis_result) {
+      console.log('[loadAnalysis] Cache found, showing result');
       setCachedAnalysis(existing.analysis_result);
       setShowAnalysis(true);
       return;
     }
 
     if (existing && !existing.analysis_result) {
-      // Unlocked but no result yet → call Claude
+      console.log('[loadAnalysis] No cache, calling Claude...');
       setIsAnalyzing(true);
       try {
         const { data, error: fnError } = await supabase.functions.invoke('analyze-chart', {
@@ -134,6 +146,7 @@ export default function TuViIztroPage() {
             personName: (existing.birth_data as any)?.personName,
           },
         });
+        console.log('[loadAnalysis] Claude response:', data);
         if (fnError || !data?.analysis) throw new Error(fnError?.message || 'AI analysis failed');
 
         await (supabase.from('chart_analyses') as any)
@@ -143,28 +156,26 @@ export default function TuViIztroPage() {
         setCachedAnalysis(data.analysis);
         setShowAnalysis(true);
       } catch (err: any) {
-        console.error('Analysis error:', err);
+        console.error('[loadAnalysis] Error:', err);
         toast.error('Luận giải thất bại, vui lòng thử lại sau.');
       } finally {
         setIsAnalyzing(false);
       }
+      return;
     }
-  }, [chartHash, user]);
 
-  // When hasAccess changes (e.g. after payment verified via realtime), auto-load analysis
-  useEffect(() => {
-    if (!hasAccess || !chartHash || !user) return;
-    loadAnalysis();
-  }, [hasAccess, chartHash, loadAnalysis]);
+    // No chart_analyses record found
+    console.error('[loadAnalysis] No chart_analyses record found!');
+    toast.error('Không tìm thấy dữ liệu. Vui lòng liên hệ hỗ trợ.');
+  }, [chartHash]);
 
-  // Also check on chart change (for cached results even without hasAccess from user_features)
+  // On page load / chart change: check for cached analysis result
   useEffect(() => {
     if (!chart || !user || !chartHash) {
       setCachedAnalysis(null);
       setShowAnalysis(false);
       return;
     }
-    // Check if there's a cached analysis result already
     (supabase.from('chart_analyses') as any)
       .select('analysis_result')
       .eq('user_id', user.id)
@@ -176,7 +187,7 @@ export default function TuViIztroPage() {
           setShowAnalysis(true);
         }
       });
-  }, [chart, user, chartHash]);
+  }, [chartHash, user]);
 
   const handlePaymentSuccess = (analysisResult?: string) => {
     setShowPayment(false);
@@ -184,8 +195,9 @@ export default function TuViIztroPage() {
       setCachedAnalysis(analysisResult);
       setShowAnalysis(true);
     } else {
-      // Trigger loadAnalysis to pick up from DB
-      loadAnalysis();
+      // Trigger loadAnalysis with current chartHash
+      console.log('[Page] onSuccess, chartHash:', chartHash);
+      loadAnalysis(chartHash || undefined);
     }
   };
   
