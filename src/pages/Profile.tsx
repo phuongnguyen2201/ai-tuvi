@@ -9,7 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Edit3, Check, X, LogOut, Star, Clock, Crown, ShieldCheck, Package } from "lucide-react";
+import { Edit3, Check, X, LogOut, Star, Clock, Crown, ShieldCheck, Package, ScrollText, Eye } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const FEATURE_NAMES: Record<string, string> = {
   premium: "Premium toàn diện",
@@ -35,6 +41,15 @@ interface Payment {
   status: string | null;
   feature_unlocked: string | null;
   created_at: string | null;
+}
+
+interface ChartAnalysis {
+  id: string;
+  chart_hash: string;
+  birth_data: any;
+  analysis_result: string | null;
+  analysis_type: string | null;
+  created_at: string;
 }
 
 const formatDate = (dateStr: string | null) => {
@@ -63,6 +78,8 @@ const Profile = () => {
   const [features, setFeatures] = useState<UserFeature[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [profileData, setProfileData] = useState<any>(null);
+  const [chartAnalyses, setChartAnalyses] = useState<ChartAnalysis[]>([]);
+  const [viewingAnalysis, setViewingAnalysis] = useState<ChartAnalysis | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -72,14 +89,16 @@ const Profile = () => {
 
   const fetchAll = async () => {
     if (!user) return;
-    const [profileRes, featuresRes, paymentsRes] = await Promise.all([
+    const [profileRes, featuresRes, paymentsRes, analysesRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
       supabase.from("user_features").select("*").eq("user_id", user.id).order("unlocked_at", { ascending: false }),
       supabase.from("payments").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(10),
+      (supabase.from("chart_analyses") as any).select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
     ]);
     setProfileData(profileRes.data);
     setFeatures(featuresRes.data || []);
     setPayments(paymentsRes.data || []);
+    setChartAnalyses(analysesRes.data || []);
   };
 
   const handleSaveName = async () => {
@@ -236,7 +255,60 @@ const Profile = () => {
           </CardContent>
         </Card>
 
-        {/* PHẦN 3: Lịch sử thanh toán */}
+        {/* PHẦN 2.5: Lá số đã luận giải */}
+        {chartAnalyses.length > 0 && (
+          <Card className="border-gold/20 bg-surface-2/80 backdrop-blur">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <ScrollText className="h-5 w-5 text-gold" />
+                Lá số đã luận giải
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {chartAnalyses.map((a) => {
+                const bd = a.birth_data || {};
+                const label = bd.name || `Ngày sinh: ${bd.birthDate || a.chart_hash}`;
+                return (
+                  <div key={a.id} className="flex items-center justify-between rounded-xl border border-border bg-surface-3/50 p-4">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground truncate">{label}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Luận giải: {formatDate(a.created_at)} · {a.analysis_type === 'full' ? 'Toàn diện' : a.analysis_type}
+                      </p>
+                    </div>
+                    <Button
+                      variant="goldOutline"
+                      size="sm"
+                      onClick={() => setViewingAnalysis(a)}
+                      disabled={!a.analysis_result}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      Xem lại
+                    </Button>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Dialog xem lại kết quả luận giải */}
+        <Dialog open={!!viewingAnalysis} onOpenChange={() => setViewingAnalysis(null)}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto border-gold/20 bg-card">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-gold">
+                <ScrollText className="h-5 w-5" />
+                Kết quả luận giải
+              </DialogTitle>
+            </DialogHeader>
+            {viewingAnalysis?.analysis_result && (
+              <div className="prose prose-sm prose-invert max-w-none whitespace-pre-wrap text-foreground text-sm leading-relaxed">
+                {viewingAnalysis.analysis_result}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
         {payments.length > 0 && (
           <Card className="border-gold/20 bg-surface-2/80 backdrop-blur">
             <CardHeader className="pb-3">

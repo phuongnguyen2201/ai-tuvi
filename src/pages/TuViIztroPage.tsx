@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Loader2, CheckCircle, XCircle, ExternalLink } from 'lucide-react';
+import { CalendarIcon, Loader2, CheckCircle, XCircle, ExternalLink, Sparkles, Lock } from 'lucide-react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -24,6 +24,15 @@ import { NFTPreview } from '@/components/NFTPreview';
 import { NFTGallery } from '@/components/NFTGallery';
 import { supabase } from '@/integrations/supabase/client';
 import PaymentGate from '@/components/PaymentGate';
+import VietQRPaymentModal from '@/components/VietQRPaymentModal';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+
+// Generate a chart hash from birth data
+function generateChartHash(birthDate: Date, birthHour: string, gender: string, calendarType: string): string {
+  const dateStr = format(birthDate, 'yyyy-MM-dd');
+  return `${dateStr}_${birthHour}_${gender}_${calendarType}`;
+}
 
 const LUNAR_HOURS = [
   { value: '0', label: 'Tý (23:00 - 00:59)' },
@@ -42,6 +51,7 @@ const LUNAR_HOURS = [
 
 export default function TuViIztroPage() {
   const address = useAddress();
+  const { user } = useAuth();
   const [chart, setChart] = useState<TuViChartData | null>(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -50,6 +60,12 @@ export default function TuViIztroPage() {
   const [birthDate, setBirthDate] = useState<Date>(new Date(2000, 0, 1));
   const [birthHour, setBirthHour] = useState('1');
   const [gender, setGender] = useState<'Nam' | 'Nữ'>('Nam');
+
+  // Chart analysis state
+  const [cachedAnalysis, setCachedAnalysis] = useState<string | null>(null);
+  const [analysisUnlocked, setAnalysisUnlocked] = useState(false);
+  const [checkingAnalysis, setCheckingAnalysis] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
 
   // Mint callback state
   const [searchParams, setSearchParams] = useSearchParams();
@@ -80,6 +96,39 @@ export default function TuViIztroPage() {
     }
   }, [searchParams, mintStatus]);
   const [calendarType, setCalendarType] = useState<'solar' | 'lunar'>('solar');
+
+  // Check for cached analysis when chart changes
+  const chartHash = chart ? generateChartHash(birthDate, birthHour, gender, calendarType) : null;
+
+  useEffect(() => {
+    if (!chart || !user || !chartHash) {
+      setCachedAnalysis(null);
+      setAnalysisUnlocked(false);
+      return;
+    }
+    setCheckingAnalysis(true);
+    (supabase.from('chart_analyses') as any)
+      .select('analysis_result')
+      .eq('user_id', user.id)
+      .eq('chart_hash', chartHash)
+      .eq('analysis_type', 'full')
+      .maybeSingle()
+      .then(({ data }: any) => {
+        if (data?.analysis_result) {
+          setCachedAnalysis(data.analysis_result);
+          setAnalysisUnlocked(true);
+        } else {
+          setCachedAnalysis(null);
+          setAnalysisUnlocked(false);
+        }
+        setCheckingAnalysis(false);
+      });
+  }, [chart, user, chartHash]);
+
+  const handlePaymentSuccess = () => {
+    setShowPayment(false);
+    toast.success('Thanh toán đã được ghi nhận! Vui lòng chờ admin xác nhận (5-30 phút).');
+  };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -308,13 +357,57 @@ export default function TuViIztroPage() {
           <div className="space-y-6">
             <TuViChartIztro chart={chart} />
             
-            {/* Luận giải chi tiết - cần thanh toán */}
-            <PaymentGate feature="luan_giai">
-              <ChartInterpretationDisplay chart={chart} />
-            
-              {/* AI-powered luận giải */}
-              <TuViAnalysis chart={chart} />
-            </PaymentGate>
+            {/* Luận giải chi tiết */}
+            {checkingAnalysis ? (
+              <Card className="p-6 bg-surface-3 border-gold/20 text-center">
+                <Loader2 className="h-6 w-6 animate-spin text-gold mx-auto mb-2" />
+                <p className="text-muted-foreground text-sm">Đang kiểm tra...</p>
+              </Card>
+            ) : analysisUnlocked && cachedAnalysis ? (
+              <>
+                <ChartInterpretationDisplay chart={chart} />
+                <TuViAnalysis chart={chart} />
+              </>
+            ) : (
+              <div className="relative">
+                <div className="blur-sm pointer-events-none select-none" aria-hidden="true">
+                  <ChartInterpretationDisplay chart={chart} />
+                </div>
+                <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-sm rounded-lg">
+                  <Card className="max-w-sm w-full mx-4 p-6 text-center border-border bg-card shadow-xl">
+                    <div className="text-4xl mb-3">🔮</div>
+                    <h3 className="text-lg font-bold text-foreground mb-1">Luận giải chi tiết lá số</h3>
+                    <p className="text-2xl font-bold text-primary mb-2">29.000đ</p>
+                    <p className="text-sm text-muted-foreground mb-5">
+                      Xem đầy đủ luận giải 12 cung, AI phân tích chuyên sâu. Mua 1 lần, xem mãi mãi.
+                    </p>
+                    <Button
+                      variant="gold"
+                      size="lg"
+                      className="w-full mb-3"
+                      onClick={() => {
+                        if (!user) {
+                          window.location.href = '/auth?redirect=' + encodeURIComponent(window.location.pathname);
+                          return;
+                        }
+                        setShowPayment(true);
+                      }}
+                    >
+                      <Lock className="w-4 h-4 mr-2" />
+                      Mở khóa với QR
+                    </Button>
+                    <p className="text-xs text-muted-foreground">Thanh toán nhanh qua ngân hàng</p>
+                  </Card>
+                </div>
+                <VietQRPaymentModal
+                  open={showPayment}
+                  onOpenChange={setShowPayment}
+                  feature="luan_giai"
+                  onSuccess={handlePaymentSuccess}
+                  metadata={{ chartHash, birthDate: format(birthDate, 'yyyy-MM-dd'), birthHour, gender, calendarType }}
+                />
+              </div>
+            )}
             
             {/* NFT Preview */}
             <NFTPreview

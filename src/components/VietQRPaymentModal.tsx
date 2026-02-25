@@ -20,14 +20,15 @@ const BANK_DISPLAY = {
   accountName: "NGUYEN MINH PHUONG",
 };
 
-interface VietQRPaymentModalProps {
+export interface VietQRPaymentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   feature: string;
   onSuccess: () => void;
+  metadata?: Record<string, any>;
 }
 
-const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess }: VietQRPaymentModalProps) => {
+const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }: VietQRPaymentModalProps) => {
   const [step, setStep] = useState<Step>("show_qr");
   const [selectedPlan, setSelectedPlan] = useState<"premium_monthly" | "premium_yearly">("premium_monthly");
   const [copied, setCopied] = useState(false);
@@ -82,6 +83,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess }: VietQRPa
         feature_unlocked: activeFeature,
         status: 'pending',
         transfer_content: transferContent,
+        notes: metadata ? JSON.stringify(metadata) : null,
       });
 
     if (error) {
