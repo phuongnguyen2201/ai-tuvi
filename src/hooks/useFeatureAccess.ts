@@ -6,8 +6,9 @@ export function useFeatureAccess(feature: string) {
   const [isLoading, setIsLoading] = useState(true);
 
   const checkAccess = async () => {
+    console.log('[useFeatureAccess] checkAccess called for feature:', feature);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setIsLoading(false); return; }
+    if (!user) { console.log('[useFeatureAccess] No user'); setIsLoading(false); return; }
 
     const { data: premium } = await supabase
       .from('user_features')
@@ -28,6 +29,7 @@ export function useFeatureAccess(feature: string) {
       .maybeSingle();
 
     const isValid = data && (!data.expires_at || new Date(data.expires_at) > new Date());
+    console.log('[useFeatureAccess] checkAccess result:', { feature, hasData: !!data, isValid });
     setHasAccess(!!isValid);
     setIsLoading(false);
   };
@@ -49,9 +51,14 @@ export function useFeatureAccess(feature: string) {
             table: 'user_features',
             filter: `user_id=eq.${user.id}`,
           },
-          () => { checkAccess(); }
+          (payload) => {
+            console.log('[useFeatureAccess] INSERT detected:', payload);
+            checkAccess();
+          }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log('[useFeatureAccess] Channel status:', status, 'for feature:', feature);
+        });
     });
 
     return () => {
