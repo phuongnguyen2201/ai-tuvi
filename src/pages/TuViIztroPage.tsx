@@ -521,6 +521,7 @@ export default function TuViIztroPage() {
             {/* NFT Preview */}
             <NFTPreview
               chartData={chart}
+              walletAddress={address}
               birthData={{
                 name: personName,
                 solarDate: format(birthDate, 'yyyy-MM-dd'),

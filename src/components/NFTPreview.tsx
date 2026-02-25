@@ -12,9 +12,10 @@ interface NFTPreviewProps {
     gender: string;
     isLunar?: boolean;
   };
+  walletAddress?: string;
 }
 
-export function NFTPreview({ chartData, birthData }: NFTPreviewProps) {
+export function NFTPreview({ chartData, birthData, walletAddress }: NFTPreviewProps) {
   const [svgContent, setSvgContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +23,7 @@ export function NFTPreview({ chartData, birthData }: NFTPreviewProps) {
   const lastRequestRef = useRef<string | null>(null);
 
   useEffect(() => {
+    if (!walletAddress) return; // Không gọi nếu chưa connect ví
     if (!chartData || !birthData?.solarDate) return;
 
     // Deduplicate: skip if same request
@@ -64,7 +66,7 @@ export function NFTPreview({ chartData, birthData }: NFTPreviewProps) {
     };
 
     generatePreview();
-  }, [chartData, birthData?.solarDate, birthData?.hour, birthData?.gender]);
+  }, [walletAddress, chartData, birthData?.solarDate, birthData?.hour, birthData?.gender]);
 
   return (
     <Card className="bg-slate-900/80 border-amber-600/30">
