@@ -79,7 +79,7 @@ const Profile = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [profileData, setProfileData] = useState<any>(null);
   const [chartAnalyses, setChartAnalyses] = useState<ChartAnalysis[]>([]);
-  const [viewingAnalysis, setViewingAnalysis] = useState<ChartAnalysis | null>(null);
+  
 
   useEffect(() => {
     if (user) {
@@ -283,7 +283,17 @@ const Profile = () => {
                     <Button
                       variant="goldOutline"
                       size="sm"
-                      onClick={() => setViewingAnalysis(a)}
+                      onClick={() => {
+                        const bd = a.birth_data || {};
+                        const params = new URLSearchParams();
+                        if (bd.solarDate || bd.birthDate) params.set('date', bd.solarDate || bd.birthDate);
+                        if (bd.hour !== undefined) params.set('hour', String(bd.hour));
+                        if (bd.gender) params.set('gender', bd.gender);
+                        if (bd.isLunar) params.set('calendar', 'lunar');
+                        else params.set('calendar', 'solar');
+                        if (bd.name) params.set('name', bd.name);
+                        navigate(`/lap-la-so?${params.toString()}`);
+                      }}
                       disabled={!a.analysis_result}
                     >
                       <Eye className="h-4 w-4 mr-1" />
@@ -296,22 +306,8 @@ const Profile = () => {
           </Card>
         )}
 
-        {/* Dialog xem lại kết quả luận giải */}
-        <Dialog open={!!viewingAnalysis} onOpenChange={() => setViewingAnalysis(null)}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto border-gold/20 bg-card">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-gold">
-                <ScrollText className="h-5 w-5" />
-                Kết quả luận giải
-              </DialogTitle>
-            </DialogHeader>
-            {viewingAnalysis?.analysis_result && (
-              <div className="prose prose-sm prose-invert max-w-none whitespace-pre-wrap text-foreground text-sm leading-relaxed">
-                {viewingAnalysis.analysis_result}
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+
+
 
         {payments.length > 0 && (
           <Card className="border-gold/20 bg-surface-2/80 backdrop-blur">

@@ -105,6 +105,49 @@ export default function TuViIztroPage() {
   }, [searchParams, mintStatus]);
   const [calendarType, setCalendarType] = useState<'solar' | 'lunar'>('solar');
 
+  // Auto-fill from URL params (e.g. from Profile "Xem lại")
+  useEffect(() => {
+    const dateParam = searchParams.get('date');
+    if (!dateParam) return;
+
+    const hourParam = searchParams.get('hour');
+    const genderParam = searchParams.get('gender');
+    const calendarParam = searchParams.get('calendar');
+    const nameParam = searchParams.get('name');
+
+    // Set form values
+    const parsedDate = new Date(dateParam);
+    if (!isNaN(parsedDate.getTime())) setBirthDate(parsedDate);
+    if (hourParam) setBirthHour(hourParam);
+    if (genderParam === 'Nam' || genderParam === 'Nữ') setGender(genderParam);
+    if (calendarParam === 'lunar') setCalendarType('lunar');
+    else setCalendarType('solar');
+    if (nameParam) setPersonName(nameParam);
+
+    // Auto-calculate chart
+    const year = parsedDate.getFullYear();
+    const month = parsedDate.getMonth() + 1;
+    const day = parsedDate.getDate();
+    const input: BirthInput = {
+      year,
+      month,
+      day,
+      hour: parseInt(hourParam || '1'),
+      gender: (genderParam as 'Nam' | 'Nữ') || 'Nam',
+      isLunarDate: calendarParam === 'lunar',
+    };
+
+    try {
+      const result = createTuViChart(input);
+      setChart(result);
+    } catch (err) {
+      console.error('Auto-calculate error:', err);
+    }
+
+    // Clean URL params after processing
+    setSearchParams({});
+  }, []); // Run once on mount
+
   const chartHash = chart ? generateChartHash(birthDate, birthHour, gender, calendarType) : null;
 
   // Load analysis: check cache → call Claude if needed
