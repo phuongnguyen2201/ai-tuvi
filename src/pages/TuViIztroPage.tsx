@@ -94,6 +94,14 @@ export default function TuViIztroPage() {
   const [showPayment, setShowPayment] = useState(false);
   const [reAnalysisCount, setReAnalysisCount] = useState(0);
 
+  // Edit birth info modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editBirthDate, setEditBirthDate] = useState('');
+  const [editBirthHour, setEditBirthHour] = useState('');
+  const [editGender, setEditGender] = useState('');
+  const [editPersonName, setEditPersonName] = useState('');
+  const [editCalendarType, setEditCalendarType] = useState('solar');
+
   // chartHash computed early so hooks can depend on it
   const chartHash = chart ? generateChartHash(birthDate, birthHour, gender, calendarType) : null;
 
@@ -269,6 +277,103 @@ export default function TuViIztroPage() {
     console.error('[loadAnalysis] No chart_analyses record found!');
     toast.error('Không tìm thấy dữ liệu. Vui lòng liên hệ hỗ trợ.');
   }, [chartHash, chart, personName, isAnalyzing]);
+
+  // Pre-fill edit modal when opened
+  useEffect(() => {
+    if (showEditModal && analysisRecord?.birth_data) {
+      const bd = analysisRecord.birth_data as any;
+      setEditBirthDate(bd.birthDate || '');
+      setEditBirthHour(bd.birthHour || '');
+      setEditGender(bd.gender || 'Nam');
+      setEditPersonName(bd.personName || '');
+      setEditCalendarType(bd.calendarType || 'solar');
+    }
+  }, [showEditModal, analysisRecord]);
+
+  // Handle edit birth info and re-analyze
+  const handleEditAndReanalyze = async () => {
+    if (!confirm(
+      `Sẽ dùng 1 lượt chỉnh sửa. Còn ${2 - (reAnalysisCount || 0)} lượt. Tiếp tục?`
+    )) return;
+
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser || !analysisRecord) return;
+
+    setShowEditModal(false);
+    setIsAnalyzing(true);
+    setCachedAnalysis(null);
+
+    try {
+      // Calculate new chart hash
+      const newChartHash = `${editBirthDate}_${editBirthHour}_${editGender}_${editCalendarType}`;
+
+      // Recalculate chart with new inputs
+      const dateParts = editBirthDate.split('-');
+      const newInput: BirthInput = {
+        year: parseInt(dateParts[0]),
+        month: parseInt(dateParts[1]),
+        day: parseInt(dateParts[2]),
+        hour: parseInt(editBirthHour),
+        gender: editGender as 'Nam' | 'Nữ',
+        isLunarDate: editCalendarType === 'lunar',
+      };
+
+      const newChartData = createTuViChart(newInput);
+
+      // Update form state to match
+      setBirthDate(new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2])));
+      setBirthHour(editBirthHour);
+      setGender(editGender as 'Nam' | 'Nữ');
+      setPersonName(editPersonName);
+      setCalendarType(editCalendarType as 'solar' | 'lunar');
+      setChart(newChartData);
+
+      // Update chart_analyses record
+      const newCount = (reAnalysisCount || 0) + 1;
+      await (supabase.from('chart_analyses') as any)
+        .update({
+          birth_data: {
+            birthDate: editBirthDate,
+            birthHour: editBirthHour,
+            gender: editGender,
+            calendarType: editCalendarType,
+            personName: editPersonName,
+          },
+          chart_hash: newChartHash,
+          chart_data: newChartData || {},
+          analysis_result: null,
+          re_analysis_count: newCount,
+        })
+        .eq('id', analysisRecord.id);
+
+      setReAnalysisCount(newCount);
+
+      // Call Claude with new data
+      const invokeBody = {
+        analysisType: 'luan_giai',
+        chartData: newChartData,
+        personName: editPersonName,
+      };
+      const { data, error: fnError } = await supabase.functions.invoke('analyze-chart', {
+        body: invokeBody,
+      });
+      if (fnError) throw fnError;
+      if (!data?.analysis) throw new Error('No analysis returned');
+
+      await (supabase.from('chart_analyses') as any)
+        .update({ analysis_result: data.analysis })
+        .eq('id', analysisRecord.id);
+
+      setCachedAnalysis(data.analysis);
+      setAnalysisError(false);
+    } catch (err: any) {
+      console.error('[handleEditAndReanalyze] Error:', err);
+      toast.error(err?.message || 'Có lỗi xảy ra. Vui lòng thử lại.');
+      setAnalysisError(true);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   // Debug state changes
   useEffect(() => {
@@ -590,30 +695,45 @@ export default function TuViIztroPage() {
                   <div className="space-y-1">
                     {renderAnalysisMarkdown(cachedAnalysis)}
                   </div>
-                  <div className="mt-8 pt-4 border-t border-primary/20 flex justify-between items-center">
-                    <p className="text-xs text-muted-foreground">
+                  <div className="mt-8 pt-4 border-t border-primary/20">
+                    <p className="text-xs text-muted-foreground mb-3">
                       Luận giải bởi AI · Dựa trên lá số tử vi
                     </p>
                     {reAnalysisCount < 2 ? (
-                      <button
-                        onClick={async () => {
-                          if (!confirm(`Bạn còn ${2 - reAnalysisCount} lần phân tích lại miễn phí. Tiếp tục?`)) return;
-                          if (!chartHash || !user) return;
-                          await (supabase.from('chart_analyses') as any)
-                            .update({ analysis_result: null, re_analysis_count: reAnalysisCount + 1 })
-                            .eq('chart_hash', chartHash)
-                            .eq('user_id', user.id);
-                          setReAnalysisCount(prev => prev + 1);
-                          setCachedAnalysis(null);
-                          loadAnalysis(chartHash);
-                        }}
-                        className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-                      >
-                        🔄 Phân tích lại ({2 - reAnalysisCount} lần còn lại)
-                      </button>
+                      <div className="space-y-2 text-center">
+                        <div className="flex gap-3 justify-center">
+                          <Button
+                            variant="purple"
+                            size="sm"
+                            onClick={async () => {
+                              if (!confirm(`Bạn còn ${2 - reAnalysisCount} lần phân tích lại miễn phí. Tiếp tục?`)) return;
+                              if (!chartHash || !user) return;
+                              await (supabase.from('chart_analyses') as any)
+                                .update({ analysis_result: null, re_analysis_count: reAnalysisCount + 1 })
+                                .eq('chart_hash', chartHash)
+                                .eq('user_id', user.id);
+                              setReAnalysisCount(prev => prev + 1);
+                              setCachedAnalysis(null);
+                              loadAnalysis(chartHash);
+                            }}
+                          >
+                            🔄 Phân tích lại
+                          </Button>
+                          <Button
+                            variant="mystical"
+                            size="sm"
+                            onClick={() => setShowEditModal(true)}
+                          >
+                            ✏️ Sửa thông tin sinh
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Còn {2 - reAnalysisCount} lần chỉnh sửa/phân tích lại miễn phí
+                        </p>
+                      </div>
                     ) : (
-                      <p className="text-xs text-muted-foreground">
-                        Đã dùng hết lượt phân tích lại
+                      <p className="text-xs text-muted-foreground text-center">
+                        Đã dùng hết lượt chỉnh sửa miễn phí. Liên hệ hỗ trợ qua Zalo nếu cần.
                       </p>
                     )}
                   </div>
@@ -750,6 +870,94 @@ export default function TuViIztroPage() {
           </div>
         )}
       </div>
+
+      {/* Edit Birth Info Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-card border border-primary/30 rounded-xl p-6 w-full max-w-md">
+            <h3 className="text-primary font-bold text-lg mb-4">
+              ✏️ Sửa thông tin sinh
+            </h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              Sẽ dùng 1 lượt chỉnh sửa miễn phí (còn {2 - reAnalysisCount} lượt)
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <Label className="text-muted-foreground text-sm mb-1 block">Họ tên</Label>
+                <Input
+                  value={editPersonName}
+                  onChange={e => setEditPersonName(e.target.value)}
+                  className="bg-surface-3 border-border"
+                />
+              </div>
+              <div>
+                <Label className="text-muted-foreground text-sm mb-1 block">Ngày sinh</Label>
+                <Input
+                  type="date"
+                  value={editBirthDate}
+                  onChange={e => setEditBirthDate(e.target.value)}
+                  className="bg-surface-3 border-border"
+                />
+              </div>
+              <div>
+                <Label className="text-muted-foreground text-sm mb-1 block">Giờ sinh</Label>
+                <Select value={editBirthHour} onValueChange={setEditBirthHour}>
+                  <SelectTrigger className="bg-surface-3 border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LUNAR_HOURS.map(h => (
+                      <SelectItem key={h.value} value={h.value}>{h.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-muted-foreground text-sm mb-1 block">Giới tính</Label>
+                <Select value={editGender} onValueChange={setEditGender}>
+                  <SelectTrigger className="bg-surface-3 border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Nam">Nam</SelectItem>
+                    <SelectItem value="Nữ">Nữ</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-muted-foreground text-sm mb-1 block">Loại lịch</Label>
+                <Select value={editCalendarType} onValueChange={setEditCalendarType}>
+                  <SelectTrigger className="bg-surface-3 border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="solar">Dương lịch</SelectItem>
+                    <SelectItem value="lunar">Âm lịch</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-5">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowEditModal(false)}
+              >
+                Hủy
+              </Button>
+              <Button
+                variant="purple"
+                className="flex-1"
+                onClick={handleEditAndReanalyze}
+              >
+                🔮 Lập lại & Luận giải
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </PageLayout>
   );
 }
