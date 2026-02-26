@@ -157,7 +157,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
     }, 120000);
   }, [cleanupPolling, toast]);
 
-  // Realtime subscription for payment status
+  // Realtime subscription for payment/chart status
   useEffect(() => {
     if (step !== 'pending') return;
 
@@ -166,54 +166,62 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
 
-      channel = supabase
-        .channel('payment-status-' + user.id)
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'payments',
-            filter: `user_id=eq.${user.id}`,
-          },
-          (payload: any) => {
-            console.log('[Modal] Payment updated:', payload.new.status);
-            if (payload.new.status === 'verified') {
-              verifiedPayloadRef.current = payload.new;
-
-              if (isLuanGiai) {
-                // For luan_giai: start polling chart_analyses
-                try {
-                  const notes = JSON.parse(payload.new.notes || '{}');
-                  if (notes.chartHash) {
-                    startPollingAnalysis(notes.chartHash);
-                  } else {
-                    setStep('success');
-                  }
-                } catch {
-                  setStep('success');
-                }
-              } else {
-                // For other features: simple success
+      if (isLuanGiai) {
+        // Listen chart_analyses INSERT for luan_giai
+        const chartHash = metadata?.chartHash;
+        channel = supabase
+          .channel('chart-access-' + user.id)
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'chart_analyses',
+              filter: `user_id=eq.${user.id}`,
+            },
+            (payload: any) => {
+              if (payload.new.chart_hash === chartHash) {
+                console.log('[Modal] Chart access granted!');
                 setStep('success');
+                onSuccess?.();
               }
-            } else if (payload.new.status === 'rejected') {
-              setStep('show_qr');
-              toast({
-                title: "Giao dịch bị từ chối",
-                description: "Vui lòng kiểm tra lại thông tin chuyển khoản",
-                variant: "destructive",
-              });
             }
-          }
-        )
-        .subscribe();
+          )
+          .subscribe();
+      } else {
+        // Listen payments UPDATE for other features
+        channel = supabase
+          .channel('payment-status-' + user.id)
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'payments',
+              filter: `user_id=eq.${user.id}`,
+            },
+            (payload: any) => {
+              console.log('[Modal] Payment updated:', payload.new.status);
+              if (payload.new.status === 'verified') {
+                setStep('success');
+              } else if (payload.new.status === 'rejected') {
+                setStep('show_qr');
+                toast({
+                  title: "Giao dịch bị từ chối",
+                  description: "Vui lòng kiểm tra lại thông tin chuyển khoản",
+                  variant: "destructive",
+                });
+              }
+            }
+          )
+          .subscribe();
+      }
     });
 
     return () => {
       if (channel) supabase.removeChannel(channel);
     };
-  }, [step, isLuanGiai, startPollingAnalysis, toast]);
+  }, [step, isLuanGiai, metadata, onSuccess, toast]);
 
   const handleClose = () => {
     cleanupPolling();
