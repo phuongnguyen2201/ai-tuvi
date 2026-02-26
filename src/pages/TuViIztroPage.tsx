@@ -1,6 +1,6 @@
 // src/pages/TuViIztroPage.tsx - Page lập lá số dùng iztro library
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAddress } from '@thirdweb-dev/react';
 import { useSearchParams } from 'react-router-dom';
 import { createTuViChart, TuViChartData, BirthInput } from '@/services/TuViService';
@@ -184,6 +184,9 @@ export default function TuViIztroPage() {
 
   // chartHash already computed above (line 97)
 
+  // Synchronous guard ref to prevent double-call race condition
+  const isAnalyzingRef = useRef(false);
+
   // Load analysis: check cache → call Claude if needed
   const loadAnalysis = useCallback(async (hash?: string) => {
     const targetHash = hash || chartHash;
@@ -191,7 +194,7 @@ export default function TuViIztroPage() {
       console.error('[loadAnalysis] No chartHash!');
       return;
     }
-    if (isAnalyzing) {
+    if (isAnalyzingRef.current) {
       console.log('[loadAnalysis] Already analyzing, skipping');
       return;
     }
@@ -233,6 +236,7 @@ export default function TuViIztroPage() {
     if (existing) {
       console.log('[loadAnalysis] Calling Claude...');
       console.log('[loadAnalysis] DB analysis_type:', existing.analysis_type, '(DB field, not sent to Claude)');
+      isAnalyzingRef.current = true;
       setIsAnalyzing(true);
       setAnalysisError(false);
       try {
@@ -268,6 +272,7 @@ export default function TuViIztroPage() {
         toast.error(err?.message || 'AI đang bận. Vui lòng thử lại sau 1-2 phút.');
         setAnalysisError(true);
       } finally {
+        isAnalyzingRef.current = false;
         setIsAnalyzing(false);
       }
       return;
@@ -276,7 +281,7 @@ export default function TuViIztroPage() {
     // No chart_analyses record found
     console.error('[loadAnalysis] No chart_analyses record found!');
     toast.error('Không tìm thấy dữ liệu. Vui lòng liên hệ hỗ trợ.');
-  }, [chartHash, chart, personName, isAnalyzing]);
+  }, [chartHash, chart, personName]);
 
   // Pre-fill edit modal when opened
   useEffect(() => {
