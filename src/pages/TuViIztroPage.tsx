@@ -157,6 +157,10 @@ export default function TuViIztroPage() {
       console.error('[loadAnalysis] No chartHash!');
       return;
     }
+    if (isAnalyzing) {
+      console.log('[loadAnalysis] Already analyzing, skipping');
+      return;
+    }
 
     console.log('[loadAnalysis] Starting for hash:', targetHash);
 
@@ -218,25 +222,21 @@ export default function TuViIztroPage() {
     // No chart_analyses record found
     console.error('[loadAnalysis] No chart_analyses record found!');
     toast.error('Không tìm thấy dữ liệu. Vui lòng liên hệ hỗ trợ.');
-  }, [chartHash, chart, personName]);
+  }, [chartHash, chart, personName, isAnalyzing]);
 
-  // On page load / chart change: check for cached analysis result
+  // Auto-load analysis when chart is ready and user has access
+  // Covers: 1) "Xem lại" from Profile, 2) post-payment, 3) page refresh with paid chart
   useEffect(() => {
     if (!chart || !user || !chartHash) {
       setCachedAnalysis(null);
       return;
     }
-    (supabase.from('chart_analyses') as any)
-      .select('analysis_result')
-      .eq('user_id', user.id)
-      .eq('chart_hash', chartHash)
-      .maybeSingle()
-      .then(({ data }: any) => {
-        if (data?.analysis_result) {
-          setCachedAnalysis(data.analysis_result);
-        }
-      });
-  }, [chartHash, user]);
+    if (!hasAccess || accessLoading) return;
+    if (cachedAnalysis || isAnalyzing) return;
+
+    console.log('[Page] Auto-loading analysis for:', chartHash);
+    loadAnalysis(chartHash);
+  }, [chartHash, user, hasAccess, accessLoading, cachedAnalysis, isAnalyzing, loadAnalysis]);
 
   const handlePaymentSuccess = (analysisResult?: string) => {
     setShowPayment(false);
