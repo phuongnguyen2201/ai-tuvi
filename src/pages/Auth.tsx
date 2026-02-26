@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,10 +17,17 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState("");
-  const { signIn } = useAuth();
+  const { user, loading: authLoading, signIn } = useAuth();
   const navigate = useNavigate();
   const searchParams = new URLSearchParams(window.location.search);
   const redirectTo = searchParams.get('redirect') || '/';
+
+  // Auto-redirect khi user đã đăng nhập (sau onAuthStateChange update)
+  useEffect(() => {
+    if (user && !authLoading) {
+      navigate(redirectTo, { replace: true });
+    }
+  }, [user, authLoading, redirectTo, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +47,7 @@ const Auth = () => {
           toast.error(error.message);
         } else {
           toast.success("Đăng nhập thành công!");
-          navigate(redirectTo);
+          // Không navigate ở đây - useEffect sẽ tự redirect khi user state update
         }
       } else {
         const { data, error } = await supabase.auth.signUp({
