@@ -299,7 +299,27 @@ const Profile = () => {
                         Xem lại
                       </Button>
                     ) : (
-                      <span className="text-yellow-500 text-xs">⏳ Đang xử lý...</span>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-yellow-500 text-xs">⏳ Đang xử lý...</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-7 border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
+                          onClick={() => {
+                            const bd2 = a.birth_data || {};
+                            const params = new URLSearchParams();
+                            const dateVal = bd2.solarDate || bd2.birthDate;
+                            if (dateVal) params.set('date', dateVal);
+                            if (bd2.hour !== undefined || bd2.birthHour !== undefined) params.set('hour', String(bd2.hour ?? bd2.birthHour));
+                            if (bd2.gender) params.set('gender', bd2.gender);
+                            params.set('calendar', bd2.isLunar ? 'lunar' : 'solar');
+                            if (bd2.name || bd2.personName) params.set('name', bd2.name || bd2.personName);
+                            navigate(`/lap-la-so?${params.toString()}`);
+                          }}
+                        >
+                          ▶ Tiếp tục xem
+                        </Button>
+                      </div>
                     )}
                   </div>
                 );
