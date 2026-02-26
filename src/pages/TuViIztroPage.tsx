@@ -348,6 +348,9 @@ export default function TuViIztroPage() {
 
       setReAnalysisCount(newCount);
 
+      // Refresh useChartAccess to detect updated record with new hash
+      await refreshAccess();
+
       // Call Claude with new data
       const invokeBody = {
         analysisType: 'luan_giai',
