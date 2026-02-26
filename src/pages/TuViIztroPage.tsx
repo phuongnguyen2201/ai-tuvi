@@ -204,8 +204,10 @@ export default function TuViIztroPage() {
 
         setCachedAnalysis(data.analysis);
       } catch (err: any) {
-        console.error('[loadAnalysis] Error:', err);
-        toast.error('AI đang bận. Vui lòng thử lại sau 1-2 phút.');
+        console.error('[loadAnalysis] Error:', {
+          message: err?.message, code: err?.code, details: err?.details, hint: err?.hint, stack: err?.stack,
+        });
+        toast.error(err?.message || 'AI đang bận. Vui lòng thử lại sau 1-2 phút.');
         setAnalysisError(true);
       } finally {
         setIsAnalyzing(false);
@@ -275,9 +277,11 @@ export default function TuViIztroPage() {
         majorStars: p.majorStars.map(s => s.name),
       })));
       setChart(result);
-    } catch (err) {
-      console.error('Error creating chart:', err);
-      setError('Có lỗi xảy ra khi lập lá số. Vui lòng kiểm tra lại thông tin.');
+    } catch (err: any) {
+      console.error('[TuViIztroPage] Error creating chart:', {
+        message: err?.message, code: err?.code, details: err?.details, hint: err?.hint, stack: err?.stack,
+      });
+      setError(err?.message || 'Có lỗi xảy ra khi lập lá số. Vui lòng kiểm tra lại thông tin.');
     } finally {
       setIsLoading(false);
     }
