@@ -522,12 +522,9 @@ export default function TuViIztroPage() {
                 <p className="text-muted-foreground text-xs">Nếu vẫn lỗi sau nhiều lần thử, vui lòng liên hệ hỗ trợ qua Zalo.</p>
               </Card>
             ) : (hasAccess || cachedAnalysis) && cachedAnalysis ? (
-              <>
-                <div id="analysis-result">
-                  <ChartInterpretationDisplay chart={chart} />
-                </div>
-                <TuViAnalysis chart={chart} />
-              </>
+              <div id="analysis-result">
+                <ChartInterpretationDisplay chart={chart} />
+              </div>
             ) : (
               <div className="relative">
                 <div className="blur-sm pointer-events-none select-none" aria-hidden="true">
