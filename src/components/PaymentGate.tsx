@@ -14,6 +14,7 @@ interface PaymentGateProps {
   title?: string;
   price?: string;
   description?: string;
+  metadata?: Record<string, any>;
 }
 
 const DEFAULT_CONFIGS: Record<string, { title: string; price: string; description: string }> = {
@@ -59,7 +60,7 @@ const DEFAULT_CONFIGS: Record<string, { title: string; price: string; descriptio
   },
 };
 
-const PaymentGate = ({ feature, children, onUnlocked, title, price, description }: PaymentGateProps) => {
+const PaymentGate = ({ feature, children, onUnlocked, title, price, description, metadata }: PaymentGateProps) => {
   const { hasAccess, isLoading, refresh } = useFeatureAccess(feature);
   const [showPayment, setShowPayment] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -130,6 +131,7 @@ const PaymentGate = ({ feature, children, onUnlocked, title, price, description 
         open={showPayment}
         onOpenChange={setShowPayment}
         feature={feature}
+        metadata={metadata}
         onSuccess={async () => {
           console.log('[PaymentGate] onSuccess called, refreshing...');
           setShowPayment(false);
