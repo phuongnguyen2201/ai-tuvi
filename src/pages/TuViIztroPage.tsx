@@ -183,11 +183,15 @@ export default function TuViIztroPage() {
       setIsAnalyzing(true);
       setAnalysisError(false);
       try {
+        // Use current chart state (calculated in-memory) instead of DB chart_data which may be empty
+        const chartDataToUse = chart || existing.chart_data;
+        console.log('[loadAnalysis] chart_data source:', chart ? 'component state' : 'DB', chartDataToUse);
+        
         const { data, error: fnError } = await supabase.functions.invoke('analyze-chart', {
           body: {
             analysisType: 'luan_giai',
-            chartData: existing.chart_data,
-            personName: (existing.birth_data as any)?.personName,
+            chartData: chartDataToUse,
+            personName: (existing.birth_data as any)?.personName || personName,
           },
         });
         console.log('[loadAnalysis] Claude response:', data);
@@ -212,7 +216,7 @@ export default function TuViIztroPage() {
     // No chart_analyses record found
     console.error('[loadAnalysis] No chart_analyses record found!');
     toast.error('Không tìm thấy dữ liệu. Vui lòng liên hệ hỗ trợ.');
-  }, [chartHash]);
+  }, [chartHash, chart, personName]);
 
   // On page load / chart change: check for cached analysis result
   useEffect(() => {
@@ -556,7 +560,7 @@ export default function TuViIztroPage() {
                   onOpenChange={setShowPayment}
                   feature="luan_giai"
                   onSuccess={handlePaymentSuccess}
-                  metadata={{ chartHash, birthDate: format(birthDate, 'yyyy-MM-dd'), birthHour, gender, calendarType, personName }}
+                  metadata={{ chartHash, birthDate: format(birthDate, 'yyyy-MM-dd'), birthHour, gender, calendarType, personName, chartData: chart }}
                 />
               </div>
             )}

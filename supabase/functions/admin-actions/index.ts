@@ -158,7 +158,7 @@ serve(async (req) => {
                   gender: metadata.gender,
                   calendarType: metadata.calendarType,
                 },
-                chart_data: analyzeData.chartData || {},
+                chart_data: analyzeData.chartData || metadata.chartData || {},
                 analysis_result: analyzeData.analysis,
                 analysis_type: "full",
               });
