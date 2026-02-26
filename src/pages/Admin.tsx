@@ -53,6 +53,7 @@ interface PaymentRow {
   status: string | null;
   feature_unlocked: string | null;
   transfer_content: string | null;
+  notes: string | null;
   created_at: string | null;
   verified_at: string | null;
   display_name?: string | null;
@@ -116,20 +117,31 @@ const Admin = () => {
       expiresAt = new Date(Date.now() + 365 * 86400000).toISOString();
     }
 
+    console.log('[Admin] Verifying payment:', {
+      paymentId: payment.id,
+      userId: payment.user_id,
+      feature,
+      hasNotes: !!payment.notes,
+      notes: payment.notes,
+      expiresAt,
+    });
+
     try {
-      await callAdmin("verify", {
+      const result = await callAdmin("verify", {
         paymentId: payment.id,
         userId: payment.user_id,
         feature,
         expiresAt,
         paymentRef: payment.id,
       });
+      console.log('[Admin] Verify result:', result);
       toast({
         title: "✅ Đã kích hoạt",
         description: `Đã kích hoạt cho ${payment.display_name || payment.user_email || "user"}`,
       });
       fetchAll();
     } catch (err: any) {
+      console.error('[Admin] Verify exception:', err);
       toast({ title: "Lỗi", description: err.message, variant: "destructive" });
     }
     setActionLoading(null);
