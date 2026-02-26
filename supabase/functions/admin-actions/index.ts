@@ -117,67 +117,35 @@ serve(async (req) => {
         });
       }
 
-      // For luan_giai: parse metadata from payment notes, call Claude, save to chart_analyses
+      // For luan_giai: upsert chart_analyses (no user_features needed)
+      // Realtime trigger will detect insert → useChartAccess refresh → hasPaid = true
+      // → frontend calls Claude automatically
       if (feature === "luan_giai") {
         const { data: payment } = await adminClient.from("payments").select("notes").eq("id", paymentId).single();
         let metadata: any = null;
         try { metadata = payment?.notes ? JSON.parse(payment.notes) : null; } catch {}
 
         if (metadata?.chartHash) {
-          // Call Claude via analyze-chart function
-          const analyzeUrl = `${supabaseUrl}/functions/v1/analyze-chart`;
-          try {
-            // Get chart data - we need to build it from the birth data
-            const analyzeRes = await fetch(analyzeUrl, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${serviceKey}`,
-              },
-              body: JSON.stringify({
-                chartHash: metadata.chartHash,
-                birthDate: metadata.birthDate,
-                birthHour: metadata.birthHour,
-                gender: metadata.gender,
-                calendarType: metadata.calendarType,
-                analysisType: "full",
-                userId,
-                paymentId,
-              }),
-            });
-            const analyzeData = await analyzeRes.json();
-            
-            if (analyzeData.success && analyzeData.analysis) {
-              await adminClient.from("chart_analyses").insert({
-                user_id: userId,
-                payment_id: paymentId,
-                chart_hash: metadata.chartHash,
-                birth_data: {
-                  birthDate: metadata.birthDate,
-                  birthHour: metadata.birthHour,
-                  gender: metadata.gender,
-                  calendarType: metadata.calendarType,
-                },
-                chart_data: analyzeData.chartData || metadata.chartData || {},
-                analysis_result: analyzeData.analysis,
-                analysis_type: "full",
-              });
-            }
-          } catch (e) {
-            console.error("Error calling analyze-chart:", e);
-            // Still proceed - admin can trigger analysis manually later
+          const { error: upsertErr } = await adminClient.from("chart_analyses").upsert({
+            user_id: userId,
+            payment_id: paymentId,
+            chart_hash: metadata.chartHash,
+            birth_data: {
+              birthDate: metadata.birthDate,
+              birthHour: metadata.birthHour,
+              gender: metadata.gender,
+              calendarType: metadata.calendarType,
+            },
+            chart_data: metadata.chartData || {},
+            analysis_result: null,
+            analysis_type: "full",
+          }, {
+            onConflict: "user_id,chart_hash",
+            ignoreDuplicates: false,
+          });
+          if (upsertErr) {
+            console.error("Error upserting chart_analyses:", upsertErr);
           }
-        }
-
-        // CRITICAL: Also insert into user_features so PaymentGate unlocks
-        const { error: featureErr } = await adminClient.from("user_features").upsert({
-          user_id: userId,
-          feature: "luan_giai",
-          expires_at: null,
-          payment_ref: paymentId,
-        }, { onConflict: "user_id,feature" });
-        if (featureErr) {
-          console.error("Error inserting user_features for luan_giai:", featureErr);
         }
       } else {
         // For non-luan_giai features, add to user_features as before
