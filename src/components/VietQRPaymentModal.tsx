@@ -189,21 +189,35 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
               filter: `user_id=eq.${user.id}`,
             },
             (payload: any) => {
-              console.log('[Modal] Received chart_analyses event:', payload);
-              console.log('[Modal] payload chart_hash:', payload.new?.chart_hash);
-              console.log('[Modal] Expected chart_hash:', chartHash);
-              if (payload.new.chart_hash === chartHash) {
+              console.log('[Modal] INSERT event:', payload.new?.chart_hash);
+              if (payload.new?.chart_hash === chartHash) {
                 console.log('[Modal] ✅ Access granted for:', chartHash);
                 setStep('success');
                 onSuccess?.();
-              } else {
-                console.log('[Modal] ❌ chart_hash mismatch, ignoring');
+              }
+            }
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'chart_analyses',
+              filter: `user_id=eq.${user.id}`,
+            },
+            (payload: any) => {
+              console.log('[Modal] UPDATE event:', payload.new?.chart_hash);
+              if (payload.new?.chart_hash === chartHash) {
+                console.log('[Modal] ✅ Access granted for:', chartHash);
+                setStep('success');
+                onSuccess?.();
               }
             }
           )
           .subscribe((status) => {
             console.log('[Modal] Realtime channel status:', status);
             console.log('[Modal] Listening for chart_hash:', chartHash);
+            console.log('[Modal] user_id:', user.id);
           });
       } else {
         // Listen payments UPDATE for other features
