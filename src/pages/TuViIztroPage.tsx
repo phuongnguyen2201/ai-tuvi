@@ -27,7 +27,7 @@ import { supabase } from '@/integrations/supabase/client';
 import PaymentGate from '@/components/PaymentGate';
 import VietQRPaymentModal from '@/components/VietQRPaymentModal';
 import { useAuth } from '@/contexts/AuthContext';
-import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { useChartAccess } from '@/hooks/useChartAccess';
 import { toast } from 'sonner';
 
 // Generate a chart hash from birth data
@@ -85,6 +85,7 @@ export default function TuViIztroPage() {
   const [birthDate, setBirthDate] = useState<Date>(new Date(2000, 0, 1));
   const [birthHour, setBirthHour] = useState('1');
   const [gender, setGender] = useState<'Nam' | 'Nữ'>('Nam');
+  const [calendarType, setCalendarType] = useState<'solar' | 'lunar'>('solar');
 
   // Chart analysis state
   const [cachedAnalysis, setCachedAnalysis] = useState<string | null>(null);
@@ -93,8 +94,11 @@ export default function TuViIztroPage() {
   const [showPayment, setShowPayment] = useState(false);
   const [reAnalysisCount, setReAnalysisCount] = useState(0);
 
-  // Feature access via realtime hook
-  const { hasAccess, isLoading: accessLoading } = useFeatureAccess('luan_giai');
+  // chartHash computed early so hooks can depend on it
+  const chartHash = chart ? generateChartHash(birthDate, birthHour, gender, calendarType) : null;
+
+  // Chart-level access check
+  const { hasPaid, analysisRecord, isLoading: accessLoading, refresh: refreshAccess } = useChartAccess(chartHash);
 
   // Mint callback state
   const [searchParams, setSearchParams] = useSearchParams();
@@ -126,7 +130,6 @@ export default function TuViIztroPage() {
       });
     }
   }, [searchParams, mintStatus]);
-  const [calendarType, setCalendarType] = useState<'solar' | 'lunar'>('solar');
 
   // Auto-fill from URL params (e.g. from Profile "Xem lại")
   useEffect(() => {
@@ -171,7 +174,7 @@ export default function TuViIztroPage() {
     setSearchParams({});
   }, []); // Run once on mount
 
-  const chartHash = chart ? generateChartHash(birthDate, birthHour, gender, calendarType) : null;
+  // chartHash already computed above (line 97)
 
   // Load analysis: check cache → call Claude if needed
   const loadAnalysis = useCallback(async (hash?: string) => {
@@ -267,25 +270,25 @@ export default function TuViIztroPage() {
       cachedAnalysis: !!cachedAnalysis,
       isAnalyzing,
       analysisError,
-      hasAccess,
+      hasPaid,
       accessLoading,
       chartHash,
     });
-  }, [cachedAnalysis, isAnalyzing, analysisError, hasAccess, accessLoading, chartHash]);
+  }, [cachedAnalysis, isAnalyzing, analysisError, hasPaid, accessLoading, chartHash]);
 
-  // Auto-load analysis when chart is ready and user has access
+  // Auto-load analysis when chart is ready and user has paid for this chart
   // Covers: 1) "Xem lại" from Profile, 2) post-payment, 3) page refresh with paid chart
   useEffect(() => {
     if (!chart || !user || !chartHash) {
       setCachedAnalysis(null);
       return;
     }
-    if (!hasAccess || accessLoading) return;
+    if (!hasPaid || accessLoading) return;
     if (cachedAnalysis || isAnalyzing) return;
 
     console.log('[Page] Auto-loading analysis for:', chartHash);
     loadAnalysis(chartHash);
-  }, [chartHash, user, hasAccess, accessLoading, cachedAnalysis, isAnalyzing, loadAnalysis]);
+  }, [chartHash, user, hasPaid, accessLoading, cachedAnalysis, isAnalyzing, loadAnalysis]);
 
   const handlePaymentSuccess = (analysisResult?: string) => {
     setShowPayment(false);
@@ -547,13 +550,13 @@ export default function TuViIztroPage() {
                 <Loader2 className="h-6 w-6 animate-spin text-gold mx-auto mb-2" />
                 <p className="text-muted-foreground text-sm">Đang kiểm tra...</p>
               </Card>
-            ) : hasAccess && isAnalyzing ? (
+            ) : hasPaid && isAnalyzing ? (
               <Card className="p-6 bg-surface-3 border-gold/20 text-center space-y-3">
                 <Loader2 className="h-8 w-8 animate-spin text-gold mx-auto" />
                 <p className="text-foreground font-semibold">✨ Đang luận giải lá số...</p>
                 <p className="text-muted-foreground text-sm">AI đang phân tích 12 cung và các sao. Thường mất 15-30 giây.</p>
               </Card>
-            ) : hasAccess && analysisError && !cachedAnalysis ? (
+            ) : hasPaid && analysisError && !cachedAnalysis ? (
               <Card className="p-6 bg-surface-3 border-primary/30 text-center space-y-3">
                 <div className="text-4xl">🔮</div>
                 <p className="text-primary font-semibold">Lá số của bạn đã được mở khóa!</p>
@@ -645,7 +648,11 @@ export default function TuViIztroPage() {
                   open={showPayment}
                   onOpenChange={setShowPayment}
                   feature="luan_giai"
-                  onSuccess={handlePaymentSuccess}
+                  onSuccess={async () => {
+                    setShowPayment(false);
+                    await refreshAccess();
+                    handlePaymentSuccess();
+                  }}
                   metadata={{ chartHash, birthDate: format(birthDate, 'yyyy-MM-dd'), birthHour, gender, calendarType, personName, chartData: chart }}
                 />
               </div>
