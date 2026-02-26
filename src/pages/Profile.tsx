@@ -70,7 +70,7 @@ const formatMoney = (amount: number) => {
 };
 
 const Profile = () => {
-  const { user, loading, displayName, signOut } = useAuth();
+  const { user, loading, initializing, displayName, signOut } = useAuth();
   const navigate = useNavigate();
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState("");
@@ -125,7 +125,7 @@ const Profile = () => {
     navigate("/");
   };
 
-  if (loading) {
+  if (loading || initializing) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin text-4xl">✨</div>
@@ -133,7 +133,7 @@ const Profile = () => {
     );
   }
 
-  if (!loading && !user) {
+  if (!user) {
     return <Navigate to="/auth?redirect=/profile" replace />;
   }
 
