@@ -160,19 +160,24 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
   // Realtime subscription for payment/chart status
   useEffect(() => {
     if (step !== 'pending') return;
+    console.log('[Modal] useEffect triggered - step:', step, 'isLuanGiai:', isLuanGiai, 'metadata:', metadata);
 
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
+      if (!user) {
+        console.warn('[Modal] No user found, skipping Realtime subscription');
+        return;
+      }
 
       if (isLuanGiai) {
         const chartHash = metadata?.chartHash;
+        console.log('[Modal] Props received:', { chartHash, step, userId: user.id, metadata });
         if (!chartHash) {
           console.warn('[Modal] No chartHash in metadata, cannot listen');
           return;
         }
-        console.log('[Modal] Subscribing to chart_analyses for chartHash:', chartHash);
+        console.log('[Modal] Subscribing to chart_analyses for chartHash:', chartHash, 'user_id:', user.id);
         channel = supabase
           .channel('chart-access-' + chartHash)
           .on(
@@ -184,16 +189,21 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
               filter: `user_id=eq.${user.id}`,
             },
             (payload: any) => {
-              console.log('[Modal] chart_analyses inserted:', payload.new);
+              console.log('[Modal] Received chart_analyses event:', payload);
+              console.log('[Modal] payload chart_hash:', payload.new?.chart_hash);
+              console.log('[Modal] Expected chart_hash:', chartHash);
               if (payload.new.chart_hash === chartHash) {
-                console.log('[Modal] Access granted for:', chartHash);
+                console.log('[Modal] ✅ Access granted for:', chartHash);
                 setStep('success');
                 onSuccess?.();
+              } else {
+                console.log('[Modal] ❌ chart_hash mismatch, ignoring');
               }
             }
           )
           .subscribe((status) => {
-            console.log('[Modal] Realtime status:', status);
+            console.log('[Modal] Realtime channel status:', status);
+            console.log('[Modal] Listening for chart_hash:', chartHash);
           });
       } else {
         // Listen payments UPDATE for other features
@@ -226,7 +236,10 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
     });
 
     return () => {
-      if (channel) supabase.removeChannel(channel);
+      if (channel) {
+        console.log('[Modal] Removing Realtime channel');
+        supabase.removeChannel(channel);
+      }
     };
   }, [step, isLuanGiai, metadata, onSuccess, toast]);
 
