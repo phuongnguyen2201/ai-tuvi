@@ -160,70 +160,61 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
   // Realtime subscription for payment/chart status
   useEffect(() => {
     if (step !== 'pending') return;
-    console.log('[Modal] useEffect triggered - step:', step, 'isLuanGiai:', isLuanGiai, 'metadata:', metadata);
 
     let channel: ReturnType<typeof supabase.channel> | null = null;
     let pollInterval: ReturnType<typeof setInterval> | null = null;
+    let cancelled = false;
 
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
-        console.warn('[Modal] No user found, skipping Realtime subscription');
-        return;
-      }
+    const setup = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
 
       if (isLuanGiai) {
         const chartHash = metadata?.chartHash;
-        console.log('[Modal] Props received:', { chartHash, step, userId: user.id, metadata });
+        console.log('[Modal] Setup luan_giai listener:', { chartHash, userId: user.id });
         if (!chartHash) {
           console.warn('[Modal] No chartHash in metadata, cannot listen');
           return;
         }
 
         // LAYER 1: Realtime - lắng nghe cả INSERT và UPDATE
-        console.log('[Modal] Subscribing to chart_analyses for chartHash:', chartHash, 'user_id:', user.id);
         channel = supabase
           .channel('chart-access-' + chartHash)
-          .on(
-            'postgres_changes',
-            {
-              event: 'INSERT',
-              schema: 'public',
-              table: 'chart_analyses',
-              filter: `user_id=eq.${user.id}`,
-            },
-            (payload: any) => {
-              console.log('[Modal] INSERT event:', payload.new?.chart_hash);
-              if (payload.new?.chart_hash === chartHash) {
-                console.log('[Modal] ✅ Access granted via INSERT for:', chartHash);
-                setStep('success');
-                onSuccess?.();
-              }
+          .on('postgres_changes', {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'chart_analyses',
+            filter: `user_id=eq.${user.id}`,
+          }, (payload: any) => {
+            console.log('[Modal] INSERT event:', payload.new?.chart_hash);
+            if (payload.new?.chart_hash === chartHash) {
+              console.log('[Modal] ✅ Access granted via INSERT');
+              setStep('success');
+              onSuccess?.();
             }
-          )
-          .on(
-            'postgres_changes',
-            {
-              event: 'UPDATE',
-              schema: 'public',
-              table: 'chart_analyses',
-              filter: `user_id=eq.${user.id}`,
-            },
-            (payload: any) => {
-              console.log('[Modal] UPDATE event:', payload.new?.chart_hash);
-              if (payload.new?.chart_hash === chartHash) {
-                console.log('[Modal] ✅ Access granted via UPDATE for:', chartHash);
-                setStep('success');
-                onSuccess?.();
-              }
+          })
+          .on('postgres_changes', {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'chart_analyses',
+            filter: `user_id=eq.${user.id}`,
+          }, (payload: any) => {
+            console.log('[Modal] UPDATE event:', payload.new?.chart_hash);
+            if (payload.new?.chart_hash === chartHash) {
+              console.log('[Modal] ✅ Access granted via UPDATE');
+              setStep('success');
+              onSuccess?.();
             }
-          )
+          })
           .subscribe((status) => {
-            console.log('[Modal] Realtime channel status:', status);
-            console.log('[Modal] Listening for chart_hash:', chartHash);
+            console.log('[Modal] Realtime status:', status);
           });
 
         // LAYER 2: Polling fallback mỗi 5 giây
+        console.log('[Modal] Starting polling for chartHash:', chartHash);
         pollInterval = setInterval(async () => {
+          if (cancelled) return;
+          console.log('[Modal] Polling tick for:', chartHash);
           const { data } = await supabase
             .from('chart_analyses')
             .select('id')
@@ -231,8 +222,9 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
             .eq('user_id', user.id)
             .maybeSingle();
 
-          if (data) {
+          if (data && !cancelled) {
             console.log('[Modal] ✅ Polling detected access for:', chartHash);
+            if (pollInterval) clearInterval(pollInterval);
             setStep('success');
             onSuccess?.();
           }
@@ -241,40 +233,35 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
         // Listen payments UPDATE for other features
         channel = supabase
           .channel('payment-status-' + user.id)
-          .on(
-            'postgres_changes',
-            {
-              event: 'UPDATE',
-              schema: 'public',
-              table: 'payments',
-              filter: `user_id=eq.${user.id}`,
-            },
-            (payload: any) => {
-              console.log('[Modal] Payment updated:', payload.new.status);
-              if (payload.new.status === 'verified') {
-                setStep('success');
-              } else if (payload.new.status === 'rejected') {
-                setStep('show_qr');
-                toast({
-                  title: "Giao dịch bị từ chối",
-                  description: "Vui lòng kiểm tra lại thông tin chuyển khoản",
-                  variant: "destructive",
-                });
-              }
+          .on('postgres_changes', {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'payments',
+            filter: `user_id=eq.${user.id}`,
+          }, (payload: any) => {
+            console.log('[Modal] Payment updated:', payload.new.status);
+            if (payload.new.status === 'verified') {
+              setStep('success');
+            } else if (payload.new.status === 'rejected') {
+              setStep('show_qr');
+              toast({
+                title: "Giao dịch bị từ chối",
+                description: "Vui lòng kiểm tra lại thông tin chuyển khoản",
+                variant: "destructive",
+              });
             }
-          )
+          })
           .subscribe();
       }
-    });
+    };
+
+    setup();
 
     return () => {
-      if (pollInterval) {
-        clearInterval(pollInterval);
-      }
-      if (channel) {
-        console.log('[Modal] Removing Realtime channel');
-        supabase.removeChannel(channel);
-      }
+      cancelled = true;
+      console.log('[Modal] Cleanup polling + channel');
+      if (pollInterval) clearInterval(pollInterval);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [step, isLuanGiai, metadata, onSuccess, toast]);
 
