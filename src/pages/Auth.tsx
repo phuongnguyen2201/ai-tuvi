@@ -20,7 +20,7 @@ const Auth = () => {
   const { user, loading: authLoading, signIn } = useAuth();
   const navigate = useNavigate();
   const searchParams = new URLSearchParams(window.location.search);
-  const redirectTo = searchParams.get('redirect') || '/';
+  const redirectTo = searchParams.get('redirect') || '/profile';
 
   // Auto-redirect khi user đã đăng nhập (sau onAuthStateChange update)
   useEffect(() => {
