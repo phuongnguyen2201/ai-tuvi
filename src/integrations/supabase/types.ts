@@ -24,6 +24,7 @@ export type Database = {
           created_at: string | null
           id: string
           payment_id: string | null
+          re_analysis_count: number | null
           user_id: string
         }
         Insert: {
@@ -35,6 +36,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           payment_id?: string | null
+          re_analysis_count?: number | null
           user_id: string
         }
         Update: {
@@ -46,6 +48,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           payment_id?: string | null
+          re_analysis_count?: number | null
           user_id?: string
         }
         Relationships: [

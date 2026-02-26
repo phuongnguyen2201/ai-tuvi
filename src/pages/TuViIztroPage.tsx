@@ -579,6 +579,26 @@ export default function TuViIztroPage() {
                   <div className="space-y-1">
                     {renderAnalysisMarkdown(cachedAnalysis)}
                   </div>
+                  <div className="mt-8 pt-4 border-t border-primary/20 flex justify-between items-center">
+                    <p className="text-xs text-muted-foreground">
+                      Luận giải bởi AI · Dựa trên lá số tử vi
+                    </p>
+                    <button
+                      onClick={async () => {
+                        if (!confirm('Bạn muốn phân tích lại lá số này?')) return;
+                        if (!chartHash || !user) return;
+                        await (supabase.from('chart_analyses') as any)
+                          .update({ analysis_result: null })
+                          .eq('chart_hash', chartHash)
+                          .eq('user_id', user.id);
+                        setCachedAnalysis(null);
+                        loadAnalysis(chartHash);
+                      }}
+                      className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+                    >
+                      🔄 Phân tích lại
+                    </button>
+                  </div>
                 </Card>
               </div>
             ) : (
