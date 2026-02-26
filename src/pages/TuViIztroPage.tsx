@@ -36,6 +36,28 @@ function generateChartHash(birthDate: Date, birthHour: string, gender: string, c
   return `${dateStr}_${birthHour}_${gender}_${calendarType}`;
 }
 
+// Simple markdown renderer for AI analysis results
+function renderAnalysisMarkdown(text: string): React.ReactNode[] {
+  return text.split('\n').map((line, i) => {
+    if (line.startsWith('## ')) return <h2 key={i} className="text-lg font-bold text-primary mt-5 mb-2 border-b border-primary/20 pb-1">{line.replace('## ', '')}</h2>;
+    if (line.startsWith('### ')) return <h3 key={i} className="text-md font-semibold text-foreground mt-3 mb-1">{line.replace('### ', '')}</h3>;
+    if (line.startsWith('**') && line.endsWith('**')) return <p key={i} className="font-bold text-foreground mt-2">{line.replace(/\*\*/g, '')}</p>;
+    if (line.startsWith('- ')) return <li key={i} className="text-muted-foreground ml-4 list-disc">{formatInline(line.slice(2))}</li>;
+    if (line.trim() === '') return <div key={i} className="h-2" />;
+    return <p key={i} className="text-muted-foreground leading-relaxed">{formatInline(line)}</p>;
+  });
+}
+
+function formatInline(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i} className="text-foreground">{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
+
 const LUNAR_HOURS = [
   { value: '0', label: 'Tý (23:00 - 00:59)' },
   { value: '1', label: 'Sửu (01:00 - 02:59)' },
@@ -223,6 +245,18 @@ export default function TuViIztroPage() {
     console.error('[loadAnalysis] No chart_analyses record found!');
     toast.error('Không tìm thấy dữ liệu. Vui lòng liên hệ hỗ trợ.');
   }, [chartHash, chart, personName, isAnalyzing]);
+
+  // Debug state changes
+  useEffect(() => {
+    console.log('[Page] State changed:', {
+      cachedAnalysis: !!cachedAnalysis,
+      isAnalyzing,
+      analysisError,
+      hasAccess,
+      accessLoading,
+      chartHash,
+    });
+  }, [cachedAnalysis, isAnalyzing, analysisError, hasAccess, accessLoading, chartHash]);
 
   // Auto-load analysis when chart is ready and user has access
   // Covers: 1) "Xem lại" from Profile, 2) post-payment, 3) page refresh with paid chart
@@ -521,9 +555,18 @@ export default function TuViIztroPage() {
                 </Button>
                 <p className="text-muted-foreground text-xs">Nếu vẫn lỗi sau nhiều lần thử, vui lòng liên hệ hỗ trợ qua Zalo.</p>
               </Card>
-            ) : (hasAccess || cachedAnalysis) && cachedAnalysis ? (
-              <div id="analysis-result">
+            ) : cachedAnalysis ? (
+              <div id="analysis-result" className="space-y-6">
                 <ChartInterpretationDisplay chart={chart} />
+                <Card className="p-6 bg-gradient-to-br from-surface-3 to-surface-2 border border-primary/20">
+                  <h2 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">
+                    <Sparkles className="w-5 h-5" />
+                    Luận giải chi tiết bởi AI
+                  </h2>
+                  <div className="space-y-1">
+                    {renderAnalysisMarkdown(cachedAnalysis)}
+                  </div>
+                </Card>
               </div>
             ) : (
               <div className="relative">
