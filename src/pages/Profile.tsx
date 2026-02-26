@@ -93,7 +93,7 @@ const Profile = () => {
       supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
       supabase.from("user_features").select("*").eq("user_id", user.id).order("unlocked_at", { ascending: false }),
       supabase.from("payments").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(10),
-      (supabase.from("chart_analyses") as any).select("*").eq("user_id", user.id).not("analysis_result", "is", null).order("created_at", { ascending: false }),
+      (supabase.from("chart_analyses") as any).select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
     ]);
     setProfileData(profileRes.data);
     setFeatures(featuresRes.data || []);
@@ -278,25 +278,29 @@ const Profile = () => {
                         Luận giải: {formatDate(a.created_at)} · {a.analysis_type === 'full' ? 'Toàn diện' : a.analysis_type}
                       </p>
                     </div>
-                    <Button
-                      variant="goldOutline"
-                      size="sm"
-                      onClick={() => {
-                        const bd = a.birth_data || {};
-                        const params = new URLSearchParams();
-                        const dateVal = bd.solarDate || bd.birthDate;
-                        if (dateVal) params.set('date', dateVal);
-                        if (bd.hour !== undefined || bd.birthHour !== undefined) params.set('hour', String(bd.hour ?? bd.birthHour));
-                        if (bd.gender) params.set('gender', bd.gender);
-                        if (bd.isLunar) params.set('calendar', 'lunar');
-                        else params.set('calendar', 'solar');
-                        if (bd.name || bd.personName) params.set('name', bd.name || bd.personName);
-                        navigate(`/lap-la-so?${params.toString()}`);
-                      }}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      Xem lại
-                    </Button>
+                    {a.analysis_result ? (
+                      <Button
+                        variant="goldOutline"
+                        size="sm"
+                        onClick={() => {
+                          const bd = a.birth_data || {};
+                          const params = new URLSearchParams();
+                          const dateVal = bd.solarDate || bd.birthDate;
+                          if (dateVal) params.set('date', dateVal);
+                          if (bd.hour !== undefined || bd.birthHour !== undefined) params.set('hour', String(bd.hour ?? bd.birthHour));
+                          if (bd.gender) params.set('gender', bd.gender);
+                          if (bd.isLunar) params.set('calendar', 'lunar');
+                          else params.set('calendar', 'solar');
+                          if (bd.name || bd.personName) params.set('name', bd.name || bd.personName);
+                          navigate(`/lap-la-so?${params.toString()}`);
+                        }}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        Xem lại
+                      </Button>
+                    ) : (
+                      <span className="text-yellow-500 text-xs">⏳ Đang xử lý...</span>
+                    )}
                   </div>
                 );
               })}
