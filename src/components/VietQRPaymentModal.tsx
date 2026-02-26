@@ -163,6 +163,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
     console.log('[Modal] useEffect triggered - step:', step, 'isLuanGiai:', isLuanGiai, 'metadata:', metadata);
 
     let channel: ReturnType<typeof supabase.channel> | null = null;
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
 
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) {
@@ -177,6 +178,8 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
           console.warn('[Modal] No chartHash in metadata, cannot listen');
           return;
         }
+
+        // LAYER 1: Realtime - lắng nghe cả INSERT và UPDATE
         console.log('[Modal] Subscribing to chart_analyses for chartHash:', chartHash, 'user_id:', user.id);
         channel = supabase
           .channel('chart-access-' + chartHash)
@@ -191,7 +194,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
             (payload: any) => {
               console.log('[Modal] INSERT event:', payload.new?.chart_hash);
               if (payload.new?.chart_hash === chartHash) {
-                console.log('[Modal] ✅ Access granted for:', chartHash);
+                console.log('[Modal] ✅ Access granted via INSERT for:', chartHash);
                 setStep('success');
                 onSuccess?.();
               }
@@ -208,7 +211,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
             (payload: any) => {
               console.log('[Modal] UPDATE event:', payload.new?.chart_hash);
               if (payload.new?.chart_hash === chartHash) {
-                console.log('[Modal] ✅ Access granted for:', chartHash);
+                console.log('[Modal] ✅ Access granted via UPDATE for:', chartHash);
                 setStep('success');
                 onSuccess?.();
               }
@@ -217,8 +220,23 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
           .subscribe((status) => {
             console.log('[Modal] Realtime channel status:', status);
             console.log('[Modal] Listening for chart_hash:', chartHash);
-            console.log('[Modal] user_id:', user.id);
           });
+
+        // LAYER 2: Polling fallback mỗi 5 giây
+        pollInterval = setInterval(async () => {
+          const { data } = await supabase
+            .from('chart_analyses')
+            .select('id')
+            .eq('chart_hash', chartHash)
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (data) {
+            console.log('[Modal] ✅ Polling detected access for:', chartHash);
+            setStep('success');
+            onSuccess?.();
+          }
+        }, 5000);
       } else {
         // Listen payments UPDATE for other features
         channel = supabase
@@ -250,6 +268,9 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
     });
 
     return () => {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
       if (channel) {
         console.log('[Modal] Removing Realtime channel');
         supabase.removeChannel(channel);
