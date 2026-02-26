@@ -52,8 +52,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      setLoading(false);
       fetchProfile(session?.user ?? null);
+      setLoading(false); // CHỈ set loading=false ở đây
     });
 
     // THEN set up auth state listener for future changes
@@ -61,8 +61,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        setLoading(false);
         fetchProfile(session?.user ?? null);
+        // KHÔNG set loading=false ở đây - tránh race condition
       }
     );
 
