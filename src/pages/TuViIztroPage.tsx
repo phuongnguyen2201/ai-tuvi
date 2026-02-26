@@ -198,20 +198,33 @@ export default function TuViIztroPage() {
     console.log('[loadAnalysis] DB result:', existing);
 
     if (existing?.analysis_result) {
-      console.log('[loadAnalysis] Cache found, showing result');
-      setCachedAnalysis(existing.analysis_result);
-      setAnalysisError(false);
-      return;
+      // Validate cache - reject bad AI responses
+      const isValidResult = !existing.analysis_result.includes('Tôi xin lỗi') &&
+        !existing.analysis_result.includes('không thể thấy được lá số') &&
+        existing.analysis_result.length > 100;
+      
+      if (isValidResult) {
+        console.log('[loadAnalysis] Cache found, showing result');
+        setCachedAnalysis(existing.analysis_result);
+        setAnalysisError(false);
+        return;
+      } else {
+        console.log('[loadAnalysis] Bad cache detected, clearing and re-analyzing...');
+        await (supabase.from('chart_analyses') as any)
+          .update({ analysis_result: null })
+          .eq('id', existing.id);
+        // Fall through to call Claude below
+      }
     }
 
-    if (existing && !existing.analysis_result) {
-      console.log('[loadAnalysis] No cache, calling Claude...');
+    if (existing) {
+      console.log('[loadAnalysis] Calling Claude...');
       setIsAnalyzing(true);
       setAnalysisError(false);
       try {
-        // Use current chart state (calculated in-memory) instead of DB chart_data which may be empty
         const chartDataToUse = chart || existing.chart_data;
-        console.log('[loadAnalysis] chart_data source:', chart ? 'component state' : 'DB', chartDataToUse);
+        console.log('[loadAnalysis] chart_data source:', chart ? 'component state' : 'DB',
+          JSON.stringify(chartDataToUse).slice(0, 100));
         
         const { data, error: fnError } = await supabase.functions.invoke('analyze-chart', {
           body: {
