@@ -91,6 +91,7 @@ export default function TuViIztroPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+  const [reAnalysisCount, setReAnalysisCount] = useState(0);
 
   // Feature access via realtime hook
   const { hasAccess, isLoading: accessLoading } = useFeatureAccess('luan_giai');
@@ -206,6 +207,7 @@ export default function TuViIztroPage() {
       if (isValidResult) {
         console.log('[loadAnalysis] Cache found, showing result');
         setCachedAnalysis(existing.analysis_result);
+        setReAnalysisCount(existing.re_analysis_count || 0);
         setAnalysisError(false);
         return;
       } else {
@@ -583,21 +585,28 @@ export default function TuViIztroPage() {
                     <p className="text-xs text-muted-foreground">
                       Luận giải bởi AI · Dựa trên lá số tử vi
                     </p>
-                    <button
-                      onClick={async () => {
-                        if (!confirm('Bạn muốn phân tích lại lá số này?')) return;
-                        if (!chartHash || !user) return;
-                        await (supabase.from('chart_analyses') as any)
-                          .update({ analysis_result: null })
-                          .eq('chart_hash', chartHash)
-                          .eq('user_id', user.id);
-                        setCachedAnalysis(null);
-                        loadAnalysis(chartHash);
-                      }}
-                      className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-                    >
-                      🔄 Phân tích lại
-                    </button>
+                    {reAnalysisCount < 2 ? (
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`Bạn còn ${2 - reAnalysisCount} lần phân tích lại miễn phí. Tiếp tục?`)) return;
+                          if (!chartHash || !user) return;
+                          await (supabase.from('chart_analyses') as any)
+                            .update({ analysis_result: null, re_analysis_count: reAnalysisCount + 1 })
+                            .eq('chart_hash', chartHash)
+                            .eq('user_id', user.id);
+                          setReAnalysisCount(prev => prev + 1);
+                          setCachedAnalysis(null);
+                          loadAnalysis(chartHash);
+                        }}
+                        className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+                      >
+                        🔄 Phân tích lại ({2 - reAnalysisCount} lần còn lại)
+                      </button>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Đã dùng hết lượt phân tích lại
+                      </p>
+                    )}
                   </div>
                 </Card>
               </div>
