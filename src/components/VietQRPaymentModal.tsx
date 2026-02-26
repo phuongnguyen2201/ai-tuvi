@@ -167,10 +167,14 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
       if (!user) return;
 
       if (isLuanGiai) {
-        // Listen chart_analyses INSERT for luan_giai
         const chartHash = metadata?.chartHash;
+        if (!chartHash) {
+          console.warn('[Modal] No chartHash in metadata, cannot listen');
+          return;
+        }
+        console.log('[Modal] Subscribing to chart_analyses for chartHash:', chartHash);
         channel = supabase
-          .channel('chart-access-' + user.id)
+          .channel('chart-access-' + chartHash)
           .on(
             'postgres_changes',
             {
@@ -180,14 +184,17 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
               filter: `user_id=eq.${user.id}`,
             },
             (payload: any) => {
+              console.log('[Modal] chart_analyses inserted:', payload.new);
               if (payload.new.chart_hash === chartHash) {
-                console.log('[Modal] Chart access granted!');
+                console.log('[Modal] Access granted for:', chartHash);
                 setStep('success');
                 onSuccess?.();
               }
             }
           )
-          .subscribe();
+          .subscribe((status) => {
+            console.log('[Modal] Realtime status:', status);
+          });
       } else {
         // Listen payments UPDATE for other features
         channel = supabase
