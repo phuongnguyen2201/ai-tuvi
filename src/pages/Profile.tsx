@@ -93,7 +93,7 @@ const Profile = () => {
       supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
       supabase.from("user_features").select("*").eq("user_id", user.id).order("unlocked_at", { ascending: false }),
       supabase.from("payments").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(10),
-      (supabase.from("chart_analyses") as any).select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      (supabase.from("chart_analyses") as any).select("*").eq("user_id", user.id).not("analysis_result", "is", null).order("created_at", { ascending: false }),
     ]);
     setProfileData(profileRes.data);
     setFeatures(featuresRes.data || []);
