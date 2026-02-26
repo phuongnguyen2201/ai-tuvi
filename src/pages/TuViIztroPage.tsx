@@ -224,19 +224,25 @@ export default function TuViIztroPage() {
 
     if (existing) {
       console.log('[loadAnalysis] Calling Claude...');
+      console.log('[loadAnalysis] DB analysis_type:', existing.analysis_type, '(DB field, not sent to Claude)');
       setIsAnalyzing(true);
       setAnalysisError(false);
       try {
         const chartDataToUse = chart || existing.chart_data;
-        console.log('[loadAnalysis] chart_data source:', chart ? 'component state' : 'DB',
-          JSON.stringify(chartDataToUse).slice(0, 100));
+        const invokeBody = {
+          analysisType: 'luan_giai',
+          chartData: chartDataToUse,
+          personName: (existing.birth_data as any)?.personName || personName,
+        };
+        console.log('[loadAnalysis] Invoking with:', {
+          analysisType: invokeBody.analysisType,
+          hasChartData: !!invokeBody.chartData,
+          personName: invokeBody.personName,
+          chartDataPreview: JSON.stringify(chartDataToUse).slice(0, 100),
+        });
         
         const { data, error: fnError } = await supabase.functions.invoke('analyze-chart', {
-          body: {
-            analysisType: 'luan_giai',
-            chartData: chartDataToUse,
-            personName: (existing.birth_data as any)?.personName || personName,
-          },
+          body: invokeBody,
         });
         console.log('[loadAnalysis] Claude response:', data);
         if (fnError) throw fnError;
