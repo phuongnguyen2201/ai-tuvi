@@ -57,9 +57,11 @@ export function NFTPreview({ chartData, birthData, walletAddress }: NFTPreviewPr
         } else {
           setError('Không nhận được hình ảnh từ server.');
         }
-      } catch (err) {
-        console.error('Generate image exception:', err);
-        setError('Có lỗi xảy ra khi tạo hình ảnh.');
+      } catch (err: any) {
+        console.error('[NFTPreview] Error:', {
+          message: err?.message, code: err?.code, details: err?.details, hint: err?.hint, stack: err?.stack,
+        });
+        setError(err?.message || 'Có lỗi xảy ra khi tạo hình ảnh.');
       } finally {
         setLoading(false);
       }

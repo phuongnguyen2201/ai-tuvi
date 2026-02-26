@@ -69,8 +69,11 @@ const Auth = () => {
           setFullName("");
         }
       }
-    } catch {
-      toast.error("Đã có lỗi xảy ra");
+    } catch (err: any) {
+      console.error('[Auth] Error:', {
+        message: err?.message, code: err?.code, details: err?.details, hint: err?.hint, stack: err?.stack,
+      });
+      toast.error(err?.message || "Đã có lỗi xảy ra");
     } finally {
       setLoading(false);
     }

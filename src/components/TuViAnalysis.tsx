@@ -253,8 +253,10 @@ export function TuViAnalysis({ chart }: Props) {
         throw new Error(data.error || 'Có lỗi xảy ra');
       }
     } catch (err: any) {
-      console.error('Analysis error:', err);
-      setError(err.message || 'Có lỗi xảy ra khi phân tích. Vui lòng thử lại.');
+      console.error('[TuViAnalysis] Error:', {
+        message: err?.message, code: err?.code, details: err?.details, hint: err?.hint, stack: err?.stack,
+      });
+      setError(err?.message || 'Có lỗi xảy ra khi phân tích. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
