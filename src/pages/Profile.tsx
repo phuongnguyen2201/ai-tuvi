@@ -133,7 +133,7 @@ const Profile = () => {
     );
   }
 
-  if (!user) {
+  if (!loading && !user) {
     return <Navigate to="/auth?redirect=/profile" replace />;
   }
 
