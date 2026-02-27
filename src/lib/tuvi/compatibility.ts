@@ -131,7 +131,17 @@ const isInSameGroup = (zodiac1: ZodiacChi, zodiac2: ZodiacChi, groups: ZodiacChi
 /**
  * Tính độ hợp tuổi giữa hai con giáp
  */
-export const calculateCompatibility = (zodiac1: ZodiacChi, zodiac2: ZodiacChi): CompatibilityResult => {
+export type Gender = "Nam" | "Nữ";
+
+export const calculateCompatibility = (
+  zodiac1: ZodiacChi,
+  zodiac2: ZodiacChi,
+  gender1?: Gender,
+  gender2?: Gender,
+): CompatibilityResult => {
+  const isDifferentGender = gender1 && gender2 && gender1 !== gender2;
+  const isSameGender = gender1 && gender2 && gender1 === gender2;
+
   // Kiểm tra các mối quan hệ
   const isLucHop = isPairInList(zodiac1, zodiac2, LUC_HOP);
   const isTamHop = isInSameGroup(zodiac1, zodiac2, TAM_HOP);
@@ -151,7 +161,6 @@ export const calculateCompatibility = (zodiac1: ZodiacChi, zodiac2: ZodiacChi): 
 
   // Cùng tuổi
   if (zodiac1 === zodiac2) {
-    // Kiểm tra tự hình
     const selfPunishing = ["Thìn", "Ngọ", "Dậu", "Hợi"];
     if (selfPunishing.includes(zodiac1)) {
       return {
@@ -173,10 +182,16 @@ export const calculateCompatibility = (zodiac1: ZodiacChi, zodiac2: ZodiacChi): 
 
   // LỤC HỢP - Đại Hợp (điểm cao nhất)
   if (isLucHop) {
+    const score = isDifferentGender ? 98 : isSameGender ? 90 : 95;
+    const explanation = isDifferentGender
+      ? `Cặp đôi Nam-Nữ ${zodiac1} và ${zodiac2} thuộc Lục Hợp: thiên định, hạnh phúc viên mãn. Đây là sự kết hợp tuyệt vời nhất trong 12 con giáp.`
+      : isSameGender
+      ? `Hai người bạn/đồng nghiệp ${zodiac1} và ${zodiac2} cùng Lục Hợp: hỗ trợ nhau rất tốt trong công việc và cuộc sống.`
+      : `${zodiac1} và ${zodiac2} thuộc Lục Hợp - cặp đôi thiên định, hạnh phúc viên mãn. Đây là sự kết hợp tuyệt vời nhất trong 12 con giáp.`;
     return {
-      score: 95,
+      score,
       level: "Đại Hợp",
-      explanation: `${zodiac1} và ${zodiac2} thuộc Lục Hợp - cặp đôi thiên định, hạnh phúc viên mãn. Đây là sự kết hợp tuyệt vời nhất trong 12 con giáp.`,
+      explanation,
       advice: "Hãy trân trọng mối quan hệ quý giá này. Cùng nhau phát triển và xây dựng tương lai tươi đẹp.",
       details,
     };
@@ -184,10 +199,16 @@ export const calculateCompatibility = (zodiac1: ZodiacChi, zodiac2: ZodiacChi): 
 
   // TAM HỢP - Hợp
   if (isTamHop) {
+    const score = isDifferentGender ? 88 : isSameGender ? 80 : 85;
+    const explanation = isDifferentGender
+      ? `Cặp đôi ${zodiac1} và ${zodiac2} thuộc Tam Hợp - tình cảm bền chặt, cuộc sống hòa thuận. Cùng nhau phát triển và đạt được nhiều thành công.`
+      : isSameGender
+      ? `${zodiac1} và ${zodiac2} thuộc Tam Hợp - bạn bè/đồng nghiệp tương trợ lẫn nhau, hợp tác hiệu quả.`
+      : `${zodiac1} và ${zodiac2} thuộc Tam Hợp - tương trợ lẫn nhau, cuộc sống hòa thuận. Cùng nhau phát triển và đạt được nhiều thành công.`;
     return {
-      score: 85,
+      score,
       level: "Hợp",
-      explanation: `${zodiac1} và ${zodiac2} thuộc Tam Hợp - tương trợ lẫn nhau, cuộc sống hòa thuận. Cùng nhau phát triển và đạt được nhiều thành công.`,
+      explanation,
       advice: "Đây là mối quan hệ tốt đẹp. Hãy tận dụng sự hỗ trợ lẫn nhau để cùng tiến bộ.",
       details,
     };
