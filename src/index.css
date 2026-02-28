@@ -338,8 +338,10 @@
 /* Tắt highlight mặc định của browser */
 .custom-calendar button:focus,
 .custom-calendar button:active,
-.custom-calendar button:focus-visible {
+.custom-calendar button:focus-visible,
+.custom-calendar button:focus-within {
   outline: none !important;
   box-shadow: none !important;
-  background-color: inherit !important;
+  background: none !important;
+  background-color: transparent !important;
 }

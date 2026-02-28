@@ -132,7 +132,7 @@ const CustomCalendar = ({ date, setDate, currentMonth, setCurrentMonth }: {
           const isToday = format(d, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
           const lunar = solarToLunar(d);
           return (
-            <button key={day} onClick={() => setDate(d)}
+            <button key={day} onClick={() => { setDate(d); (document.activeElement as HTMLElement)?.blur(); }}
               style={{
                 borderRadius: '8px', padding: '4px 2px',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px',
