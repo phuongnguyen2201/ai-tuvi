@@ -133,7 +133,7 @@ const VanHan = () => {
 
   // Auto load cached result when chart/tab/period changes
   useEffect(() => {
-    if (!selectedChart || !vanHanPackage) return;
+    if (!selectedChart) return;
     autoLoadCached();
   }, [selectedChart, activeTab, timeOffset]);
 
