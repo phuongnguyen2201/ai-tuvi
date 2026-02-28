@@ -334,3 +334,12 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--gold) / 0.5);
 }
+
+/* Tắt highlight mặc định của browser */
+.custom-calendar button:focus,
+.custom-calendar button:active,
+.custom-calendar button:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  background-color: inherit !important;
+}

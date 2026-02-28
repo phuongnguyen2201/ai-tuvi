@@ -108,7 +108,7 @@ const CustomCalendar = ({ date, setDate, currentMonth, setCurrentMonth }: {
   const monthNames = ["1","2","3","4","5","6","7","8","9","10","11","12"];
 
   return (
-    <div>
+    <div className="custom-calendar">
       <div className="flex items-center justify-between mb-4">
         <button onClick={() => setCurrentMonth(new Date(year, month-1, 1))}
           className="p-2 rounded-full hover:bg-surface-4 text-foreground">‹</button>
@@ -139,6 +139,9 @@ const CustomCalendar = ({ date, setDate, currentMonth, setCurrentMonth }: {
                 backgroundColor: isSelected ? '#7C3AED' : 'transparent',
                 border: isToday && !isSelected ? '1px solid #7C3AED60' : '1px solid transparent',
                 cursor: 'pointer',
+                outline: 'none',
+                boxShadow: 'none',
+                WebkitTapHighlightColor: 'transparent',
               }}>
               <span style={{ fontSize: '13px', fontWeight: '600',
                 color: isSelected ? 'white' : isGood ? '#D4AF37' : '#ef4444' }}>
