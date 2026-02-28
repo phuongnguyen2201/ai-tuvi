@@ -43,8 +43,8 @@ const Index = () => {
       to: "/xem-ngay",
     },
     {
-      title: "Vận Hạn Năm",
-      description: "Dự đoán vận mệnh chi tiết theo từng tháng",
+      title: "Xem Vận Hạn",
+      description: "Dự đoán vận mệnh theo từng tuần, từng tháng và cả năm",
       icon: Sparkles,
       to: "/van-han",
     },
