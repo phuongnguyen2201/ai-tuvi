@@ -242,6 +242,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
             console.log('[Modal] Payment updated:', payload.new.status);
             if (payload.new.status === 'verified') {
               setStep('success');
+              onSuccess?.();
             } else if (payload.new.status === 'rejected') {
               setStep('show_qr');
               toast({
@@ -252,6 +253,26 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
             }
           })
           .subscribe();
+
+        // Polling fallback mỗi 5s
+        pollInterval = setInterval(async () => {
+          if (cancelled) return;
+          const { data } = await supabase
+            .from('payments')
+            .select('status')
+            .eq('user_id', user.id)
+            .eq('status', 'verified')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (data && !cancelled) {
+            console.log('[Modal] Polling detected verified payment');
+            if (pollInterval) clearInterval(pollInterval);
+            setStep('success');
+            onSuccess?.();
+          }
+        }, 5000);
       }
     };
 
