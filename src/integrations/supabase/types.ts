@@ -448,6 +448,88 @@ export type Database = {
         }
         Relationships: []
       }
+      van_han_analyses: {
+        Row: {
+          analysis_result: string | null
+          birth_data: Json
+          chart_hash: string
+          created_at: string | null
+          id: string
+          package_id: string | null
+          period: string
+          time_frame: string
+          user_id: string
+        }
+        Insert: {
+          analysis_result?: string | null
+          birth_data: Json
+          chart_hash: string
+          created_at?: string | null
+          id?: string
+          package_id?: string | null
+          period: string
+          time_frame: string
+          user_id: string
+        }
+        Update: {
+          analysis_result?: string | null
+          birth_data?: Json
+          chart_hash?: string
+          created_at?: string | null
+          id?: string
+          package_id?: string | null
+          period?: string
+          time_frame?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "van_han_analyses_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "van_han_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      van_han_packages: {
+        Row: {
+          created_at: string | null
+          id: string
+          payment_id: string | null
+          time_frame: string
+          user_id: string
+          uses_remaining: number
+          uses_total: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          payment_id?: string | null
+          time_frame: string
+          user_id: string
+          uses_remaining: number
+          uses_total: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          payment_id?: string | null
+          time_frame?: string
+          user_id?: string
+          uses_remaining?: number
+          uses_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "van_han_packages_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
