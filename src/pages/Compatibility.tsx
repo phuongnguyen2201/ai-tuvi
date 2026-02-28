@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import PageLayout from "@/components/PageLayout";
 import { ZodiacPicker, zodiacSigns } from "@/components/ZodiacPicker";
 import { Button } from "@/components/ui/button";
@@ -66,6 +66,7 @@ const Compatibility = () => {
   const [gender2, setGender2] = useState<Gender>("Nữ");
   const [result, setResult] = useState<CompatibilityResult | null>(null);
 
+
   const zodiac1 = useMemo(() => {
     if (mode === "year" && year1) {
       const y = parseInt(year1);
@@ -81,6 +82,10 @@ const Compatibility = () => {
     }
     return selectedZodiac2 as ZodiacChi | null;
   }, [mode, year2, selectedZodiac2]);
+
+  useEffect(() => {
+    setResult(null);
+  }, [zodiac1, zodiac2, gender1, gender2]);
 
   const handleCheck = () => {
     if (zodiac1 && zodiac2) {
