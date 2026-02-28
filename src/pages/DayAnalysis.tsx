@@ -144,7 +144,7 @@ const DayAnalysis = () => {
             onMonthChange={setCurrentMonth}
             className="pointer-events-auto mx-auto"
             locale={vi}
-            modifiers={{ good: goodDays, bad: badDays }}
+            
             components={{
               DayContent: ({ date: d }) => {
                 const isGood = getIsHoangDaoDay(d);
