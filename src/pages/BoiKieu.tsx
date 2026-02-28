@@ -271,14 +271,18 @@ const BoiKieu = () => {
   };
 
   const renderVerse = (verseText: string) => {
-    const lines = verseText.split('\n');
+    // Split theo ký tự \n thật (escaped newline)
+    const lines = verseText.split('\\n');
+    // Nếu không có \\n thì thử split theo \n thật
+    const parts = lines.length > 1 ? lines : verseText.split('\n');
+
     return (
       <div className="text-center font-display italic py-2">
         <div className="text-base leading-relaxed text-foreground">
-          "{lines[0]}
+          "{parts[0]}
         </div>
         <div className="text-lg leading-relaxed text-foreground">
-          {lines[1]}"
+          {parts[1] || ''}"
         </div>
       </div>
     );
