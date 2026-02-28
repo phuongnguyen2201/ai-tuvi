@@ -32,8 +32,20 @@ export function generateVietQRUrl(feature: FeatureKey, transferContent: string):
 
 export function generateTransferContent(userId: string, feature: FeatureKey): string {
   const shortId = userId.slice(0, 8).toUpperCase();
-  const prefix = feature === 'premium_monthly' || feature === 'premium_yearly' 
-    ? 'PREMIUM' : 'TUVI';
+
+  const prefixMap: Record<FeatureKey, string> = {
+    luan_giai:       'LUANGIAI',
+    van_han:         'VANHAN',
+    van_han_week:    'VHTUAN',
+    van_han_month:   'VHTHANG',
+    van_han_year:    'VHNAM',
+    boi_que:         'BOIQUE',
+    boi_kieu:        'BOIKIEU',
+    premium_monthly: 'PREMIUM',
+    premium_yearly:  'PREMIUM',
+  };
+
+  const prefix = prefixMap[feature] || 'TUVI';
   return `${prefix} ${shortId}`;
 }
 
