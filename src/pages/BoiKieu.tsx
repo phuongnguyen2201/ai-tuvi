@@ -91,7 +91,7 @@ const BoiKieu = () => {
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(10);
+      .limit(20);
 
     setHistory(data || []);
   };
@@ -392,35 +392,62 @@ const BoiKieu = () => {
         </p>
       )}
 
-      {/* History toggle */}
+      {/* History */}
       {history.length > 0 && (
-        <div className="space-y-3">
+        <div className="mt-6">
           <button
             onClick={() => setShowHistory(!showHistory)}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mx-auto"
+            className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border bg-surface-3 text-sm"
           >
-            <History className="w-4 h-4" />
-            📜 Xem lịch sử ({history.length} lần)
+            <span className="flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-gold" />
+              Lịch sử luận giải ({history.length} lần)
+            </span>
+            <span>{showHistory ? '▲' : '▼'}</span>
           </button>
 
           {showHistory && (
-            <div className="space-y-2">
+            <div className="mt-2 space-y-2">
               {history.map((item) => (
                 <div
                   key={item.id}
                   onClick={() => {
-                    setVerse({ id: item.verse_id, verse: item.verse, fortune: item.fortune });
+                    setVerse({
+                      verse: item.verse,
+                      fortune: item.fortune,
+                      id: item.verse_id,
+                    });
                     setQuestion(item.question);
                     setResult(item.analysis_result);
+                    setShowHistory(false);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className="rounded-xl p-3 border border-border bg-surface-3 cursor-pointer hover:border-primary/30 transition-all"
+                  className="rounded-xl p-3 border border-border bg-surface-3 cursor-pointer hover:border-gold/30 transition-colors"
                 >
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(item.created_at).toLocaleDateString("vi-VN")}
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(item.created_at).toLocaleDateString('vi-VN', {
+                        day: '2-digit', month: '2-digit', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                      })}
+                    </span>
+                    <span className={cn(
+                      "text-xs px-2 py-0.5 rounded-full",
+                      item.fortune === 'excellent' && "bg-gold/20 text-gold",
+                      item.fortune === 'good' && "bg-green-500/20 text-green-400",
+                      item.fortune === 'neutral' && "bg-purple-500/20 text-purple-400",
+                      item.fortune === 'challenging' && "bg-destructive/20 text-destructive",
+                    )}>
+                      {item.fortune === 'excellent' ? 'Đại Cát' :
+                       item.fortune === 'good' ? 'Cát' :
+                       item.fortune === 'neutral' ? 'Bình' : 'Hung'}
+                    </span>
+                  </div>
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {item.question}
                   </p>
-                  <p className="text-sm font-medium text-foreground truncate">{item.question}</p>
-                  <p className="text-xs text-muted-foreground italic truncate">
-                    "{item.verse.split("\n")[0]}..."
+                  <p className="text-xs text-muted-foreground italic truncate mt-0.5">
+                    "{item.verse.split('\n')[0]}..."
                   </p>
                 </div>
               ))}
