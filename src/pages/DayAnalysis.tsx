@@ -101,22 +101,7 @@ const DayAnalysis = () => {
 
   const lunarDate = useMemo(() => solarToLunar(date), [date]);
 
-  const { goodDays, badDays } = useMemo(() => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const good: Date[] = [];
-    const bad: Date[] = [];
-    for (let d = 1; d <= daysInMonth; d++) {
-      const day = new Date(year, month, d);
-      if (getIsHoangDaoDay(day)) {
-        good.push(day);
-      } else {
-        bad.push(day);
-      }
-    }
-    return { goodDays: good, badDays: bad };
-  }, [currentMonth]);
+  // goodDays/badDays removed - colors handled in DayContent
   const truc = useMemo(() => getTruc(lunarDate), [lunarDate]);
   const isHoangDao = isHoangDaoByTruc(truc);
   const goodThings = VIEC_TOT_THEO_TRUC[truc] || [];
@@ -151,18 +136,22 @@ const DayAnalysis = () => {
                 const isSelected = date && 
                   format(d, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd');
                 return (
-                  <div className="flex flex-col items-center gap-0.5">
+                  <div 
+                    className="day-content-wrapper flex flex-col items-center"
+                    style={{ borderRadius: '8px' }}
+                  >
                     <span style={{ 
                       color: isSelected ? 'white' : isGood ? '#D4AF37' : '#ef4444',
-                      fontWeight: isSelected || isGood ? '700' : '400',
+                      fontWeight: '600',
+                      fontSize: '14px',
                     }}>
                       {d.getDate()}
                     </span>
                     <div style={{
                       width: '4px', height: '4px',
                       borderRadius: '50%',
-                      backgroundColor: isSelected ? 'white' : isGood ? '#D4AF37' : '#ef4444',
-                      opacity: isSelected ? 0.8 : 0.6,
+                      backgroundColor: isSelected ? 'rgba(255,255,255,0.8)' 
+                                       : isGood ? '#D4AF37' : '#ef4444',
                     }} />
                   </div>
                 );

@@ -335,22 +335,21 @@
   background: hsl(var(--gold) / 0.5);
 }
 
-/* Day Analysis - Calendar: only button inside has background */
-.rdp-day {
-  background: transparent !important;
+/* Override toàn bộ selected state của rdp */
+.rdp-cell .rdp-button[aria-selected="true"],
+.rdp-day_selected,
+.rdp-day_selected > button,
+.rdp-day_selected > .rdp-button,
+.rdp-day[aria-selected="true"] > button {
+  background: none !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
 }
 
-.rdp-day_selected .rdp-day_button,
-.rdp-day_selected button {
-  background-color: hsl(var(--secondary)) !important;
+/* Chỉ tô màu tím vào DayContent wrapper */
+.rdp-day_selected .day-content-wrapper {
+  background-color: #7C3AED !important;
   border-radius: 8px !important;
-  color: white !important;
-}
-
-/* Today not selected */
-.rdp-day_today:not(.rdp-day_selected) .rdp-day_button,
-.rdp-day_today:not(.rdp-day_selected) button {
-  background: transparent !important;
-  border: 1px solid hsl(var(--secondary) / 0.4) !important;
-  border-radius: 8px !important;
+  padding: 4px 6px !important;
 }
