@@ -129,13 +129,33 @@ const VanHan = () => {
   // Reset offset when switching tabs
   useEffect(() => {
     setTimeOffset(0);
-    setCurrentResult(null);
   }, [activeTab]);
 
-  // Reset result when changing time period
+  // Auto load cached result when chart/tab/period changes
   useEffect(() => {
-    setCurrentResult(null);
-  }, [timeOffset]);
+    if (!selectedChart || !vanHanPackage) return;
+    autoLoadCached();
+  }, [selectedChart, activeTab, timeOffset]);
+
+  const autoLoadCached = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: cached } = await supabase
+      .from('van_han_analyses')
+      .select('analysis_result')
+      .eq('user_id', user.id)
+      .eq('chart_hash', selectedChart.chart_hash)
+      .eq('time_frame', activeTab)
+      .eq('period', timeInfo.period)
+      .maybeSingle();
+
+    if (cached?.analysis_result) {
+      setCurrentResult(cached.analysis_result);
+    } else {
+      setCurrentResult(null);
+    }
+  };
 
   const currentTab = TABS.find((t) => t.key === activeTab)!;
 
