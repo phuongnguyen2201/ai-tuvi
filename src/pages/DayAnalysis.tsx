@@ -1,56 +1,108 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import PageLayout from "@/components/PageLayout";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { CheckCircle2, XCircle, Clock, Sun, Moon, Sparkles } from "lucide-react";
-import { solarToLunar } from "@/lib/tuvi/lunarCalendar";
+import { solarToLunar, LunarDate } from "@/lib/tuvi/lunarCalendar";
 
-// Demo data generators
-const getHoangDao = (date: Date) => {
-  const day = date.getDate();
-  // Simplified logic for demo
-  return day % 3 !== 0;
+// ============================================
+// 12 TRỰC (建除十二神)
+// ============================================
+const TRUC_12 = ["Kiến", "Trừ", "Mãn", "Bình", "Định",
+                  "Chấp", "Phá", "Nguy", "Thành", "Thu",
+                  "Khai", "Bế"];
+
+const VIEC_TOT_THEO_TRUC: Record<string, string[]> = {
+  "Kiến": ["Cầu phúc", "Tế lễ", "Gặp gỡ quan trọng"],
+  "Trừ": ["Chữa bệnh", "Dọn dẹp", "Tắm gội", "Sửa chữa"],
+  "Mãn": ["Mua sắm", "Tích trữ", "Nhập kho"],
+  "Bình": ["Xuất hành", "Gặp bạn bè", "Ký kết"],
+  "Định": ["Cưới hỏi", "Khai trương", "Động thổ", "Ký hợp đồng"],
+  "Chấp": ["Trồng cây", "Làm vườn", "Săn bắn"],
+  "Phá": ["Phá dỡ", "Tháo dỡ cũ"],
+  "Nguy": ["Nghỉ ngơi", "Tĩnh dưỡng"],
+  "Thành": ["Cưới hỏi", "Khai trương", "Mua nhà", "Đầu tư"],
+  "Thu": ["Thu hoạch", "Thu nợ", "Tổng kết"],
+  "Khai": ["Khai trương", "Xuất hành", "Học hành", "Cầu tài"],
+  "Bế": ["Tích trữ", "Đóng cửa", "Bảo mật"],
 };
 
-const getGoodThings = () => [
-  "Cưới hỏi, ăn hỏi",
-  "Khai trương, mở cửa hàng",
-  "Động thổ, xây nhà",
-  "Xuất hành, đi xa",
-  "Ký kết hợp đồng",
-];
+const VIEC_XAU_THEO_TRUC: Record<string, string[]> = {
+  "Kiến": ["Xuất hành xa", "Cưới hỏi"],
+  "Trừ": ["Cưới hỏi", "Khai trương"],
+  "Mãn": ["Kiện tụng", "Tranh chấp"],
+  "Bình": ["An táng", "Phá dỡ"],
+  "Định": ["An táng", "Kiện tụng"],
+  "Chấp": ["Cưới hỏi", "Xuất hành"],
+  "Phá": ["Cưới hỏi", "Khai trương", "Ký kết", "Mua bán lớn"],
+  "Nguy": ["Xuất hành", "Leo trèo", "Mạo hiểm"],
+  "Thành": ["An táng", "Kiện tụng"],
+  "Thu": ["Cưới hỏi", "Khai trương"],
+  "Khai": ["An táng", "Khóc than"],
+  "Bế": ["Xuất hành", "Khai trương", "Cưới hỏi"],
+};
 
-const getBadThings = () => [
-  "Kiện tụng, tranh chấp",
-  "Phá dỡ, tháo dỡ",
-  "An táng, cải táng",
-];
+// Ngày tốt: Bình, Định, Thành, Khai, Trừ
+// Ngày xấu: Phá, Nguy, Bế, Kiến
+const TRUC_TOT = ["Bình", "Định", "Thành", "Khai", "Trừ"];
+const TRUC_XAU = ["Phá", "Nguy", "Bế", "Kiến"];
 
-const getGoodHours = () => [
-  { name: "Tý", time: "23:00 - 01:00", good: true },
-  { name: "Sửu", time: "01:00 - 03:00", good: false },
-  { name: "Dần", time: "03:00 - 05:00", good: true },
-  { name: "Mão", time: "05:00 - 07:00", good: true },
-  { name: "Thìn", time: "07:00 - 09:00", good: false },
-  { name: "Tỵ", time: "09:00 - 11:00", good: true },
-  { name: "Ngọ", time: "11:00 - 13:00", good: true },
-  { name: "Mùi", time: "13:00 - 15:00", good: false },
-  { name: "Thân", time: "15:00 - 17:00", good: true },
-  { name: "Dậu", time: "17:00 - 19:00", good: false },
-  { name: "Tuất", time: "19:00 - 21:00", good: true },
-  { name: "Hợi", time: "21:00 - 23:00", good: true },
+const getTruc = (lunarDate: LunarDate): string => {
+  const index = (lunarDate.day + lunarDate.month * 2) % 12;
+  return TRUC_12[index];
+};
+
+const isHoangDaoByTruc = (truc: string): boolean => {
+  return TRUC_TOT.includes(truc);
+};
+
+// ============================================
+// GIỜ HOÀNG ĐẠO theo Can ngày
+// ============================================
+const GIO_HOANG_DAO: Record<string, string[]> = {
+  "Giáp": ["Tý", "Sửu", "Mão", "Tỵ", "Mùi", "Tuất"],
+  "Ất":   ["Tý", "Dần", "Mão", "Tỵ", "Thân", "Dậu"],
+  "Bính": ["Dần", "Thìn", "Tỵ", "Mùi", "Tuất", "Hợi"],
+  "Đinh": ["Tý", "Sửu", "Thìn", "Mão", "Ngọ", "Hợi"],
+  "Mậu":  ["Tý", "Sửu", "Dần", "Mão", "Ngọ", "Thân"],
+  "Kỷ":   ["Tý", "Dần", "Tỵ", "Ngọ", "Thân", "Dậu"],
+  "Canh": ["Sửu", "Dần", "Thìn", "Ngọ", "Thân", "Dậu"],
+  "Tân":  ["Tý", "Dần", "Mão", "Thìn", "Ngọ", "Dậu"],
+  "Nhâm": ["Dần", "Thìn", "Tỵ", "Ngọ", "Tuất", "Hợi"],
+  "Quý":  ["Sửu", "Thìn", "Tỵ", "Mùi", "Tuất", "Hợi"],
+};
+
+const ALL_HOURS = [
+  { name: "Tý", time: "23:00-01:00" },
+  { name: "Sửu", time: "01:00-03:00" },
+  { name: "Dần", time: "03:00-05:00" },
+  { name: "Mão", time: "05:00-07:00" },
+  { name: "Thìn", time: "07:00-09:00" },
+  { name: "Tỵ", time: "09:00-11:00" },
+  { name: "Ngọ", time: "11:00-13:00" },
+  { name: "Mùi", time: "13:00-15:00" },
+  { name: "Thân", time: "15:00-17:00" },
+  { name: "Dậu", time: "17:00-19:00" },
+  { name: "Tuất", time: "19:00-21:00" },
+  { name: "Hợi", time: "21:00-23:00" },
 ];
 
 const DayAnalysis = () => {
   const [date, setDate] = useState<Date>(new Date());
 
-  const isHoangDao = getHoangDao(date);
-  const lunarDate = solarToLunar(date);
-  const goodThings = getGoodThings();
-  const badThings = getBadThings();
-  const hours = getGoodHours();
+  const lunarDate = useMemo(() => solarToLunar(date), [date]);
+  const truc = useMemo(() => getTruc(lunarDate), [lunarDate]);
+  const isHoangDao = isHoangDaoByTruc(truc);
+  const goodThings = VIEC_TOT_THEO_TRUC[truc] || [];
+  const badThings = VIEC_XAU_THEO_TRUC[truc] || [];
+
+  const dayCan = lunarDate.dayCanChi.split(" ")[0];
+  const goodHourNames = GIO_HOANG_DAO[dayCan] || [];
+  const hours = ALL_HOURS.map(h => ({ ...h, good: goodHourNames.includes(h.name) }));
+
+  const trucQuality = TRUC_TOT.includes(truc) ? "tốt" : TRUC_XAU.includes(truc) ? "xấu" : "trung bình";
 
   return (
     <PageLayout title="Xem Ngày">
@@ -91,6 +143,9 @@ const DayAnalysis = () => {
                   Âm lịch: {lunarDate.day}/{lunarDate.month}{lunarDate.isLeapMonth ? ' (nhuận)' : ''} - {lunarDate.yearCanChi}
                 </span>
               </div>
+              <p className="text-xs text-gold/70 mt-1">
+                Trực: {truc} ({trucQuality})
+              </p>
             </div>
             <div className={cn(
               "px-4 py-2 rounded-full",
@@ -115,7 +170,6 @@ const DayAnalysis = () => {
 
         {/* Good/Bad Things */}
         <div className="grid grid-cols-2 gap-4">
-            {/* Good Things */}
           <div className={cn(
             "rounded-xl p-4",
             "bg-surface-3 border border-border"
@@ -133,7 +187,6 @@ const DayAnalysis = () => {
             </ul>
           </div>
 
-          {/* Bad Things */}
           <div className={cn(
             "rounded-xl p-4",
             "bg-surface-3 border border-border"
@@ -181,7 +234,7 @@ const DayAnalysis = () => {
                   {hour.name}
                 </p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {hour.time.split(" - ")[0]}
+                  {hour.time.split("-")[0]}
                 </p>
               </div>
             ))}
