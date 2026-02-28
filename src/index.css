@@ -335,34 +335,25 @@
   background: hsl(var(--gold) / 0.5);
 }
 
-/* Day Analysis - Calendar modifiers */
-.day-good button {
-  color: hsl(var(--gold)) !important;
-  font-weight: 600;
+/* Day Analysis - Calendar selected day fix */
+.rdp-day_selected {
+  background-color: transparent !important;
 }
 
-.day-good button::after {
-  content: '';
-  display: block;
-  width: 4px;
-  height: 4px;
-  background: hsl(var(--gold));
-  border-radius: 50%;
-  margin: 1px auto 0;
+.rdp-day_selected button,
+.rdp-day_selected .rdp-day_button {
+  background-color: hsl(var(--secondary)) !important;
+  border-radius: 8px !important;
+  color: white !important;
+  font-weight: 700 !important;
+  border: none !important;
 }
 
-.day-bad button {
-  color: hsl(var(--destructive)) !important;
-  opacity: 0.7;
+.rdp-day_selected:hover button {
+  background-color: hsl(263 70% 48%) !important;
 }
 
-.day-bad button::after {
-  content: '';
-  display: block;
-  width: 4px;
-  height: 4px;
-  background: hsl(var(--destructive));
-  border-radius: 50%;
-  margin: 1px auto 0;
-  opacity: 0.5;
+.rdp-day_selected button:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 2px hsl(var(--secondary) / 0.4) !important;
 }
