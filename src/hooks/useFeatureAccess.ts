@@ -45,6 +45,21 @@ export function useFeatureAccess(feature: string) {
       return;
     }
 
+    // Check kieu_packages if boi_kieu feature
+    if (feature === 'boi_kieu') {
+      const { data: pkg } = await supabase
+        .from('kieu_packages')
+        .select('uses_remaining')
+        .eq('user_id', user.id)
+        .gt('uses_remaining', 0)
+        .maybeSingle();
+
+      console.log('[useFeatureAccess] kieu pkg check:', { feature, hasPkg: !!pkg });
+      setHasAccess(!!pkg);
+      setIsLoading(false);
+      return;
+    }
+
     // Check user_features as usual
     const { data } = await supabase
       .from('user_features')
@@ -98,6 +113,23 @@ export function useFeatureAccess(feature: string) {
               event: 'INSERT',
               schema: 'public',
               table: 'van_han_packages',
+              filter: `user_id=eq.${user.id}`,
+            },
+            () => checkAccess()
+          )
+          .subscribe();
+      }
+
+      // Listen for kieu_packages changes
+      if (feature === 'boi_kieu') {
+        pkgChannelRef = supabase
+          .channel('kieu-pkg-' + user.id)
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'kieu_packages',
               filter: `user_id=eq.${user.id}`,
             },
             () => checkAccess()
