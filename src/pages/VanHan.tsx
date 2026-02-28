@@ -5,6 +5,7 @@ import PaymentGate from "@/components/PaymentGate";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { astro } from "iztro";
 import { toast } from "sonner";
 import {
   Sparkles,
@@ -172,6 +173,39 @@ const VanHan = () => {
       return;
     }
 
+    // Compute chart data from iztro if missing
+    let fullChartData = selectedChart.chart_data;
+    if (!fullChartData || Object.keys(fullChartData).length < 5) {
+      try {
+        const bd = selectedChart.birth_data as any;
+        const astrolabe = bd.calendarType === 'lunar'
+          ? astro.byLunar(bd.birthDate, parseInt(bd.birthHour || '0'), bd.gender === 'Nam' ? '男' : '女', false, false, 'vi-VN')
+          : astro.bySolar(bd.birthDate, parseInt(bd.birthHour || '0'), bd.gender === 'Nam' ? '男' : '女', true, 'vi-VN');
+        fullChartData = {
+          solarDate: astrolabe.solarDate,
+          lunarDate: astrolabe.lunarDate,
+          lunarYear: bd.birthDate?.split('-')[0],
+          gender: bd.gender,
+          birthHour: bd.birthHour,
+          cuc: astrolabe.fiveElementsClass,
+          soulStar: astrolabe.soul,
+          bodyStar: astrolabe.body,
+          palaces: astrolabe.palaces?.map((p: any) => ({
+            name: p.name,
+            heavenlyStem: p.heavenlyStem,
+            earthlyBranch: p.earthlyBranch,
+            isSoulPalace: p.isSoulPalace,
+            isBodyPalace: p.isBodyPalace,
+            majorStars: p.majorStars,
+            minorStars: p.minorStars,
+          })),
+        };
+      } catch (e) {
+        console.error('Failed to compute chart:', e);
+        fullChartData = selectedChart.chart_data;
+      }
+    }
+
     // Call Claude
     setIsAnalyzing(true);
     try {
@@ -181,7 +215,7 @@ const VanHan = () => {
           timeFrame: activeTab,
           period: timeInfo.period,
           chartData: selectedChart.birth_data,
-          fullChartData: selectedChart.chart_data,
+          fullChartData,
         }
       });
 
