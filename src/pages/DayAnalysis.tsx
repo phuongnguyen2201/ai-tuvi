@@ -145,20 +145,25 @@ const DayAnalysis = () => {
             className="pointer-events-auto mx-auto"
             locale={vi}
             modifiers={{ good: goodDays, bad: badDays }}
-            modifiersStyles={{
-              good: { color: '#D4AF37', fontWeight: '700' },
-              bad: { color: '#ef4444' },
-            }}
             components={{
               DayContent: ({ date: d }) => {
                 const isGood = getIsHoangDaoDay(d);
+                const isSelected = date && 
+                  format(d, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd');
                 return (
-                  <div className="flex flex-col items-center">
-                    <span>{d.getDate()}</span>
-                    <div className={cn(
-                      "w-1 h-1 rounded-full",
-                      isGood ? "bg-gold" : "bg-destructive/60"
-                    )} />
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span style={{ 
+                      color: isSelected ? 'white' : isGood ? '#D4AF37' : '#ef4444',
+                      fontWeight: isSelected || isGood ? '700' : '400',
+                    }}>
+                      {d.getDate()}
+                    </span>
+                    <div style={{
+                      width: '4px', height: '4px',
+                      borderRadius: '50%',
+                      backgroundColor: isSelected ? 'white' : isGood ? '#D4AF37' : '#ef4444',
+                      opacity: isSelected ? 0.8 : 0.6,
+                    }} />
                   </div>
                 );
               }
