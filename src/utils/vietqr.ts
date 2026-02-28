@@ -7,10 +7,10 @@ const BANK_CONFIG = {
 };
 
 export const PRICING = {
-  luan_giai: 29000,
+  luan_giai: 49000,
   van_han: 39000,
-  van_han_week: 9000,
-  van_han_month: 19000,
+  van_han_week: 39000,
+  van_han_month: 39000,
   van_han_year: 39000,
   boi_que: 19000,
   boi_kieu: 19000,

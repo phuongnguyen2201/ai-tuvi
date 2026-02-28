@@ -20,7 +20,7 @@ interface PaymentGateProps {
 const DEFAULT_CONFIGS: Record<string, { title: string; price: string; description: string }> = {
   luan_giai: {
     title: "Luận giải chi tiết lá số",
-    price: "29.000đ / lần",
+    price: "49.000đ / lần",
     description: "Xem đầy đủ luận giải 12 cung và các sao trong lá số tử vi của bạn",
   },
   van_han: {
@@ -30,18 +30,18 @@ const DEFAULT_CONFIGS: Record<string, { title: string; price: string; descriptio
   },
   van_han_week: {
     title: "Luận giải tuần",
-    price: "9.000đ / lần",
-    description: "Luận giải chi tiết 7 ngày, ngày tốt/xấu, lời khuyên hành động",
+    price: "39.000đ",
+    description: "Gói 9 lần phân tích - 39.000đ",
   },
   van_han_month: {
     title: "Luận giải tháng",
-    price: "19.000đ / lần",
-    description: "Phân tích chi tiết theo tuần, tài lộc/tình duyên/sự nghiệp tháng này",
+    price: "39.000đ",
+    description: "Gói 6 lần phân tích - 39.000đ",
   },
   van_han_year: {
     title: "Luận giải năm",
-    price: "39.000đ / lần",
-    description: "Phân tích 12 tháng, 4 quý, đỉnh điểm vận hạn, thời điểm cần cẩn thận",
+    price: "39.000đ",
+    description: "Gói 3 lần phân tích - 39.000đ",
   },
   boi_que: {
     title: "Bói quẻ Kinh Dịch",
