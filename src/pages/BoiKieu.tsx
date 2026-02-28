@@ -270,6 +270,20 @@ const BoiKieu = () => {
     });
   };
 
+  const renderVerse = (verseText: string) => {
+    const lines = verseText.split('\n');
+    return (
+      <div className="text-center font-display italic py-2">
+        <div className="text-base leading-relaxed text-foreground">
+          "{lines[0]}
+        </div>
+        <div className="text-lg leading-relaxed text-foreground">
+          {lines[1]}"
+        </div>
+      </div>
+    );
+  };
+
   const style = verse ? fortuneStyles[verse.fortune] : null;
 
   const usesLabel = kieuPackage
@@ -335,11 +349,7 @@ const BoiKieu = () => {
               {style.badgeText}
             </span>
           </div>
-          <div className="text-center">
-            <blockquote className="font-display text-lg text-foreground leading-relaxed whitespace-pre-line italic">
-              "{verse.verse}"
-            </blockquote>
-          </div>
+          {renderVerse(verse.verse)}
         </div>
       )}
 
