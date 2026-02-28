@@ -95,7 +95,7 @@ const VanHan = () => {
 
     const { data } = await supabase
       .from('chart_analyses')
-      .select('id, chart_hash, birth_data, created_at')
+      .select('id, chart_hash, birth_data, chart_data, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
@@ -181,6 +181,7 @@ const VanHan = () => {
           timeFrame: activeTab,
           period: timeInfo.period,
           chartData: selectedChart.birth_data,
+          fullChartData: selectedChart.chart_data,
         }
       });
 
