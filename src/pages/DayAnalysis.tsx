@@ -144,13 +144,24 @@ const DayAnalysis = () => {
             onMonthChange={setCurrentMonth}
             className="pointer-events-auto mx-auto"
             locale={vi}
-            modifiers={{
-              good: goodDays,
-              bad: badDays,
+            modifiers={{ good: goodDays, bad: badDays }}
+            modifiersStyles={{
+              good: { color: '#D4AF37', fontWeight: '700' },
+              bad: { color: '#ef4444' },
             }}
-            modifiersClassNames={{
-              good: "day-good",
-              bad: "day-bad",
+            components={{
+              DayContent: ({ date: d }) => {
+                const isGood = getIsHoangDaoDay(d);
+                return (
+                  <div className="flex flex-col items-center">
+                    <span>{d.getDate()}</span>
+                    <div className={cn(
+                      "w-1 h-1 rounded-full",
+                      isGood ? "bg-gold" : "bg-destructive/60"
+                    )} />
+                  </div>
+                );
+              }
             }}
           />
           <div className="flex items-center justify-center gap-6 mt-2 text-xs">
