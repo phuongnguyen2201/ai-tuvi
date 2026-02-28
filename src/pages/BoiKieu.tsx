@@ -271,10 +271,9 @@ const BoiKieu = () => {
   };
 
   const renderVerse = (verseText: string) => {
-    // Split theo ký tự \n thật (escaped newline)
-    const lines = verseText.split('\\n');
-    // Nếu không có \\n thì thử split theo \n thật
-    const parts = lines.length > 1 ? lines : verseText.split('\n');
+    // DB lưu literal \n (escaped), cần replace thành newline thật
+    const normalized = verseText.replace(/\\n/g, '\n');
+    const parts = normalized.split('\n');
 
     return (
       <div className="text-center font-display italic py-2">
