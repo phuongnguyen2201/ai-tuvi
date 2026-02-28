@@ -1,56 +1,13 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import PageLayout from "@/components/PageLayout";
 import PaymentGate from "@/components/PaymentGate";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Sparkles, RefreshCw, BookOpen, Share2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Sparkles, RefreshCw, BookOpen, Share2, History, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-// Các câu Kiều nổi tiếng
-const kieuVerses = [
-  {
-    verse: "Trăm năm trong cõi người ta\nChữ tài chữ mệnh khéo là ghét nhau",
-    meaning: "Tài năng và số mệnh thường xung khắc, người có tài thường gặp nhiều trắc trở. Bạn cần kiên nhẫn vượt qua khó khăn.",
-    fortune: "good",
-  },
-  {
-    verse: "Thiện căn ở tại lòng ta\nChữ tâm kia mới bằng ba chữ tài",
-    meaning: "Lòng tốt quan trọng hơn tài năng. Hãy giữ tâm thiện lành, mọi việc sẽ hanh thông.",
-    fortune: "excellent",
-  },
-  {
-    verse: "Chữ tâm kia mới bằng ba chữ tài\nCó tài mà cậy chi tài",
-    meaning: "Đừng kiêu ngạo về tài năng của mình. Khiêm tốn sẽ giúp bạn tiến xa hơn.",
-    fortune: "neutral",
-  },
-  {
-    verse: "Đã mang lấy nghiệp vào thân\nCũng đừng trách lẫn trời gần trời xa",
-    meaning: "Hãy chấp nhận và đối mặt với thử thách. Đừng đổ lỗi cho hoàn cảnh.",
-    fortune: "challenging",
-  },
-  {
-    verse: "Sen tàn cúc lại nở hoa\nSầu dài ngày ngắn đông đà sang xuân",
-    meaning: "Sau khó khăn sẽ là thuận lợi. Hãy kiên nhẫn chờ đợi thời cơ.",
-    fortune: "good",
-  },
-  {
-    verse: "Hoa xuân phơi phới nhờ trời\nNgười đời ai cũng thương người có duyên",
-    meaning: "Vận may đang đến với bạn. Hãy tận dụng cơ hội này.",
-    fortune: "excellent",
-  },
-  {
-    verse: "Bể dâu đâu biết nông sâu\nNghìn trùng biết có ngàn sau hay chăng",
-    meaning: "Tương lai khó đoán, hãy cẩn thận trong quyết định.",
-    fortune: "neutral",
-  },
-  {
-    verse: "Người buồn cảnh có vui đâu bao giờ\nHoa cười ngọc thốt đâu ngờ",
-    meaning: "Tâm trạng ảnh hưởng đến mọi thứ. Hãy giữ tinh thần lạc quan.",
-    fortune: "challenging",
-  },
-];
-
-const fortuneStyles = {
+const fortuneStyles: Record<string, { bg: string; border: string; badge: string; badgeText: string }> = {
   excellent: {
     bg: "from-gold/20 to-gold/5",
     border: "border-gold/50",
@@ -78,173 +35,420 @@ const fortuneStyles = {
 };
 
 const FREE_USES = 3;
-const STORAGE_KEY = 'boikieu_count';
+const STORAGE_KEY = "boikieu_count";
 
 const BoiKieu = () => {
-  const [result, setResult] = useState<typeof kieuVerses[0] | null>(null);
+  const [question, setQuestion] = useState("");
+  const [verse, setVerse] = useState<any>(null);
   const [isShaking, setIsShaking] = useState(false);
-  const [useCount, setUseCount] = useState(() => {
-    return parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
-  });
-  const needsPayment = useCount >= FREE_USES;
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const [kieuPackage, setKieuPackage] = useState<any>(null);
+  const [history, setHistory] = useState<any[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [verses, setVerses] = useState<any[]>([]);
+  const [useCount, setUseCount] = useState(() =>
+    parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10)
+  );
 
-  const handleGieoQue = () => {
+  const needsPayment = useCount >= FREE_USES && !kieuPackage;
+
+  // Load verses, package, history on mount
+  useEffect(() => {
+    supabase.from("kieu_verses").select("*").then(({ data }) => {
+      setVerses(data || []);
+    });
+    loadKieuPackage();
+    loadHistory();
+  }, []);
+
+  const loadKieuPackage = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from("kieu_packages")
+      .select("*")
+      .eq("user_id", user.id)
+      .gt("uses_remaining", 0)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    setKieuPackage(data);
+  };
+
+  const loadHistory = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from("kieu_analyses")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    setHistory(data || []);
+  };
+
+  // Gieo quẻ
+  const handleGieoQue = async () => {
+    if (!question.trim()) {
+      toast.error("Vui lòng nhập câu hỏi");
+      return;
+    }
+    if (verses.length === 0) {
+      toast.error("Chưa tải được câu Kiều, thử lại sau");
+      return;
+    }
+
     setIsShaking(true);
     setResult(null);
-    
-    // Shake animation duration
-    setTimeout(() => {
-      const randomIndex = Math.floor(Math.random() * kieuVerses.length);
-      setResult(kieuVerses[randomIndex]);
+    setVerse(null);
+
+    setTimeout(async () => {
+      const randomVerse = verses[Math.floor(Math.random() * verses.length)];
+      setVerse(randomVerse);
       setIsShaking(false);
-      const newCount = useCount + 1;
-      setUseCount(newCount);
-      localStorage.setItem(STORAGE_KEY, String(newCount));
+
+      // Tăng free count
+      if (!kieuPackage) {
+        const newCount = useCount + 1;
+        setUseCount(newCount);
+        localStorage.setItem(STORAGE_KEY, String(newCount));
+      }
+
+      // Gọi Claude
+      await handleAnalyze(randomVerse);
     }, 1500);
   };
 
-  const handleShare = () => {
-    toast.success("Đã sao chép quẻ Kiều!");
+  // Analyze with Claude
+  const handleAnalyze = async (selectedVerse: any) => {
+    setIsAnalyzing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-chart", {
+        body: {
+          analysisType: "boi_kieu",
+          question,
+          verse: selectedVerse.verse,
+          fortune: selectedVerse.fortune,
+        },
+      });
+
+      if (error) throw error;
+      const analysisResult = data?.analysis || "";
+      setResult(analysisResult);
+
+      // Lưu DB nếu có package
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user && kieuPackage) {
+        await supabase.from("kieu_analyses").insert({
+          user_id: user.id,
+          package_id: kieuPackage.id,
+          verse_id: selectedVerse.id,
+          verse: selectedVerse.verse,
+          fortune: selectedVerse.fortune,
+          question,
+          analysis_result: analysisResult,
+        });
+
+        await supabase
+          .from("kieu_packages")
+          .update({ uses_remaining: kieuPackage.uses_remaining - 1 })
+          .eq("id", kieuPackage.id);
+
+        loadKieuPackage();
+        loadHistory();
+      }
+    } catch (e) {
+      console.error("Bói Kiều analyze error:", e);
+      toast.error("Lỗi khi luận giải. Thử lại nhé!");
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
-  const style = result ? fortuneStyles[result.fortune as keyof typeof fortuneStyles] : null;
+  // Share
+  const handleShare = async (type: "verse" | "full") => {
+    if (!verse) return;
 
-  return (
-    <PageLayout title="Bói Kiều">
-      <div className="space-y-6">
-        {/* Introduction */}
-        <div className={cn(
-          "text-center p-6 rounded-2xl",
-          "bg-gradient-to-br from-surface-3 to-surface-2",
-          "border border-border"
-        )}>
-          <BookOpen className="w-12 h-12 text-gold mx-auto mb-4" />
-          <h2 className="font-display text-xl text-foreground mb-2">
-            Truyện Kiều - Nguyễn Du
+    let shareText = "";
+    if (type === "verse") {
+      shareText = `📜 Bói Kiều\n\n❓ ${question}\n\n"${verse.verse}"\n\n🔮 Xem tại: ai-tuvi.lovable.app`;
+    } else {
+      if (!result) return;
+      const cleaned = result
+        .replace(/^#{1,3} /gm, "")
+        .replace(/\*\*(.*?)\*\*/g, "$1")
+        .replace(/\*(.*?)\*/g, "$1")
+        .replace(/^[-•] /gm, "• ")
+        .replace(/^> /gm, "")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+      shareText = `📜 Bói Kiều\n\n❓ ${question}\n\n"${verse.verse}"\n\n${cleaned}\n\n🔮 Xem tại: ai-tuvi.lovable.app`;
+    }
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Bói Kiều - Tử Vi App", text: shareText, url: "https://ai-tuvi.lovable.app" });
+        return;
+      } catch {}
+    }
+
+    await navigator.clipboard.writeText(shareText);
+    toast.success(type === "verse" ? "📋 Đã sao chép câu Kiều!" : "📋 Đã sao chép luận giải!");
+  };
+
+  // Markdown renderer (same as VanHan)
+  const renderMarkdown = (text: string) => {
+    return text.split("\n").map((line, i) => {
+      if (line.startsWith("## "))
+        return (
+          <h2 key={i} className="text-lg font-bold text-primary mt-5 mb-2 border-b border-primary/20 pb-1">
+            {line.replace("## ", "")}
           </h2>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Bói Kiều là hình thức bói toán truyền thống Việt Nam, sử dụng các câu thơ trong Truyện Kiều để dự đoán vận mệnh.
-          </p>
-        </div>
+        );
+      if (line.startsWith("### "))
+        return (
+          <h3 key={i} className="text-md font-semibold text-secondary mt-4 mb-2">
+            {line.replace("### ", "")}
+          </h3>
+        );
+      if (line.startsWith("# "))
+        return (
+          <h1 key={i} className="text-xl font-bold text-foreground mt-5 mb-3">
+            {line.replace("# ", "")}
+          </h1>
+        );
+      if (line.startsWith("> "))
+        return (
+          <blockquote key={i} className="border-l-4 border-primary/40 pl-4 italic text-muted-foreground my-3 bg-primary/5 py-2 rounded-r">
+            {line.replace("> ", "")}
+          </blockquote>
+        );
+      if (line.startsWith("- ") || line.startsWith("* "))
+        return (
+          <li key={i} className="text-muted-foreground ml-4 list-disc text-sm">
+            {renderBold(line.replace(/^[-*] /, ""))}
+          </li>
+        );
+      if (/^\d+\. /.test(line))
+        return (
+          <li key={i} className="text-muted-foreground ml-4 list-decimal text-sm">
+            {renderBold(line.replace(/^\d+\. /, ""))}
+          </li>
+        );
+      if (line === "---" || line === "***") return <hr key={i} className="border-primary/20 my-4" />;
+      if (line.trim() === "") return <div key={i} className="h-2" />;
+      return (
+        <p key={i} className="text-muted-foreground leading-relaxed text-sm">
+          {renderBold(line)}
+        </p>
+      );
+    });
+  };
 
-        {/* Shake Button */}
-        {needsPayment ? (
-          <PaymentGate feature="boi_kieu" onUnlocked={() => { setUseCount(0); localStorage.setItem(STORAGE_KEY, '0'); }}>
-            <div className="flex justify-center py-8">
-              <button
-                disabled
-                className={cn(
-                  "relative w-32 h-32 rounded-full",
-                  "bg-gradient-to-br from-primary to-primary/70",
-                  "flex items-center justify-center",
-                  "opacity-50 cursor-not-allowed"
-                )}
-              >
-                <div className="text-center">
-                  <Sparkles className="w-10 h-10 text-background mx-auto" />
-                  <span className="text-sm font-semibold text-background mt-1 block">
-                    Gieo Quẻ
-                  </span>
-                </div>
-              </button>
-            </div>
-            <p className="text-center text-sm text-muted-foreground">
-              Bạn đã hết {FREE_USES} lượt miễn phí
-            </p>
-          </PaymentGate>
-        ) : (
-          <>
-            <div className="flex justify-center py-8">
-              <button
-                onClick={handleGieoQue}
-                disabled={isShaking}
-                className={cn(
-                  "relative w-32 h-32 rounded-full",
-                  "bg-gradient-to-br from-primary to-primary/70",
-                  "flex items-center justify-center",
-                  "shadow-[0_0_40px_hsl(var(--primary)/0.3)]",
-                  "hover:shadow-[0_0_60px_hsl(var(--primary)/0.5)]",
-                  "transition-all duration-300",
-                  "hover:scale-105 active:scale-95",
-                  isShaking && "animate-[shake_0.5s_ease-in-out_infinite]"
-                )}
-              >
-                <div className="text-center">
-                  {isShaking ? (
-                    <RefreshCw className="w-10 h-10 text-background animate-spin" />
-                  ) : (
-                    <>
-                      <Sparkles className="w-10 h-10 text-background mx-auto" />
-                      <span className="text-sm font-semibold text-background mt-1 block">
-                        Gieo Quẻ
-                      </span>
-                    </>
-                  )}
-                </div>
-              </button>
-            </div>
-            <p className="text-center text-xs text-muted-foreground">
-              Còn {FREE_USES - useCount}/{FREE_USES} lượt miễn phí
-            </p>
-          </>
-        )}
+  const renderBold = (text: string): React.ReactNode => {
+    const parts = text.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith("**") && part.endsWith("**")) {
+        return (
+          <strong key={i} className="text-foreground font-semibold">
+            {part.slice(2, -2)}
+          </strong>
+        );
+      }
+      return part;
+    });
+  };
 
-        {/* Result Card */}
-        {result && style && (
-          <div className={cn(
+  const style = verse ? fortuneStyles[verse.fortune] : null;
+
+  const usesLabel = kieuPackage
+    ? `Còn ${kieuPackage.uses_remaining}/${kieuPackage.uses_total} lần trong gói`
+    : `Còn ${FREE_USES - useCount}/${FREE_USES} lần miễn phí`;
+
+  const mainContent = (
+    <div className="space-y-5">
+      {/* Question input */}
+      <div>
+        <textarea
+          placeholder="Nhập câu hỏi của bạn... (VD: Công việc của tôi sắp tới sẽ thế nào?)"
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          className="w-full rounded-xl border border-border bg-surface-3 p-4 text-sm resize-none h-24 focus:outline-none focus:border-primary/50 text-foreground placeholder:text-muted-foreground"
+        />
+      </div>
+
+      {/* Gieo Que Button */}
+      <div className="flex flex-col items-center gap-3 py-4">
+        <button
+          onClick={handleGieoQue}
+          disabled={isShaking || isAnalyzing}
+          className={cn(
+            "relative w-32 h-32 rounded-full",
+            "bg-gradient-to-br from-primary to-primary/70",
+            "flex items-center justify-center",
+            "shadow-[0_0_40px_hsl(var(--primary)/0.3)]",
+            "hover:shadow-[0_0_60px_hsl(var(--primary)/0.5)]",
+            "transition-all duration-300",
+            "hover:scale-105 active:scale-95",
+            "disabled:opacity-60 disabled:cursor-not-allowed",
+            isShaking && "animate-[shake_0.5s_ease-in-out_infinite]"
+          )}
+        >
+          <div className="text-center">
+            {isShaking ? (
+              <RefreshCw className="w-10 h-10 text-background animate-spin" />
+            ) : (
+              <>
+                <Sparkles className="w-10 h-10 text-background mx-auto" />
+                <span className="text-sm font-semibold text-background mt-1 block">Gieo Quẻ</span>
+              </>
+            )}
+          </div>
+        </button>
+        <p className="text-xs text-muted-foreground">{usesLabel}</p>
+      </div>
+
+      {/* Verse result */}
+      {verse && style && (
+        <div
+          className={cn(
             "rounded-2xl p-6 animate-scale-in",
             "bg-gradient-to-br",
             style.bg,
             "border",
             style.border
-          )}>
-            {/* Fortune Badge */}
-            <div className="flex justify-center mb-4">
-              <span className={cn(
-                "px-4 py-1 rounded-full text-sm font-medium",
-                style.badge
-              )}>
-                {style.badgeText}
-              </span>
-            </div>
+          )}
+        >
+          <div className="flex justify-center mb-4">
+            <span className={cn("px-4 py-1 rounded-full text-sm font-medium", style.badge)}>
+              {style.badgeText}
+            </span>
+          </div>
+          <div className="text-center">
+            <blockquote className="font-display text-lg text-foreground leading-relaxed whitespace-pre-line italic">
+              "{verse.verse}"
+            </blockquote>
+          </div>
+        </div>
+      )}
 
-            {/* Verse */}
-            <div className="text-center mb-6">
-              <blockquote className="font-display text-lg text-foreground leading-relaxed whitespace-pre-line italic">
-                "{result.verse}"
-              </blockquote>
-            </div>
+      {/* Analyzing spinner */}
+      {isAnalyzing && (
+        <div className={cn("rounded-2xl p-8 text-center bg-gradient-to-br from-surface-3 to-surface-2 border border-primary/20")}>
+          <div className="relative inline-block mb-4">
+            <Sparkles className="w-10 h-10 text-primary animate-spin" />
+          </div>
+          <p className="font-display text-lg text-foreground mb-1">Đang luận giải...</p>
+          <p className="text-sm text-muted-foreground">AI đang phân tích câu Kiều cho bạn</p>
+        </div>
+      )}
 
-            {/* Meaning */}
-            <div className={cn(
-              "p-4 rounded-xl",
-              "bg-surface-2/50"
-            )}>
-              <p className="text-sm text-gold font-medium mb-2">
-                Ý nghĩa:
-              </p>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {result.meaning}
-              </p>
-            </div>
-
-            {/* Share Button */}
-            <Button
-              variant="goldOutline"
-              className="w-full mt-4"
-              onClick={handleShare}
-            >
-              <Share2 className="w-4 h-4 mr-2" />
-              Chia Sẻ Quẻ Kiều
+      {/* Claude result */}
+      {result && !isAnalyzing && (
+        <div className={cn("rounded-2xl p-5 bg-gradient-to-br from-secondary/5 to-surface-2 border border-secondary/20")}>
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-5 h-5 text-secondary" />
+            <h3 className="font-display text-lg text-secondary">Luận Giải AI</h3>
+          </div>
+          <div className="space-y-1">{renderMarkdown(result)}</div>
+          <div className="flex gap-2 mt-5">
+            <Button variant="ghost" size="sm" onClick={() => handleShare("verse")} className="flex-1 text-xs">
+              <Share2 className="w-3.5 h-3.5 mr-1" />
+              Chia sẻ câu Kiều
+            </Button>
+            <Button variant="goldOutline" size="sm" onClick={() => handleShare("full")} className="flex-1 text-xs">
+              <Share2 className="w-3.5 h-3.5 mr-1" />
+              Chia sẻ luận giải
             </Button>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Hint */}
-        {!result && !isShaking && (
-          <p className="text-center text-sm text-muted-foreground">
-            Tập trung vào câu hỏi trong tâm, rồi nhấn "Gieo Quẻ"
+      {/* Hint */}
+      {!verse && !isShaking && !isAnalyzing && (
+        <p className="text-center text-sm text-muted-foreground">
+          Tập trung vào câu hỏi trong tâm, rồi nhấn "Gieo Quẻ"
+        </p>
+      )}
+
+      {/* History toggle */}
+      {history.length > 0 && (
+        <div className="space-y-3">
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mx-auto"
+          >
+            <History className="w-4 h-4" />
+            📜 Xem lịch sử ({history.length} lần)
+          </button>
+
+          {showHistory && (
+            <div className="space-y-2">
+              {history.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => {
+                    setVerse({ id: item.verse_id, verse: item.verse, fortune: item.fortune });
+                    setQuestion(item.question);
+                    setResult(item.analysis_result);
+                  }}
+                  className="rounded-xl p-3 border border-border bg-surface-3 cursor-pointer hover:border-primary/30 transition-all"
+                >
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(item.created_at).toLocaleDateString("vi-VN")}
+                  </p>
+                  <p className="text-sm font-medium text-foreground truncate">{item.question}</p>
+                  <p className="text-xs text-muted-foreground italic truncate">
+                    "{item.verse.split("\n")[0]}..."
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <PageLayout title="Bói Kiều">
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+            <BookOpen className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium text-primary">Truyện Kiều - Nguyễn Du</span>
+          </div>
+          <h2 className="font-display text-2xl text-foreground">Bói Kiều</h2>
+          <p className="text-sm text-muted-foreground">
+            Gieo quẻ bằng các câu thơ trong Truyện Kiều để dự đoán vận mệnh
           </p>
+        </div>
+
+        {/* Main content with payment gate when needed */}
+        {needsPayment ? (
+          <PaymentGate
+            feature="boi_kieu"
+            title="Bói Kiều"
+            price="39.000đ"
+            description="Gói 10 lần luận giải - 39.000đ"
+            onUnlocked={() => loadKieuPackage()}
+          >
+            {mainContent}
+          </PaymentGate>
+        ) : (
+          mainContent
         )}
       </div>
 

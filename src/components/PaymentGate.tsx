@@ -50,8 +50,8 @@ const DEFAULT_CONFIGS: Record<string, { title: string; price: string; descriptio
   },
   boi_kieu: {
     title: "Bói Kiều",
-    price: "19.000đ / lần",
-    description: "Gieo quẻ và nhận lời giải từ truyện Kiều",
+    price: "39.000đ",
+    description: "Gói 10 lần luận giải - 39.000đ",
   },
   premium: {
     title: "Gói Premium trọn đời",
