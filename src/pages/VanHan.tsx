@@ -243,11 +243,57 @@ const VanHan = () => {
   };
 
 
-  const handleShare = () => {
-    if (currentResult) {
-      navigator.clipboard.writeText(currentResult);
-      toast.success("Đã sao chép kết quả!");
+  const cleanMarkdown = (text: string): string => {
+    return text
+      .replace(/^#{1,3} /gm, '')
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/^[-•] /gm, '• ')
+      .replace(/^> /gm, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  };
+
+  const extractChamNgon = (text: string): string | null => {
+    const match = text.match(/^>\s*(.+)$/m);
+    return match ? match[1].trim() : null;
+  };
+
+  const handleShare = async (type: 'full' | 'quote') => {
+    if (!currentResult) return;
+
+    let shareText = '';
+    if (type === 'full') {
+      const cleaned = cleanMarkdown(currentResult);
+      shareText = `✨ ${timeInfo.label} - Tử Vi App\n\n${cleaned}\n\n🔮 Xem tại: ai-tuvi.lovable.app`;
+    } else {
+      const chamNgon = extractChamNgon(currentResult);
+      if (!chamNgon) {
+        toast.error('Không tìm thấy câu châm ngôn');
+        return;
+      }
+      shareText = `✨ ${chamNgon}\n\n🔮 Xem tại: ai-tuvi.lovable.app`;
     }
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Tử Vi - ${timeInfo.label}`,
+          text: shareText,
+          url: 'https://ai-tuvi.lovable.app',
+        });
+        return;
+      } catch (e) {
+        // User cancel → fallback copy
+      }
+    }
+
+    await navigator.clipboard.writeText(shareText);
+    toast.success(
+      type === 'full'
+        ? '📋 Đã sao chép luận giải!'
+        : '📋 Đã sao chép châm ngôn!'
+    );
   };
 
   // ── Markdown renderer ──
@@ -314,10 +360,24 @@ const VanHan = () => {
         <div className="space-y-1">
           {renderMarkdown(currentResult)}
         </div>
-        <div className="flex gap-3 mt-5">
-          <Button variant="ghost" size="sm" onClick={handleShare}>
-            <Share2 className="w-4 h-4 mr-1" />
-            Chia sẻ
+        <div className="flex gap-2 mt-5">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleShare('quote')}
+            className="flex-1 text-xs"
+          >
+            <Share2 className="w-3.5 h-3.5 mr-1" />
+            Chia sẻ châm ngôn
+          </Button>
+          <Button
+            variant="goldOutline"
+            size="sm"
+            onClick={() => handleShare('full')}
+            className="flex-1 text-xs"
+          >
+            <Share2 className="w-3.5 h-3.5 mr-1" />
+            Chia sẻ luận giải
           </Button>
         </div>
       </div>
