@@ -1,9 +1,7 @@
 import { useState, useMemo } from "react";
 import PageLayout from "@/components/PageLayout";
-import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { vi } from "date-fns/locale";
 import { CheckCircle2, XCircle, Clock, Sun, Moon, Sparkles } from "lucide-react";
 import { solarToLunar, LunarDate } from "@/lib/tuvi/lunarCalendar";
 
@@ -95,6 +93,81 @@ const getIsHoangDaoDay = (d: Date): boolean => {
   return isHoangDaoByTruc(truc);
 };
 
+const CustomCalendar = ({ date, setDate, currentMonth, setCurrentMonth }: {
+  date: Date; setDate: (d: Date) => void;
+  currentMonth: Date; setCurrentMonth: (d: Date) => void;
+}) => {
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const startOffset = firstDay === 0 ? 6 : firstDay - 1;
+  const days: (number | null)[] = [];
+  for (let i = 0; i < startOffset; i++) days.push(null);
+  for (let i = 1; i <= daysInMonth; i++) days.push(i);
+  const monthNames = ["1","2","3","4","5","6","7","8","9","10","11","12"];
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={() => setCurrentMonth(new Date(year, month-1, 1))}
+          className="p-2 rounded-full hover:bg-surface-4 text-foreground">‹</button>
+        <span className="font-medium text-foreground">
+          Tháng {monthNames[month]}, {year}
+        </span>
+        <button onClick={() => setCurrentMonth(new Date(year, month+1, 1))}
+          className="p-2 rounded-full hover:bg-surface-4 text-foreground">›</button>
+      </div>
+      <div className="grid grid-cols-7 mb-2">
+        {["T2","T3","T4","T5","T6","T7","CN"].map(d => (
+          <div key={d} className="text-center text-xs text-muted-foreground py-1">{d}</div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {days.map((day, i) => {
+          if (!day) return <div key={i} />;
+          const d = new Date(year, month, day);
+          const isGood = getIsHoangDaoDay(d);
+          const isSelected = format(d, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd');
+          const isToday = format(d, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+          const lunar = solarToLunar(d);
+          return (
+            <button key={day} onClick={() => setDate(d)}
+              style={{
+                borderRadius: '8px', padding: '4px 2px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px',
+                backgroundColor: isSelected ? '#7C3AED' : 'transparent',
+                border: isToday && !isSelected ? '1px solid #7C3AED60' : '1px solid transparent',
+                cursor: 'pointer',
+              }}>
+              <span style={{ fontSize: '13px', fontWeight: '600',
+                color: isSelected ? 'white' : isGood ? '#D4AF37' : '#ef4444' }}>
+                {day}
+              </span>
+              <span style={{ fontSize: '9px', lineHeight: 1,
+                color: isSelected ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.3)' }}>
+                {lunar.day}
+              </span>
+              <div style={{ width: '3px', height: '3px', borderRadius: '50%', opacity: 0.7,
+                backgroundColor: isSelected ? 'rgba(255,255,255,0.8)' : isGood ? '#D4AF37' : '#ef4444' }} />
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex justify-center gap-6 mt-3">
+        <div className="flex items-center gap-1.5">
+          <div className="w-2 h-2 rounded-full bg-gold" />
+          <span className="text-xs text-muted-foreground">Hoàng Đạo</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-2 h-2 rounded-full bg-destructive opacity-70" />
+          <span className="text-xs text-muted-foreground">Hắc Đạo</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const DayAnalysis = () => {
   const [date, setDate] = useState<Date>(new Date());
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
@@ -122,52 +195,12 @@ const DayAnalysis = () => {
           "bg-gradient-to-br from-surface-3 to-surface-2",
           "border border-border"
         )}>
-          <Calendar
-            mode="single"
-            selected={date}
-            onSelect={(d) => d && setDate(d)}
-            onMonthChange={setCurrentMonth}
-            className="pointer-events-auto mx-auto"
-            locale={vi}
-            
-            components={{
-              DayContent: ({ date: d }) => {
-                const isGood = getIsHoangDaoDay(d);
-                const isSelected = date && 
-                  format(d, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd');
-                return (
-                  <div 
-                    className="day-content-wrapper flex flex-col items-center"
-                    style={{ borderRadius: '8px' }}
-                  >
-                    <span style={{ 
-                      color: isSelected ? 'white' : isGood ? '#D4AF37' : '#ef4444',
-                      fontWeight: '600',
-                      fontSize: '14px',
-                    }}>
-                      {d.getDate()}
-                    </span>
-                    <div style={{
-                      width: '4px', height: '4px',
-                      borderRadius: '50%',
-                      backgroundColor: isSelected ? 'rgba(255,255,255,0.8)' 
-                                       : isGood ? '#D4AF37' : '#ef4444',
-                    }} />
-                  </div>
-                );
-              }
-            }}
+          <CustomCalendar
+            date={date}
+            setDate={setDate}
+            currentMonth={currentMonth}
+            setCurrentMonth={setCurrentMonth}
           />
-          <div className="flex items-center justify-center gap-6 mt-2 text-xs">
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-gold" />
-              <span className="text-muted-foreground">Hoàng Đạo</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-destructive opacity-70" />
-              <span className="text-muted-foreground">Hắc Đạo</span>
-            </div>
-          </div>
         </div>
 
         {/* Date Info Card */}
@@ -180,7 +213,7 @@ const DayAnalysis = () => {
           <div className="flex items-start justify-between mb-4">
             <div>
               <p className="text-sm text-muted-foreground">
-                {format(date, "EEEE, dd/MM/yyyy", { locale: vi })}
+                {format(date, "EEEE, dd/MM/yyyy")}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 Ngày {lunarDate.dayCanChi}

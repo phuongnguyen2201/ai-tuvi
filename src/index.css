@@ -334,22 +334,3 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--gold) / 0.5);
 }
-
-/* Override toàn bộ selected state của rdp */
-.rdp-cell .rdp-button[aria-selected="true"],
-.rdp-day_selected,
-.rdp-day_selected > button,
-.rdp-day_selected > .rdp-button,
-.rdp-day[aria-selected="true"] > button {
-  background: none !important;
-  background-color: transparent !important;
-  border: none !important;
-  border-radius: 0 !important;
-}
-
-/* Chỉ tô màu tím vào DayContent wrapper */
-.rdp-day_selected .day-content-wrapper {
-  background-color: #7C3AED !important;
-  border-radius: 8px !important;
-  padding: 4px 6px !important;
-}
