@@ -140,6 +140,110 @@ export type Database = {
           },
         ]
       }
+      kieu_analyses: {
+        Row: {
+          analysis_result: string | null
+          created_at: string | null
+          fortune: string
+          id: string
+          package_id: string | null
+          question: string
+          user_id: string
+          verse: string
+          verse_id: number | null
+        }
+        Insert: {
+          analysis_result?: string | null
+          created_at?: string | null
+          fortune: string
+          id?: string
+          package_id?: string | null
+          question: string
+          user_id: string
+          verse: string
+          verse_id?: number | null
+        }
+        Update: {
+          analysis_result?: string | null
+          created_at?: string | null
+          fortune?: string
+          id?: string
+          package_id?: string | null
+          question?: string
+          user_id?: string
+          verse?: string
+          verse_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kieu_analyses_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "kieu_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kieu_analyses_verse_id_fkey"
+            columns: ["verse_id"]
+            isOneToOne: false
+            referencedRelation: "kieu_verses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kieu_packages: {
+        Row: {
+          created_at: string | null
+          id: string
+          payment_id: string | null
+          user_id: string
+          uses_remaining: number
+          uses_total: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          payment_id?: string | null
+          user_id: string
+          uses_remaining: number
+          uses_total: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          payment_id?: string | null
+          user_id?: string
+          uses_remaining?: number
+          uses_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kieu_packages_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kieu_verses: {
+        Row: {
+          fortune: string
+          id: number
+          verse: string
+        }
+        Insert: {
+          fortune: string
+          id?: number
+          verse: string
+        }
+        Update: {
+          fortune?: string
+          id?: number
+          verse?: string
+        }
+        Relationships: []
+      }
       minted_nfts: {
         Row: {
           birth_data_hash: string

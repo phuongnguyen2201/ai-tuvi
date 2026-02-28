@@ -13,7 +13,7 @@ export const PRICING = {
   van_han_month: 39000,
   van_han_year: 39000,
   boi_que: 19000,
-  boi_kieu: 19000,
+  boi_kieu: 39000,
   premium_monthly: 49000,
   premium_yearly: 399000,
 } as const;
@@ -57,7 +57,7 @@ export function getFeatureLabel(feature: FeatureKey): string {
     van_han_month: 'Luận giải vận hạn tháng này',
     van_han_year: 'Luận giải vận hạn năm 2026',
     boi_que: 'Bói quẻ (10 lần)',
-    boi_kieu: 'Bói Kiều (10 lần)',
+    boi_kieu: 'Bói Kiều (10 lần) - 39.000đ',
     premium_monthly: 'Premium 1 tháng',
     premium_yearly: 'Premium 1 năm',
   };
