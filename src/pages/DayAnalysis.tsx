@@ -89,10 +89,34 @@ const ALL_HOURS = [
   { name: "Hợi", time: "21:00-23:00" },
 ];
 
+const getIsHoangDaoDay = (d: Date): boolean => {
+  const lunar = solarToLunar(d);
+  const truc = getTruc(lunar);
+  return isHoangDaoByTruc(truc);
+};
+
 const DayAnalysis = () => {
   const [date, setDate] = useState<Date>(new Date());
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
 
   const lunarDate = useMemo(() => solarToLunar(date), [date]);
+
+  const { goodDays, badDays } = useMemo(() => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const good: Date[] = [];
+    const bad: Date[] = [];
+    for (let d = 1; d <= daysInMonth; d++) {
+      const day = new Date(year, month, d);
+      if (getIsHoangDaoDay(day)) {
+        good.push(day);
+      } else {
+        bad.push(day);
+      }
+    }
+    return { goodDays: good, badDays: bad };
+  }, [currentMonth]);
   const truc = useMemo(() => getTruc(lunarDate), [lunarDate]);
   const isHoangDao = isHoangDaoByTruc(truc);
   const goodThings = VIEC_TOT_THEO_TRUC[truc] || [];
@@ -117,9 +141,28 @@ const DayAnalysis = () => {
             mode="single"
             selected={date}
             onSelect={(d) => d && setDate(d)}
+            onMonthChange={setCurrentMonth}
             className="pointer-events-auto mx-auto"
             locale={vi}
+            modifiers={{
+              good: goodDays,
+              bad: badDays,
+            }}
+            modifiersClassNames={{
+              good: "day-good",
+              bad: "day-bad",
+            }}
           />
+          <div className="flex items-center justify-center gap-6 mt-2 text-xs">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-gold" />
+              <span className="text-muted-foreground">Hoàng Đạo</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-destructive opacity-70" />
+              <span className="text-muted-foreground">Hắc Đạo</span>
+            </div>
+          </div>
         </div>
 
         {/* Date Info Card */}
