@@ -11,9 +11,7 @@ import {
   Sparkles,
   ChevronRight,
   ChevronLeft,
-  Star,
   Loader2,
-  Save,
   Share2,
 } from "lucide-react";
 
@@ -82,7 +80,6 @@ const VanHan = () => {
   // Analysis
   const [currentResult, setCurrentResult] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
 
   // Load user charts from chart_analyses
   useEffect(() => {
@@ -133,13 +130,11 @@ const VanHan = () => {
   useEffect(() => {
     setTimeOffset(0);
     setCurrentResult(null);
-    setIsSaved(false);
   }, [activeTab]);
 
   // Reset result when changing time period
   useEffect(() => {
     setCurrentResult(null);
-    setIsSaved(false);
   }, [timeOffset]);
 
   const currentTab = TABS.find((t) => t.key === activeTab)!;
@@ -247,24 +242,6 @@ const VanHan = () => {
     }
   };
 
-  const handleSave = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user || !currentResult) return;
-
-    const { error } = await supabase.from("day_analyses").insert({
-      user_id: user.id,
-      solar_date: new Date().toISOString().split("T")[0],
-      analysis: { type: "van_han", timeFrame: activeTab, period: timeInfo.period, content: currentResult },
-      day_quality: "van_han",
-    });
-
-    if (error) {
-      toast.error("Lỗi khi lưu kết quả");
-    } else {
-      setIsSaved(true);
-      toast.success("Đã lưu kết quả!");
-    }
-  };
 
   const handleShare = () => {
     if (currentResult) {
@@ -338,10 +315,6 @@ const VanHan = () => {
           {renderMarkdown(currentResult)}
         </div>
         <div className="flex gap-3 mt-5">
-          <Button variant="goldOutline" size="sm" onClick={handleSave} disabled={isSaved}>
-            {isSaved ? <Star className="w-4 h-4 mr-1" /> : <Save className="w-4 h-4 mr-1" />}
-            {isSaved ? "Đã lưu" : "Lưu kết quả"}
-          </Button>
           <Button variant="ghost" size="sm" onClick={handleShare}>
             <Share2 className="w-4 h-4 mr-1" />
             Chia sẻ
