@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import PageLayout from "@/components/PageLayout";
 import PaymentGate from "@/components/PaymentGate";
 import { Button } from "@/components/ui/button";
@@ -88,26 +88,19 @@ const fortuneConfig = {
 // BẢNG LOOKUP 64 QUẺ theo Trigram (thượng quái × hạ quái)
 // ============================================================
 const TRIGRAM_MAP: Record<string, number> = {
-  "111": 0, // Càn ☰
-  "110": 1, // Đoài ☱
-  "101": 2, // Ly ☲
-  "100": 3, // Chấn ☳
-  "011": 4, // Tốn ☴
-  "010": 5, // Khảm ☵
-  "001": 6, // Cấn ☶
-  "000": 7, // Khôn ☷
+  "111": 0, "110": 1, "101": 2, "100": 3,
+  "011": 4, "010": 5, "001": 6, "000": 7,
 };
 
 const HEXAGRAM_TABLE: number[][] = [
-  //       Càn  Đoài  Ly   Chấn  Tốn   Khảm  Cấn  Khôn
-  [  1,   43,   14,   34,    9,    5,   26,   11 ], // lower: Càn
-  [ 10,   58,   38,   54,   61,   60,   41,   19 ], // lower: Đoài
-  [ 13,   49,   30,   55,   37,   63,   22,   36 ], // lower: Ly
-  [ 25,   17,   21,   51,   42,    3,   27,   24 ], // lower: Chấn
-  [ 44,   28,   50,   32,   57,   48,   18,   46 ], // lower: Tốn
-  [  6,   47,   64,   40,   59,   29,    4,    7 ], // lower: Khảm
-  [ 33,   31,   56,   62,   53,   39,   52,   15 ], // lower: Cấn
-  [ 12,   45,   35,   16,   20,    8,   23,    2 ], // lower: Khôn
+  [  1,   43,   14,   34,    9,    5,   26,   11 ],
+  [ 10,   58,   38,   54,   61,   60,   41,   19 ],
+  [ 13,   49,   30,   55,   37,   63,   22,   36 ],
+  [ 25,   17,   21,   51,   42,    3,   27,   24 ],
+  [ 44,   28,   50,   32,   57,   48,   18,   46 ],
+  [  6,   47,   64,   40,   59,   29,    4,    7 ],
+  [ 33,   31,   56,   62,   53,   39,   52,   15 ],
+  [ 12,   45,   35,   16,   20,    8,   23,    2 ],
 ];
 
 // ============================================================
@@ -119,7 +112,7 @@ const tossCoins = (): number => {
     Math.random() > 0.5 ? 3 : 2,
     Math.random() > 0.5 ? 3 : 2,
   ];
-  return coins.reduce((a, b) => a + b, 0); // 6, 7, 8, hoặc 9
+  return coins.reduce((a, b) => a + b, 0);
 };
 
 const lineValueToYinYang = (val: number): 0 | 1 => {
@@ -145,40 +138,10 @@ const calculateHexagram = () => {
   const changedHexNum = hasChanging ? getHexNum(changedLines) : null;
 
   return {
-    lineValues,
-    mainLines,
-    mainHexNum,
-    changedHexNum,
-    hasChanging,
+    lineValues, mainLines, mainHexNum, changedHexNum, hasChanging,
     changingLines: lineValues.map((v, i) => ({ index: i, value: v, isChanging: v === 6 || v === 9 })),
   };
 };
-
-const FREE_USES = 3;
-const STORAGE_KEY = "boique_usage";
-
-function getTodayUsage(): number {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return 0;
-    const data = JSON.parse(raw);
-    const today = new Date().toISOString().slice(0, 10);
-    return data.date === today ? data.count : 0;
-  } catch { return 0; }
-}
-
-function setTodayUsage(count: number) {
-  const today = new Date().toISOString().slice(0, 10);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: today, count }));
-}
-
-function getQuestionHash(question: string, hexNum: number): string {
-  return `${question.length}${hexNum}`;
-}
-
-function getCacheKey(hexNum: number, question: string): string {
-  return `boi_que_${hexNum}_${getQuestionHash(question, hexNum)}`;
-}
 
 // Simple markdown renderer for AI results
 function renderMarkdown(text: string): React.ReactNode[] {
@@ -211,8 +174,6 @@ const BoiQue = () => {
   const [hexLines, setHexLines] = useState<string[]>([]);
   const [coins, setCoins] = useState<boolean[]>([]);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [useCount, setUseCount] = useState(getTodayUsage);
-  const needsPayment = useCount >= FREE_USES;
 
   // Quẻ biến state
   const [changedHexNum, setChangedHexNum] = useState<number | null>(null);
@@ -223,15 +184,53 @@ const BoiQue = () => {
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
 
+  // Package & history state
+  const [quePackage, setQuePackage] = useState<any>(null);
+  const [history, setHistory] = useState<any[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+
   // Search/lookup state
   const [searchTerm, setSearchTerm] = useState("");
   const [showLookup, setShowLookup] = useState(false);
   const [selectedQue, setSelectedQue] = useState<typeof QUE_DATA[0] | null>(null);
+
   // Audio
   const [soundEnabled, setSoundEnabled] = useState(() => {
     try { return localStorage.getItem("boique_sound") !== "off"; } catch { return true; }
   });
   const audioCtxRef = useRef<AudioContext | null>(null);
+
+  // Load package & history on mount
+  useEffect(() => {
+    loadQuePackage();
+    loadHistory();
+  }, []);
+
+  const loadQuePackage = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase
+      .from('boi_que_packages')
+      .select('*')
+      .eq('user_id', user.id)
+      .gt('uses_remaining', 0)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setQuePackage(data);
+  };
+
+  const loadHistory = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase
+      .from('boi_que_analyses')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(20);
+    setHistory(data || []);
+  };
 
   const toggleSound = () => {
     const next = !soundEnabled;
@@ -269,7 +268,7 @@ const BoiQue = () => {
     if (!soundEnabled) return;
     try {
       const ctx = getAudioCtx();
-      const notes = [523, 659, 784, 1047]; // C5 E5 G5 C6
+      const notes = [523, 659, 784, 1047];
       notes.forEach((freq, i) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -295,6 +294,51 @@ const BoiQue = () => {
         q.symbol.includes(searchTerm)
       )
     : QUE_DATA;
+
+  const handleAnalyze = async (queData: any, lines: string[], changedNum: number | null) => {
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-chart", {
+        body: {
+          analysisType: "hexagram",
+          question: question.trim(),
+          hexagramNumber: queData.id,
+          hexagramName: queData.name,
+          hexagramSymbol: queData.symbol,
+          lines,
+        },
+      });
+
+      if (error) throw error;
+      const analysis = data?.analysis || "Không nhận được kết quả.";
+      setAiResult(analysis);
+
+      // Lưu DB + decrement quota
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && quePackage) {
+        await supabase.from('boi_que_analyses').insert({
+          user_id: user.id,
+          package_id: quePackage.id,
+          question: question.trim(),
+          hexagram_num: queData.id,
+          hexagram_name: queData.name,
+          hexagram_symbol: queData.symbol,
+          hex_lines: lines,
+          changed_hex_num: changedNum,
+          analysis_result: analysis,
+        });
+        await supabase.from('boi_que_packages')
+          .update({ uses_remaining: quePackage.uses_remaining - 1 })
+          .eq('id', quePackage.id);
+        loadQuePackage();
+        loadHistory();
+      }
+    } catch {
+      toast.error("Lỗi khi luận giải. Thử lại nhé!");
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const handleGieoQue = () => {
     if (!question.trim()) {
@@ -335,50 +379,14 @@ const BoiQue = () => {
             setIsAnimating(false);
             playResultReveal();
             navigator.vibrate?.([20, 40, 20, 40, 50]);
-            const newCount = useCount + 1;
-            setUseCount(newCount);
-            setTodayUsage(newCount);
+
+            // Auto analyze
+            handleAnalyze(queData, [...revealLines], hexData.changedHexNum);
           }, 400);
         }
       }, hao * 600);
     }
   };
-
-  const handleAnalyze = useCallback(async () => {
-    if (!result) return;
-
-    // Check cache
-    const cacheKey = getCacheKey(result.id, question);
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      setAiResult(cached);
-      return;
-    }
-
-    setAiLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("analyze-chart", {
-        body: {
-          analysisType: "hexagram",
-          question: question.trim(),
-          hexagramNumber: result.id,
-          hexagramName: result.name,
-          hexagramSymbol: result.symbol,
-          lines: hexLines,
-        },
-      });
-
-      if (error) throw error;
-      const analysis = data?.analysis || "Không nhận được kết quả.";
-      setAiResult(analysis);
-      localStorage.setItem(cacheKey, analysis);
-    } catch (err) {
-      console.error("AI analysis error:", err);
-      toast.error("Lỗi khi phân tích. Vui lòng thử lại.");
-    } finally {
-      setAiLoading(false);
-    }
-  }, [result, question, hexLines]);
 
   const handleReset = () => {
     setResult(null);
@@ -456,45 +464,42 @@ const BoiQue = () => {
             </div>
           )}
 
-          {/* Action buttons */}
-          {needsPayment && !result ? (
-            <PaymentGate
-              feature="boi_que"
-              title="Bói Quẻ Không Giới Hạn - 19.000đ"
-              description="Mua 1 lần, dùng mãi mãi. Gieo quẻ Kinh Dịch không giới hạn lượt."
-              onUnlocked={() => { setUseCount(0); setTodayUsage(0); }}
-            >
-              <div className="text-center space-y-2">
+          {/* Action buttons - Package gate */}
+          {!result && (
+            !quePackage ? (
+              <PaymentGate
+                feature="boi_que"
+                title="Gói Bói Quẻ - 39.000đ"
+                description="10 lần gieo quẻ + luận giải AI chi tiết"
+                onUnlocked={() => loadQuePackage()}
+              >
                 <Button disabled variant="gold" size="lg" className="w-full">
                   Gieo Quẻ 🎴
                 </Button>
-                <p className="text-xs text-destructive font-medium">
-                  ⚠️ Bạn đã dùng hết {FREE_USES} lần miễn phí hôm nay
+              </PaymentGate>
+            ) : (
+              <>
+                <Button
+                  variant="gold"
+                  size="lg"
+                  className="w-full"
+                  onClick={handleGieoQue}
+                  disabled={isAnimating || !question.trim()}
+                >
+                  {isAnimating ? "Đang gieo quẻ..." : "Gieo Quẻ 🎴"}
+                </Button>
+                <p className="text-center text-xs text-muted-foreground">
+                  Còn {quePackage.uses_remaining}/{quePackage.uses_total} lần trong gói
                 </p>
-              </div>
-            </PaymentGate>
-          ) : !result ? (
-            <>
-              <Button
-                variant="gold"
-                size="lg"
-                className="w-full"
-                onClick={handleGieoQue}
-                disabled={isAnimating || !question.trim()}
-              >
-                {isAnimating ? "Đang gieo quẻ..." : "Gieo Quẻ 🎴"}
-              </Button>
-              <p className="text-center text-xs text-muted-foreground">
-                Còn {FREE_USES - useCount}/{FREE_USES} lượt miễn phí hôm nay
-              </p>
-            </>
-          ) : null}
+              </>
+            )
+          )}
         </div>
 
         {/* Result */}
         {result && style && (
           <div className="space-y-4">
-            {/* Quẻ header - FREE */}
+            {/* Quẻ header */}
             <div className={cn(
               "rounded-2xl p-6 border bg-gradient-to-br ink-splash",
               style.bg, style.border
@@ -578,41 +583,24 @@ const BoiQue = () => {
               </Button>
             </div>
 
-            {/* Locked AI detailed section */}
-            <PaymentGate
-              feature="boi_que"
-              title="Bói Quẻ Không Giới Hạn - 19.000đ"
-              description="Mua 1 lần, dùng mãi mãi. Xem giải nghĩa chi tiết AI, lời khuyên hành động."
-              onUnlocked={handleAnalyze}
-            >
-              <div className="space-y-4">
-                {aiLoading ? (
-                  <div className={cn("rounded-2xl p-8 text-center bg-gradient-to-br from-surface-3 to-surface-2 border border-gold/20")}>
-                    <div className="relative inline-block mb-4">
-                      <Sparkles className="w-10 h-10 text-gold animate-spin" />
-                    </div>
-                    <p className="font-display text-lg text-foreground mb-1">Đang luận giải quẻ...</p>
-                    <p className="text-sm text-muted-foreground">AI đang phân tích quẻ {result.name} theo câu hỏi của bạn</p>
+            {/* AI Analysis - auto triggered */}
+            <div className="space-y-4">
+              {aiLoading ? (
+                <div className={cn("rounded-2xl p-8 text-center bg-gradient-to-br from-surface-3 to-surface-2 border border-gold/20")}>
+                  <div className="relative inline-block mb-4">
+                    <Sparkles className="w-10 h-10 text-gold animate-spin" />
                   </div>
-                ) : aiResult ? (
-                  <div className={cn("rounded-2xl p-5 bg-gradient-to-br from-surface-3 to-surface-2 border border-gold/20")}>
-                    <div className="space-y-1">
-                      {renderMarkdown(aiResult)}
-                    </div>
+                  <p className="font-display text-lg text-foreground mb-1">Đang luận giải quẻ...</p>
+                  <p className="text-sm text-muted-foreground">AI đang phân tích quẻ {result.name} theo câu hỏi của bạn</p>
+                </div>
+              ) : aiResult ? (
+                <div className={cn("rounded-2xl p-5 bg-gradient-to-br from-surface-3 to-surface-2 border border-gold/20")}>
+                  <div className="space-y-1">
+                    {renderMarkdown(aiResult)}
                   </div>
-                ) : (
-                  <div className="text-center py-6">
-                    <Button variant="gold" size="lg" onClick={handleAnalyze}>
-                      <Sparkles className="w-5 h-5 mr-2" />
-                      Luận Giải AI Quẻ {result.name}
-                    </Button>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Phân tích chuyên sâu bằng AI dựa trên câu hỏi của bạn
-                    </p>
-                  </div>
-                )}
-              </div>
-            </PaymentGate>
+                </div>
+              ) : null}
+            </div>
           </div>
         )}
 
@@ -620,6 +608,59 @@ const BoiQue = () => {
           <p className="text-center text-xs text-muted-foreground opacity-60">
             Tập trung vào câu hỏi, thành tâm rồi nhấn "Gieo Quẻ"
           </p>
+        )}
+
+        {/* Lịch sử */}
+        {history.length > 0 && (
+          <div className="mt-6">
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border bg-surface-3 text-sm"
+            >
+              <span className="flex items-center gap-2">
+                <Search className="w-4 h-4 text-gold" />
+                Lịch sử ({history.length} lần)
+              </span>
+              <span>{showHistory ? '▲' : '▼'}</span>
+            </button>
+            {showHistory && (
+              <div className="mt-2 space-y-2">
+                {history.map((item) => (
+                  <div
+                    key={item.id}
+                    onClick={() => {
+                      setQuestion(item.question);
+                      setResult(QUE_DATA.find(q => q.id === item.hexagram_num) || null);
+                      setAiResult(item.analysis_result);
+                      setHexLines(item.hex_lines || []);
+                      setChangedHexNum(item.changed_hex_num);
+                      setHasChanging(!!item.changed_hex_num);
+                      setChangingLineIndexes([]);
+                      setShowHistory(false);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="rounded-xl p-3 border border-border bg-surface-3 cursor-pointer hover:border-gold/30 transition-colors"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(item.created_at).toLocaleDateString('vi-VN', {
+                          day: '2-digit', month: '2-digit', year: 'numeric',
+                          hour: '2-digit', minute: '2-digit',
+                        })}
+                      </span>
+                      <span className="text-gold text-sm">{item.hexagram_symbol}</span>
+                    </div>
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {item.question}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">
+                      Quẻ {String(item.hexagram_num).padStart(2, '0')} — {item.hexagram_name}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {/* Lookup / Tra cứu 64 quẻ */}
