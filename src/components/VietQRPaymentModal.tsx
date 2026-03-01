@@ -52,7 +52,12 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
 
   useEffect(() => {
     if (open) {
-      setStep(isPremium ? "select_plan" : "show_qr");
+      const pendingId = localStorage.getItem(`payment_pending_${feature}`);
+      if (pendingId) {
+        setStep('pending');
+      } else {
+        setStep(isPremium ? "select_plan" : "show_qr");
+      }
       setCopied(false);
       setAnalysisResult(null);
       setFakeProgress(0);
@@ -111,6 +116,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
     }
 
     setStep("pending");
+    localStorage.setItem(`payment_pending_${feature}`, 'true');
   };
 
   // Start polling chart_analyses for luan_giai after payment verified
@@ -189,6 +195,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
             console.log('[Modal] INSERT event:', payload.new?.chart_hash);
             if (payload.new?.chart_hash === chartHash) {
               console.log('[Modal] ✅ Access granted via INSERT');
+              localStorage.removeItem(`payment_pending_${feature}`);
               setStep('success');
               onSuccess?.();
             }
@@ -202,6 +209,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
             console.log('[Modal] UPDATE event:', payload.new?.chart_hash);
             if (payload.new?.chart_hash === chartHash) {
               console.log('[Modal] ✅ Access granted via UPDATE');
+              localStorage.removeItem(`payment_pending_${feature}`);
               setStep('success');
               onSuccess?.();
             }
@@ -225,6 +233,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
           if (data && !cancelled) {
             console.log('[Modal] ✅ Polling detected access for:', chartHash);
             if (pollInterval) clearInterval(pollInterval);
+            localStorage.removeItem(`payment_pending_${feature}`);
             setStep('success');
             onSuccess?.();
           }
@@ -241,9 +250,11 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
           }, (payload: any) => {
             console.log('[Modal] Payment updated:', payload.new.status);
             if (payload.new.status === 'verified') {
+              localStorage.removeItem(`payment_pending_${feature}`);
               setStep('success');
               onSuccess?.();
             } else if (payload.new.status === 'rejected') {
+              localStorage.removeItem(`payment_pending_${feature}`);
               setStep('show_qr');
               toast({
                 title: "Giao dịch bị từ chối",
@@ -269,6 +280,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
           if (data && !cancelled) {
             console.log('[Modal] Polling detected verified payment');
             if (pollInterval) clearInterval(pollInterval);
+            localStorage.removeItem(`payment_pending_${feature}`);
             setStep('success');
             onSuccess?.();
           }
@@ -288,6 +300,9 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
 
   const handleClose = () => {
     cleanupPolling();
+    if (step !== 'pending') {
+      localStorage.removeItem(`payment_pending_${feature}`);
+    }
     onOpenChange(false);
     if (step === 'success') {
       onSuccess?.(analysisResult || undefined);
