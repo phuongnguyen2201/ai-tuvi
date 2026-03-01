@@ -14,6 +14,91 @@ export type Database = {
   }
   public: {
     Tables: {
+      boi_que_analyses: {
+        Row: {
+          analysis_result: string | null
+          changed_hex_num: number | null
+          created_at: string | null
+          hex_lines: Json | null
+          hexagram_name: string
+          hexagram_num: number
+          hexagram_symbol: string | null
+          id: string
+          package_id: string | null
+          question: string
+          user_id: string
+        }
+        Insert: {
+          analysis_result?: string | null
+          changed_hex_num?: number | null
+          created_at?: string | null
+          hex_lines?: Json | null
+          hexagram_name: string
+          hexagram_num: number
+          hexagram_symbol?: string | null
+          id?: string
+          package_id?: string | null
+          question: string
+          user_id: string
+        }
+        Update: {
+          analysis_result?: string | null
+          changed_hex_num?: number | null
+          created_at?: string | null
+          hex_lines?: Json | null
+          hexagram_name?: string
+          hexagram_num?: number
+          hexagram_symbol?: string | null
+          id?: string
+          package_id?: string | null
+          question?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "boi_que_analyses_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "boi_que_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      boi_que_packages: {
+        Row: {
+          created_at: string | null
+          id: string
+          payment_id: string | null
+          user_id: string
+          uses_remaining: number
+          uses_total: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          payment_id?: string | null
+          user_id: string
+          uses_remaining: number
+          uses_total: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          payment_id?: string | null
+          user_id?: string
+          uses_remaining?: number
+          uses_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "boi_que_packages_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chart_analyses: {
         Row: {
           analysis_result: string | null
