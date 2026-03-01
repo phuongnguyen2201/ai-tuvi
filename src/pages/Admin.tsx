@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -16,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bell, DollarSign, Users, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { Bell, DollarSign, Users, CheckCircle, XCircle, Loader2, Plus, Search, Package } from "lucide-react";
 
 const ADMIN_EMAILS = ["phuongnguyen2201@gmail.com"];
 
@@ -28,7 +29,7 @@ const FEATURE_LABELS: Record<string, string> = {
   boi_kieu: "Bói Kiều",
   premium_monthly: "Premium tháng",
   premium_yearly: "Premium năm",
-  luan_giai: "Luận giải lá số",
+  luan_giai: "Gói Luận Giải (3 lần - 39,000đ)",
 };
 
 const formatCurrency = (amount: number) =>
@@ -60,8 +61,21 @@ interface PaymentRow {
   user_email?: string | null;
 }
 
+interface LuanGiaiPackage {
+  id: string;
+  user_id: string;
+  total_uses: number;
+  remaining_uses: number;
+  amount: number;
+  payment_status: string | null;
+  payment_method: string | null;
+  created_at: string | null;
+  confirmed_at: string | null;
+  display_name?: string | null;
+  user_email?: string | null;
+}
+
 const callAdmin = async (action: string, params: Record<string, any> = {}) => {
-  const { data: { session } } = await supabase.auth.getSession();
   const res = await supabase.functions.invoke("admin-actions", {
     body: { action, ...params },
   });
@@ -75,25 +89,33 @@ const Admin = () => {
 
   const [pendingPayments, setPendingPayments] = useState<PaymentRow[]>([]);
   const [historyPayments, setHistoryPayments] = useState<PaymentRow[]>([]);
+  const [luanGiaiPackages, setLuanGiaiPackages] = useState<LuanGiaiPackage[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
   const [monthRevenue, setMonthRevenue] = useState(0);
   const [activeUsers, setActiveUsers] = useState(0);
   const [loadingStats, setLoadingStats] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
+  // Grant package state
+  const [grantEmail, setGrantEmail] = useState("");
+  const [grantUses, setGrantUses] = useState(3);
+  const [grantLoading, setGrantLoading] = useState(false);
+
   const fetchAll = useCallback(async () => {
     setLoadingStats(true);
     try {
-      const [stats, pending, history] = await Promise.all([
+      const [stats, pending, history, lgPkgs] = await Promise.all([
         callAdmin("get_stats"),
         callAdmin("get_pending"),
         callAdmin("get_history"),
+        callAdmin("get_luan_giai_packages"),
       ]);
       setPendingCount(stats.pendingCount);
       setMonthRevenue(stats.monthRevenue);
       setActiveUsers(stats.activeUsers);
       setPendingPayments(pending);
       setHistoryPayments(history);
+      setLuanGiaiPackages(lgPkgs);
     } catch (err: any) {
       toast({ title: "Lỗi", description: err.message, variant: "destructive" });
     }
@@ -117,31 +139,20 @@ const Admin = () => {
       expiresAt = new Date(Date.now() + 365 * 86400000).toISOString();
     }
 
-    console.log('[Admin] Verifying payment:', {
-      paymentId: payment.id,
-      userId: payment.user_id,
-      feature,
-      hasNotes: !!payment.notes,
-      notes: payment.notes,
-      expiresAt,
-    });
-
     try {
-      const result = await callAdmin("verify", {
+      await callAdmin("verify", {
         paymentId: payment.id,
         userId: payment.user_id,
         feature,
         expiresAt,
         paymentRef: payment.id,
       });
-      console.log('[Admin] Verify result:', result);
       toast({
         title: "✅ Đã kích hoạt",
         description: `Đã kích hoạt cho ${payment.display_name || payment.user_email || "user"}`,
       });
       fetchAll();
     } catch (err: any) {
-      console.error('[Admin] Verify exception:', err);
       toast({ title: "Lỗi", description: err.message, variant: "destructive" });
     }
     setActionLoading(null);
@@ -159,6 +170,48 @@ const Admin = () => {
     setActionLoading(null);
   };
 
+  const handleConfirmLuanGiai = async (pkg: LuanGiaiPackage) => {
+    setActionLoading(pkg.id);
+    try {
+      await callAdmin("confirm_luan_giai", { packageId: pkg.id });
+      toast({ title: "✅ Đã xác nhận gói Luận Giải" });
+      fetchAll();
+    } catch (err: any) {
+      toast({ title: "Lỗi", description: err.message, variant: "destructive" });
+    }
+    setActionLoading(null);
+  };
+
+  const handleAddUses = async (pkg: LuanGiaiPackage) => {
+    setActionLoading(pkg.id);
+    try {
+      await callAdmin("add_luan_giai_uses", { packageId: pkg.id, addUses: 3 });
+      toast({ title: "✅ Đã thêm 3 lượt luận giải" });
+      fetchAll();
+    } catch (err: any) {
+      toast({ title: "Lỗi", description: err.message, variant: "destructive" });
+    }
+    setActionLoading(null);
+  };
+
+  const handleGrantPackage = async () => {
+    if (!grantEmail.trim()) return;
+    setGrantLoading(true);
+    try {
+      const result = await callAdmin("grant_luan_giai", { email: grantEmail.trim(), uses: grantUses });
+      toast({
+        title: "✅ Đã cấp gói Luận Giải",
+        description: `Cấp ${grantUses} lượt cho ${result.user?.display_name || grantEmail}`,
+      });
+      setGrantEmail("");
+      setGrantUses(3);
+      fetchAll();
+    } catch (err: any) {
+      toast({ title: "Lỗi", description: err.message, variant: "destructive" });
+    }
+    setGrantLoading(false);
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -173,7 +226,7 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container max-w-4xl mx-auto px-4 py-6">
+      <div className="container max-w-5xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-xl font-display font-bold text-foreground">
@@ -224,11 +277,13 @@ const Admin = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="pending">
-          <TabsList className="mb-4">
+          <TabsList className="mb-4 flex-wrap h-auto gap-1">
             <TabsTrigger value="pending">Chờ xác nhận 🔔</TabsTrigger>
+            <TabsTrigger value="luan_giai">Gói Luận Giải 📦</TabsTrigger>
             <TabsTrigger value="history">Lịch sử ✅</TabsTrigger>
           </TabsList>
 
+          {/* =================== PENDING PAYMENTS =================== */}
           <TabsContent value="pending">
             <ScrollArea className="w-full">
               <div className="min-w-[700px]">
@@ -299,6 +354,143 @@ const Admin = () => {
             </ScrollArea>
           </TabsContent>
 
+          {/* =================== LUAN GIAI PACKAGES =================== */}
+          <TabsContent value="luan_giai">
+            {/* Grant package card */}
+            <Card className="bg-surface-2 border-border mb-4">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Plus className="h-4 w-4" /> Cấp gói Luận Giải
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Input
+                    placeholder="Email người dùng"
+                    value={grantEmail}
+                    onChange={(e) => setGrantEmail(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Input
+                    type="number"
+                    min={1}
+                    max={99}
+                    value={grantUses}
+                    onChange={(e) => setGrantUses(parseInt(e.target.value) || 3)}
+                    className="w-24"
+                    placeholder="Số lượt"
+                  />
+                  <Button
+                    onClick={handleGrantPackage}
+                    disabled={grantLoading || !grantEmail.trim()}
+                    className="whitespace-nowrap"
+                  >
+                    {grantLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <><Package className="h-4 w-4 mr-1" /> Cấp gói</>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Packages table */}
+            <ScrollArea className="w-full">
+              <div className="min-w-[700px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Ngày mua</TableHead>
+                      <TableHead>Họ tên</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Trạng thái</TableHead>
+                      <TableHead>Đã dùng / Tổng</TableHead>
+                      <TableHead>Số tiền</TableHead>
+                      <TableHead>Thao tác</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {luanGiaiPackages.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                          Chưa có gói Luận Giải nào
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      luanGiaiPackages.map((pkg) => {
+                        const used = pkg.total_uses - pkg.remaining_uses;
+                        const isPending = pkg.payment_status === "pending";
+                        return (
+                          <TableRow key={pkg.id} className="hover:bg-accent/50">
+                            <TableCell className="text-xs">{formatTime(pkg.created_at)}</TableCell>
+                            <TableCell className="text-sm">{pkg.display_name || "—"}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">{pkg.user_email || "—"}</TableCell>
+                            <TableCell>
+                              {isPending ? (
+                                <Badge variant="outline" className="text-xs text-yellow-500 border-yellow-500">
+                                  ⏳ Chờ xác nhận
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary" className="text-xs">
+                                  ✅ Đã xác nhận
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {used}/{pkg.total_uses}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {formatCurrency(pkg.amount)}
+                              {pkg.payment_method === "admin_grant" && (
+                                <span className="ml-1 text-muted-foreground">(miễn phí)</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                {isPending && (
+                                  <Button
+                                    size="sm"
+                                    variant="default"
+                                    className="h-7 text-xs"
+                                    disabled={actionLoading === pkg.id}
+                                    onClick={() => handleConfirmLuanGiai(pkg)}
+                                  >
+                                    {actionLoading === pkg.id ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <><CheckCircle className="h-3 w-3 mr-1" />Xác nhận</>
+                                    )}
+                                  </Button>
+                                )}
+                                {!isPending && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 text-xs"
+                                    disabled={actionLoading === pkg.id}
+                                    onClick={() => handleAddUses(pkg)}
+                                  >
+                                    {actionLoading === pkg.id ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <><Plus className="h-3 w-3 mr-1" />Thêm 3 lượt</>
+                                    )}
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </ScrollArea>
+          </TabsContent>
+
+          {/* =================== HISTORY =================== */}
           <TabsContent value="history">
             <ScrollArea className="w-full">
               <div className="min-w-[700px]">
