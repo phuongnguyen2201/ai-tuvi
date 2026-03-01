@@ -43,6 +43,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
   const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const verifiedPayloadRef = useRef<any>(null);
   const { toast } = useToast();
+  const prevOpenRef = useRef(false);
 
   const isPremium = feature === "premium";
   const isLuanGiai = feature === "luan_giai";
@@ -51,7 +52,8 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
   const label = getFeatureLabel(activeFeature);
 
   useEffect(() => {
-    if (open) {
+    if (open && !prevOpenRef.current) {
+      // Only reset when modal just opened (false → true)
       const pendingId = localStorage.getItem(`payment_pending_${feature}`);
       if (pendingId) {
         setStep('pending');
@@ -64,7 +66,11 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
       verifiedPayloadRef.current = null;
       loadUserId();
     }
-    return () => cleanupPolling();
+    if (!open && prevOpenRef.current) {
+      // Modal just closed → cleanup
+      cleanupPolling();
+    }
+    prevOpenRef.current = open;
   }, [open, feature]);
 
   const cleanupPolling = useCallback(() => {
