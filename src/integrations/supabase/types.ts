@@ -329,6 +329,51 @@ export type Database = {
         }
         Relationships: []
       }
+      luan_giai_packages: {
+        Row: {
+          amount: number
+          confirmed_at: string | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          payment_method: string | null
+          payment_status: string | null
+          remaining_uses: number
+          session_id: string | null
+          total_uses: number
+          transfer_content: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          confirmed_at?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          payment_method?: string | null
+          payment_status?: string | null
+          remaining_uses?: number
+          session_id?: string | null
+          total_uses?: number
+          transfer_content?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          confirmed_at?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          payment_method?: string | null
+          payment_status?: string | null
+          remaining_uses?: number
+          session_id?: string | null
+          total_uses?: number
+          transfer_content?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       minted_nfts: {
         Row: {
           birth_data_hash: string
@@ -511,12 +556,14 @@ export type Database = {
           gender: string
           id: string
           interpretation: Json | null
+          interpreted_at: string | null
           lunar_day: number | null
           lunar_month: number | null
           lunar_year: number | null
           nap_am: string | null
           ngu_hanh: string | null
           shared: boolean | null
+          status: string | null
           user_id: string | null
         }
         Insert: {
@@ -532,12 +579,14 @@ export type Database = {
           gender: string
           id?: string
           interpretation?: Json | null
+          interpreted_at?: string | null
           lunar_day?: number | null
           lunar_month?: number | null
           lunar_year?: number | null
           nap_am?: string | null
           ngu_hanh?: string | null
           shared?: boolean | null
+          status?: string | null
           user_id?: string | null
         }
         Update: {
@@ -553,12 +602,14 @@ export type Database = {
           gender?: string
           id?: string
           interpretation?: Json | null
+          interpreted_at?: string | null
           lunar_day?: number | null
           lunar_month?: number | null
           lunar_year?: number | null
           nap_am?: string | null
           ngu_hanh?: string | null
           shared?: boolean | null
+          status?: string | null
           user_id?: string | null
         }
         Relationships: [
