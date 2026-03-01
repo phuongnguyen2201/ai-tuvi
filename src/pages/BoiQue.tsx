@@ -84,6 +84,76 @@ const fortuneConfig = {
   challenging: { bg: "from-red-600/20 to-red-600/5", border: "border-red-600/40", badge: "bg-red-600 text-white font-bold", label: "Hung 凶" },
 };
 
+// ============================================================
+// BẢNG LOOKUP 64 QUẺ theo Trigram (thượng quái × hạ quái)
+// ============================================================
+const TRIGRAM_MAP: Record<string, number> = {
+  "111": 0, // Càn ☰
+  "110": 1, // Đoài ☱
+  "101": 2, // Ly ☲
+  "100": 3, // Chấn ☳
+  "011": 4, // Tốn ☴
+  "010": 5, // Khảm ☵
+  "001": 6, // Cấn ☶
+  "000": 7, // Khôn ☷
+};
+
+const HEXAGRAM_TABLE: number[][] = [
+  //       Càn  Đoài  Ly   Chấn  Tốn   Khảm  Cấn  Khôn
+  [  1,   43,   14,   34,    9,    5,   26,   11 ], // lower: Càn
+  [ 10,   58,   38,   54,   61,   60,   41,   19 ], // lower: Đoài
+  [ 13,   49,   30,   55,   37,   63,   22,   36 ], // lower: Ly
+  [ 25,   17,   21,   51,   42,    3,   27,   24 ], // lower: Chấn
+  [ 44,   28,   50,   32,   57,   48,   18,   46 ], // lower: Tốn
+  [  6,   47,   64,   40,   59,   29,    4,    7 ], // lower: Khảm
+  [ 33,   31,   56,   62,   53,   39,   52,   15 ], // lower: Cấn
+  [ 12,   45,   35,   16,   20,    8,   23,    2 ], // lower: Khôn
+];
+
+// ============================================================
+// THUẬT TOÁN TUNG XU
+// ============================================================
+const tossCoins = (): number => {
+  const coins = [
+    Math.random() > 0.5 ? 3 : 2,
+    Math.random() > 0.5 ? 3 : 2,
+    Math.random() > 0.5 ? 3 : 2,
+  ];
+  return coins.reduce((a, b) => a + b, 0); // 6, 7, 8, hoặc 9
+};
+
+const lineValueToYinYang = (val: number): 0 | 1 => {
+  return (val === 7 || val === 9) ? 1 : 0;
+};
+
+const lineValueToChanged = (val: number): 0 | 1 => {
+  return (val === 9) ? 0 : (val === 6) ? 1 : lineValueToYinYang(val);
+};
+
+const getHexNum = (lines: number[]) => {
+  const lower = TRIGRAM_MAP[`${lines[0]}${lines[1]}${lines[2]}`];
+  const upper = TRIGRAM_MAP[`${lines[3]}${lines[4]}${lines[5]}`];
+  return HEXAGRAM_TABLE[lower][upper];
+};
+
+const calculateHexagram = () => {
+  const lineValues = Array.from({ length: 6 }, () => tossCoins());
+  const mainLines = lineValues.map(lineValueToYinYang);
+  const changedLines = lineValues.map(lineValueToChanged);
+  const hasChanging = lineValues.some(v => v === 6 || v === 9);
+  const mainHexNum = getHexNum(mainLines);
+  const changedHexNum = hasChanging ? getHexNum(changedLines) : null;
+
+  return {
+    lineValues,
+    mainLines,
+    mainHexNum,
+    changedHexNum,
+    hasChanging,
+    changingLines: lineValues.map((v, i) => ({ index: i, value: v, isChanging: v === 6 || v === 9 })),
+  };
+};
+
 const FREE_USES = 3;
 const STORAGE_KEY = "boique_usage";
 
@@ -143,6 +213,11 @@ const BoiQue = () => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [useCount, setUseCount] = useState(getTodayUsage);
   const needsPayment = useCount >= FREE_USES;
+
+  // Quẻ biến state
+  const [changedHexNum, setChangedHexNum] = useState<number | null>(null);
+  const [hasChanging, setHasChanging] = useState(false);
+  const [changingLineIndexes, setChangingLineIndexes] = useState<number[]>([]);
 
   // AI state
   const [aiResult, setAiResult] = useState<string | null>(null);
@@ -232,37 +307,41 @@ const BoiQue = () => {
     setAiResult(null);
     setHexLines([]);
     setCoins([]);
+    setChangedHexNum(null);
+    setHasChanging(false);
+    setChangingLineIndexes([]);
 
-    // Animate coins one by one
-    const newCoins: boolean[] = [];
-    const flipCoin = (index: number) => {
+    const hexData = calculateHexagram();
+    const revealLines: string[] = [];
+
+    for (let hao = 0; hao < 6; hao++) {
       setTimeout(() => {
-        const isHeads = Math.random() > 0.5;
-        newCoins.push(isHeads);
-        setCoins([...newCoins]);
         playCoinFlip();
         navigator.vibrate?.(30);
+        revealLines.push(hexData.mainLines[hao] === 1 ? 'yang' : 'yin');
+        setHexLines([...revealLines]);
 
-        if (index === 2) {
+        if (hao === 5) {
           setTimeout(() => {
-            const randomQue = QUE_DATA[Math.floor(Math.random() * QUE_DATA.length)];
-            const lines = Array.from({ length: 6 }, () => Math.random() > 0.5 ? 'yang' : 'yin');
-            setHexLines(lines);
-            setResult(randomQue);
+            const queData = QUE_DATA.find(q => q.id === hexData.mainHexNum) || QUE_DATA[0];
+            setResult(queData);
+            setChangedHexNum(hexData.changedHexNum);
+            setHasChanging(hexData.hasChanging);
+            setChangingLineIndexes(
+              hexData.changingLines
+                .filter(l => l.isChanging)
+                .map(l => l.index)
+            );
             setIsAnimating(false);
             playResultReveal();
             navigator.vibrate?.([20, 40, 20, 40, 50]);
             const newCount = useCount + 1;
             setUseCount(newCount);
             setTodayUsage(newCount);
-          }, 600);
+          }, 400);
         }
-      }, (index + 1) * 500);
-    };
-
-    flipCoin(0);
-    flipCoin(1);
-    flipCoin(2);
+      }, hao * 600);
+    }
   };
 
   const handleAnalyze = useCallback(async () => {
@@ -307,6 +386,9 @@ const BoiQue = () => {
     setHexLines([]);
     setQuestion("");
     setAiResult(null);
+    setChangedHexNum(null);
+    setHasChanging(false);
+    setChangingLineIndexes([]);
   };
 
   const handleShare = () => {
@@ -432,12 +514,56 @@ const BoiQue = () => {
                 Ngũ hành: {result.element}
               </p>
 
+              {/* 6 hào display */}
+              {hexLines.length > 0 && (
+                <div className="flex flex-col-reverse items-center gap-1 my-4 ink-reveal" style={{ animationDelay: '1.0s' }}>
+                  {hexLines.map((line, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground w-8 text-right">
+                        Hào {i + 1}
+                      </span>
+                      <div className={cn(
+                        "flex gap-1",
+                        changingLineIndexes.includes(i) ? "text-gold" : "text-foreground"
+                      )}>
+                        {line === 'yang' ? (
+                          <div className="w-16 h-2 bg-current rounded" />
+                        ) : (
+                          <div className="flex gap-1">
+                            <div className="w-7 h-2 bg-current rounded" />
+                            <div className="w-7 h-2 bg-current rounded" />
+                          </div>
+                        )}
+                      </div>
+                      {changingLineIndexes.includes(i) && (
+                        <span className="text-xs text-gold">← động</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Free summary */}
               <div className="mt-4 p-4 rounded-xl bg-surface-2/60 ink-reveal" style={{ animationDelay: '1.1s' }}>
                 <p className="text-sm text-foreground leading-relaxed">
                   {result.summary}
                 </p>
               </div>
+
+              {/* Quẻ biến */}
+              {hasChanging && changedHexNum && (
+                <div className="mt-3 p-3 rounded-xl bg-surface-2/60 border border-gold/20 ink-reveal" style={{ animationDelay: '1.2s' }}>
+                  <p className="text-xs text-muted-foreground text-center">
+                    Quẻ biến (之卦) →{" "}
+                    <span className="text-gold font-medium">
+                      Quẻ {String(changedHexNum).padStart(2, '0')} — {QUE_DATA.find(q => q.id === changedHexNum)?.name}
+                    </span>
+                  </p>
+                  <p className="text-xs text-muted-foreground text-center mt-1 italic">
+                    {QUE_DATA.find(q => q.id === changedHexNum)?.summary}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Action buttons */}
