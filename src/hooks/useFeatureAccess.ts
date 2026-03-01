@@ -45,6 +45,21 @@ export function useFeatureAccess(feature: string) {
       return;
     }
 
+    // Check boi_que_packages
+    if (feature === 'boi_que') {
+      const { data: pkg } = await supabase
+        .from('boi_que_packages')
+        .select('uses_remaining')
+        .eq('user_id', user.id)
+        .gt('uses_remaining', 0)
+        .maybeSingle();
+
+      console.log('[useFeatureAccess] boi_que pkg check:', { feature, hasPkg: !!pkg });
+      setHasAccess(!!pkg);
+      setIsLoading(false);
+      return;
+    }
+
     // Check kieu_packages if boi_kieu feature
     if (feature === 'boi_kieu') {
       const { data: pkg } = await supabase
@@ -78,7 +93,7 @@ export function useFeatureAccess(feature: string) {
     checkAccess();
 
     let channelRef: ReturnType<typeof supabase.channel> | null = null;
-    let pkgChannelRef: ReturnType<typeof supabase.channel> | null = null;
+    const extraChannels: ReturnType<typeof supabase.channel>[] = [];
 
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
@@ -105,7 +120,7 @@ export function useFeatureAccess(feature: string) {
 
       // Listen for van_han_packages changes
       if (VAN_HAN_FEATURES.includes(feature)) {
-        pkgChannelRef = supabase
+        const vhChannel = supabase
           .channel('van-han-pkg-' + user.id + '-' + feature)
           .on(
             'postgres_changes',
@@ -118,11 +133,30 @@ export function useFeatureAccess(feature: string) {
             () => checkAccess()
           )
           .subscribe();
+        extraChannels.push(vhChannel);
+      }
+
+      // Listen for boi_que_packages changes
+      if (feature === 'boi_que') {
+        const bqChannel = supabase
+          .channel('boi-que-pkg-' + user.id)
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'boi_que_packages',
+              filter: `user_id=eq.${user.id}`,
+            },
+            () => checkAccess()
+          )
+          .subscribe();
+        extraChannels.push(bqChannel);
       }
 
       // Listen for kieu_packages changes
       if (feature === 'boi_kieu') {
-        pkgChannelRef = supabase
+        const kieuChannel = supabase
           .channel('kieu-pkg-' + user.id)
           .on(
             'postgres_changes',
@@ -135,12 +169,13 @@ export function useFeatureAccess(feature: string) {
             () => checkAccess()
           )
           .subscribe();
+        extraChannels.push(kieuChannel);
       }
     });
 
     return () => {
       if (channelRef) supabase.removeChannel(channelRef);
-      if (pkgChannelRef) supabase.removeChannel(pkgChannelRef);
+      extraChannels.forEach(ch => supabase.removeChannel(ch));
     };
   }, [feature]);
 
