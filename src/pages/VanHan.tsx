@@ -488,10 +488,16 @@ const VanHan = () => {
     );
   };
 
+  const packageTitle: Record<TimeFrame, string> = {
+    week: "Gói Vận Hạn Tuần - 39.000đ",
+    month: "Gói Vận Hạn Tháng - 39.000đ",
+    year: "Gói Vận Hạn Năm - 39.000đ",
+  };
+
   const packageDesc: Record<TimeFrame, string> = {
-    week: "Gói 9 lần phân tích - 39.000đ",
-    month: "Gói 6 lần phân tích - 39.000đ",
-    year: "Gói 3 lần phân tích - 39.000đ",
+    week: "Thanh toán 1 lần, luận giải 9 lần vận hạn theo tuần",
+    month: "Thanh toán 1 lần, luận giải 6 lần vận hạn theo tháng",
+    year: "Thanh toán 1 lần, luận giải 3 lần vận hạn theo năm",
   };
 
   return (
@@ -562,7 +568,7 @@ const VanHan = () => {
         {selectedChart && (
           <PaymentGate
             feature={currentTab.featureKey}
-            title={`Luận giải vận hạn ${activeTab === "week" ? "tuần" : activeTab === "month" ? "tháng" : "năm"}`}
+            title={packageTitle[activeTab]}
             price="39.000đ"
             description={packageDesc[activeTab]}
             onUnlocked={() => loadPackage(activeTab)}
