@@ -756,7 +756,7 @@ export default function TuViIztroPage() {
                   <Card className="max-w-sm w-full mx-4 p-6 text-center border-border bg-card shadow-xl">
                     <div className="text-4xl mb-3">🔮</div>
                     <h3 className="text-lg font-bold text-foreground mb-1">Luận giải chi tiết lá số</h3>
-                    <p className="text-2xl font-bold text-primary mb-2">29.000đ</p>
+                    <p className="text-2xl font-bold text-primary mb-2">49.000đ</p>
                     <p className="text-sm text-muted-foreground mb-5">
                       {personName ? `Luận giải chi tiết cho ${personName}.` : 'Xem đầy đủ luận giải 12 cung.'} AI phân tích chuyên sâu. Mua 1 lần, xem mãi mãi.
                     </p>
