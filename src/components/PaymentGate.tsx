@@ -44,9 +44,9 @@ const DEFAULT_CONFIGS: Record<string, { title: string; price: string; descriptio
     description: "Gói 3 lần phân tích - 39.000đ",
   },
   boi_que: {
-    title: "Bói quẻ Kinh Dịch",
-    price: "19.000đ / lần",
-    description: "Gieo quẻ và luận giải chi tiết theo Kinh Dịch",
+    title: "Gói Bói Quẻ",
+    price: "39.000đ",
+    description: "10 lần gieo quẻ + luận giải AI chi tiết",
   },
   boi_kieu: {
     title: "Bói Kiều",
