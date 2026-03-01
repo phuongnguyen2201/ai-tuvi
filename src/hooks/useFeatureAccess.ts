@@ -75,6 +75,24 @@ export function useFeatureAccess(feature: string) {
       return;
     }
 
+    // Check luan_giai_packages
+    if (feature === 'luan_giai') {
+      const { data: pkg } = await supabase
+        .from('luan_giai_packages')
+        .select('remaining_uses')
+        .eq('user_id', user.id)
+        .eq('payment_status', 'confirmed')
+        .gt('remaining_uses', 0)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      console.log('[useFeatureAccess] luan_giai pkg check:', { feature, hasPkg: !!pkg });
+      setHasAccess(!!pkg);
+      setIsLoading(false);
+      return;
+    }
+
     // Check user_features as usual
     const { data } = await supabase
       .from('user_features')
@@ -170,6 +188,24 @@ export function useFeatureAccess(feature: string) {
           )
           .subscribe();
         extraChannels.push(kieuChannel);
+      }
+
+      // Listen for luan_giai_packages changes
+      if (feature === 'luan_giai') {
+        const lgChannel = supabase
+          .channel('luan-giai-pkg-' + user.id)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'luan_giai_packages',
+              filter: `user_id=eq.${user.id}`,
+            },
+            () => checkAccess()
+          )
+          .subscribe();
+        extraChannels.push(lgChannel);
       }
     });
 

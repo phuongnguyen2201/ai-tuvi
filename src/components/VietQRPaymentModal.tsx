@@ -102,6 +102,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
       return;
     }
 
+    // Insert payment record
     const { error } = await supabase
       .from('payments')
       .insert({
@@ -121,53 +122,30 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
       return;
     }
 
+    // For luan_giai, also create a pending package
+    if (isLuanGiai) {
+      const { error: pkgError } = await supabase
+        .from('luan_giai_packages')
+        .insert({
+          user_id: user.id,
+          total_uses: 3,
+          remaining_uses: 3,
+          amount: amount,
+          payment_status: 'pending',
+          session_id: transferContent,
+          transfer_content: transferContent,
+        });
+
+      if (pkgError) {
+        console.error('luan_giai_packages insert error:', pkgError);
+      }
+    }
+
     setStep("pending");
     localStorage.setItem(`payment_pending_${feature}`, 'true');
   };
 
-  // Start polling chart_analyses for luan_giai after payment verified
-  const startPollingAnalysis = useCallback((chartHash: string) => {
-    console.log('[Modal] Starting analysis polling for chartHash:', chartHash);
-    setStep('processing');
-    setFakeProgress(0);
-
-    // Fake progress bar: 0→90% over ~60s
-    let progress = 0;
-    progressRef.current = setInterval(() => {
-      progress += Math.random() * 3 + 0.5;
-      if (progress > 90) progress = 90;
-      setFakeProgress(progress);
-    }, 1000);
-
-    // Poll chart_analyses every 3s
-    pollRef.current = setInterval(async () => {
-      const { data } = await supabase
-        .from('chart_analyses')
-        .select('analysis_result')
-        .eq('chart_hash', chartHash)
-        .maybeSingle();
-
-      if (data?.analysis_result) {
-        console.log('[Modal] Analysis result received!');
-        cleanupPolling();
-        setFakeProgress(100);
-        setAnalysisResult(data.analysis_result);
-        setTimeout(() => setStep('success'), 500);
-      }
-    }, 3000);
-
-    // Timeout after 2 minutes
-    timeoutRef.current = setTimeout(() => {
-      cleanupPolling();
-      setFakeProgress(100);
-      setAnalysisResult(null);
-      setStep('success'); // Show success anyway, user can reload later
-      toast({
-        title: "Luận giải đang được xử lý",
-        description: "Kết quả sẽ hiện khi bạn quay lại trang này",
-      });
-    }, 120000);
-  }, [cleanupPolling, toast]);
+  // (startPollingAnalysis removed - luan_giai now uses package-based access)
 
   // Realtime subscription for payment/chart status
   useEffect(() => {
@@ -182,39 +160,20 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
       if (!user || cancelled) return;
 
       if (isLuanGiai) {
-        const chartHash = metadata?.chartHash;
-        console.log('[Modal] Setup luan_giai listener:', { chartHash, userId: user.id });
-        if (!chartHash) {
-          console.warn('[Modal] No chartHash in metadata, cannot listen');
-          return;
-        }
+        console.log('[Modal] Setup luan_giai listener for user:', user.id);
 
-        // LAYER 1: Realtime - lắng nghe cả INSERT và UPDATE
+        // LAYER 1: Realtime - listen for luan_giai_packages confirmation
         channel = supabase
-          .channel('chart-access-' + chartHash)
-          .on('postgres_changes', {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'chart_analyses',
-            filter: `user_id=eq.${user.id}`,
-          }, (payload: any) => {
-            console.log('[Modal] INSERT event:', payload.new?.chart_hash);
-            if (payload.new?.chart_hash === chartHash) {
-              console.log('[Modal] ✅ Access granted via INSERT');
-              localStorage.removeItem(`payment_pending_${feature}`);
-              setStep('success');
-              onSuccess?.();
-            }
-          })
+          .channel('luan-giai-access-' + user.id)
           .on('postgres_changes', {
             event: 'UPDATE',
             schema: 'public',
-            table: 'chart_analyses',
+            table: 'luan_giai_packages',
             filter: `user_id=eq.${user.id}`,
           }, (payload: any) => {
-            console.log('[Modal] UPDATE event:', payload.new?.chart_hash);
-            if (payload.new?.chart_hash === chartHash) {
-              console.log('[Modal] ✅ Access granted via UPDATE');
+            console.log('[Modal] luan_giai_packages UPDATE:', payload.new?.payment_status);
+            if (payload.new?.payment_status === 'confirmed') {
+              console.log('[Modal] ✅ luan_giai package confirmed');
               localStorage.removeItem(`payment_pending_${feature}`);
               setStep('success');
               onSuccess?.();
@@ -225,19 +184,21 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
           });
 
         // LAYER 2: Polling fallback mỗi 5 giây
-        console.log('[Modal] Starting polling for chartHash:', chartHash);
+        console.log('[Modal] Starting polling for luan_giai_packages');
         pollInterval = setInterval(async () => {
           if (cancelled) return;
-          console.log('[Modal] Polling tick for:', chartHash);
           const { data } = await supabase
-            .from('chart_analyses')
+            .from('luan_giai_packages')
             .select('id')
-            .eq('chart_hash', chartHash)
             .eq('user_id', user.id)
+            .eq('payment_status', 'confirmed')
+            .gt('remaining_uses', 0)
+            .order('created_at', { ascending: false })
+            .limit(1)
             .maybeSingle();
 
           if (data && !cancelled) {
-            console.log('[Modal] ✅ Polling detected access for:', chartHash);
+            console.log('[Modal] ✅ Polling detected confirmed luan_giai package');
             if (pollInterval) clearInterval(pollInterval);
             localStorage.removeItem(`payment_pending_${feature}`);
             setStep('success');

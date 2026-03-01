@@ -9,13 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Edit3, Check, X, LogOut, Star, Clock, Crown, ShieldCheck, Package, ScrollText, Eye } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Edit3, Check, X, LogOut, Star, Clock, Crown, ShieldCheck, Package, ScrollText, Eye, Sparkles } from "lucide-react";
 
 const FEATURE_NAMES: Record<string, string> = {
   premium: "Premium toàn diện",
@@ -43,13 +37,20 @@ interface Payment {
   created_at: string | null;
 }
 
-interface ChartAnalysis {
+interface TuViReading {
   id: string;
-  chart_hash: string;
-  birth_data: any;
-  analysis_result: string | null;
-  analysis_type: string | null;
-  created_at: string;
+  birth_date: string;
+  birth_hour: number;
+  gender: string;
+  status: string | null;
+  created_at: string | null;
+  chart_data: any;
+  interpretation: any;
+}
+
+interface LuanGiaiPkg {
+  remaining_uses: number;
+  total_uses: number;
 }
 
 const formatDate = (dateStr: string | null) => {
@@ -69,6 +70,11 @@ const formatMoney = (amount: number) => {
   return amount.toLocaleString("vi-VN") + "đ";
 };
 
+const LUNAR_HOURS: Record<number, string> = {
+  0: 'Tý', 1: 'Sửu', 2: 'Dần', 3: 'Mão', 4: 'Thìn', 5: 'Tỵ',
+  6: 'Ngọ', 7: 'Mùi', 8: 'Thân', 9: 'Dậu', 10: 'Tuất', 11: 'Hợi',
+};
+
 const Profile = () => {
   const { user, loading, initializing, displayName, signOut } = useAuth();
   const navigate = useNavigate();
@@ -78,8 +84,8 @@ const Profile = () => {
   const [features, setFeatures] = useState<UserFeature[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [profileData, setProfileData] = useState<any>(null);
-  const [chartAnalyses, setChartAnalyses] = useState<ChartAnalysis[]>([]);
-  
+  const [readings, setReadings] = useState<TuViReading[]>([]);
+  const [luanGiaiPkg, setLuanGiaiPkg] = useState<LuanGiaiPkg | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -89,16 +95,18 @@ const Profile = () => {
 
   const fetchAll = async () => {
     if (!user) return;
-    const [profileRes, featuresRes, paymentsRes, analysesRes] = await Promise.all([
+    const [profileRes, featuresRes, paymentsRes, readingsRes, lgPkgRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
       supabase.from("user_features").select("*").eq("user_id", user.id).order("unlocked_at", { ascending: false }),
       supabase.from("payments").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(10),
-      (supabase.from("chart_analyses") as any).select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("tuvi_readings").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("luan_giai_packages").select("remaining_uses, total_uses").eq("user_id", user.id).eq("payment_status", "confirmed").gt("remaining_uses", 0).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     ]);
     setProfileData(profileRes.data);
     setFeatures(featuresRes.data || []);
     setPayments(paymentsRes.data || []);
-    setChartAnalyses(analysesRes.data || []);
+    setReadings(readingsRes.data || []);
+    setLuanGiaiPkg(lgPkgRes.data || null);
   };
 
   const handleSaveName = async () => {
@@ -114,7 +122,6 @@ const Profile = () => {
       toast.success("Đã cập nhật tên thành công!");
       setEditingName(false);
       fetchAll();
-      // Refresh auth context profile
       window.location.reload();
     }
     setSavingName(false);
@@ -222,6 +229,19 @@ const Profile = () => {
               </div>
             )}
 
+            {/* Gói luận giải */}
+            {luanGiaiPkg && (
+              <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="font-medium text-foreground text-sm">Gói Luận Giải Lá Số</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Còn {luanGiaiPkg.remaining_uses}/{luanGiaiPkg.total_uses} lần luận giải
+                </p>
+              </div>
+            )}
+
             {otherFeatures.map((f) => (
               <div key={f.id} className="rounded-xl border border-border bg-surface-3/50 p-4">
                 <div className="flex items-center gap-2 mb-1">
@@ -239,7 +259,7 @@ const Profile = () => {
               </div>
             ))}
 
-            {features.length === 0 && (
+            {features.length === 0 && !luanGiaiPkg && (
               <div className="text-center py-6">
                 <Package className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
                 <p className="text-sm text-muted-foreground mb-4">
@@ -253,74 +273,55 @@ const Profile = () => {
           </CardContent>
         </Card>
 
-        {/* PHẦN 2.5: Lá số đã luận giải */}
-        {chartAnalyses.length > 0 && (
+        {/* PHẦN 2.5: Lá số đã lập */}
+        {readings.length > 0 && (
           <Card className="border-gold/20 bg-surface-2/80 backdrop-blur">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <ScrollText className="h-5 w-5 text-gold" />
-                Lá số đã luận giải
+                Lá số đã lập ({readings.length})
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {chartAnalyses.map((a) => {
-                const bd = a.birth_data || {};
-                const birthDateStr = bd.solarDate || bd.birthDate || '';
-                const genderStr = bd.gender || '';
-                const label = bd.name
-                  ? `${bd.name} - ${birthDateStr}${genderStr ? ` - ${genderStr}` : ''}`
-                  : `Ngày sinh: ${birthDateStr || a.chart_hash}`;
+              {readings.map((r) => {
+                const isInterpreted = r.status === 'interpreted' || !!r.interpretation;
+                const hourLabel = LUNAR_HOURS[r.birth_hour] || `Giờ ${r.birth_hour}`;
                 return (
-                  <div key={a.id} className="flex items-center justify-between rounded-xl border border-border bg-surface-3/50 p-4">
+                  <div key={r.id} className="flex items-center justify-between rounded-xl border border-border bg-surface-3/50 p-4">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-foreground truncate">{label}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Luận giải: {formatDate(a.created_at)} · {a.analysis_type === 'full' ? 'Toàn diện' : a.analysis_type}
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {formatDate(r.birth_date)} · {hourLabel} · {r.gender}
                       </p>
-                    </div>
-                    {a.analysis_result ? (
-                      <Button
-                        variant="goldOutline"
-                        size="sm"
-                        onClick={() => {
-                          const bd = a.birth_data || {};
-                          const params = new URLSearchParams();
-                          const dateVal = bd.solarDate || bd.birthDate;
-                          if (dateVal) params.set('date', dateVal);
-                          if (bd.hour !== undefined || bd.birthHour !== undefined) params.set('hour', String(bd.hour ?? bd.birthHour));
-                          if (bd.gender) params.set('gender', bd.gender);
-                          if (bd.isLunar) params.set('calendar', 'lunar');
-                          else params.set('calendar', 'solar');
-                          if (bd.name || bd.personName) params.set('name', bd.name || bd.personName);
-                          navigate(`/lap-la-so?${params.toString()}`);
-                        }}
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        Xem lại
-                      </Button>
-                    ) : (
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-yellow-500 text-xs">⏳ Đang xử lý...</span>
-                        <Button
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-xs text-muted-foreground">
+                          Lập: {formatDate(r.created_at)}
+                        </p>
+                        <Badge
                           variant="outline"
-                          size="sm"
-                          className="text-xs h-7 border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
-                          onClick={() => {
-                            const bd2 = a.birth_data || {};
-                            const params = new URLSearchParams();
-                            const dateVal = bd2.solarDate || bd2.birthDate;
-                            if (dateVal) params.set('date', dateVal);
-                            if (bd2.hour !== undefined || bd2.birthHour !== undefined) params.set('hour', String(bd2.hour ?? bd2.birthHour));
-                            if (bd2.gender) params.set('gender', bd2.gender);
-                            params.set('calendar', bd2.isLunar ? 'lunar' : 'solar');
-                            if (bd2.name || bd2.personName) params.set('name', bd2.name || bd2.personName);
-                            navigate(`/lap-la-so?${params.toString()}`);
-                          }}
+                          className={isInterpreted
+                            ? "border-green-500/50 text-green-400 bg-green-500/10 text-[10px]"
+                            : "border-muted-foreground/30 text-muted-foreground text-[10px]"
+                          }
                         >
-                          ▶ Tiếp tục xem
-                        </Button>
+                          {isInterpreted ? "✅ Đã luận giải" : "⬜ Chưa luận giải"}
+                        </Badge>
                       </div>
-                    )}
+                    </div>
+                    <Button
+                      variant="goldOutline"
+                      size="sm"
+                      onClick={() => {
+                        const params = new URLSearchParams();
+                        params.set('date', r.birth_date);
+                        params.set('hour', String(r.birth_hour));
+                        params.set('gender', r.gender);
+                        params.set('calendar', 'solar');
+                        navigate(`/lap-la-so?${params.toString()}`);
+                      }}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      Xem
+                    </Button>
                   </div>
                 );
               })}
@@ -328,9 +329,7 @@ const Profile = () => {
           </Card>
         )}
 
-
-
-
+        {/* Lịch sử thanh toán */}
         {payments.length > 0 && (
           <Card className="border-gold/20 bg-surface-2/80 backdrop-blur">
             <CardHeader className="pb-3">
@@ -371,7 +370,7 @@ const Profile = () => {
           </Card>
         )}
 
-        {/* PHẦN 4: Đăng xuất */}
+        {/* Đăng xuất */}
         <Button variant="outline" className="w-full border-destructive/30 text-destructive hover:bg-destructive/10" onClick={handleSignOut}>
           <LogOut className="h-4 w-4 mr-2" />
           Đăng xuất

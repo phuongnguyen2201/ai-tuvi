@@ -19,9 +19,9 @@ interface PaymentGateProps {
 
 const DEFAULT_CONFIGS: Record<string, { title: string; price: string; description: string }> = {
   luan_giai: {
-    title: "Luận giải chi tiết lá số",
-    price: "49.000đ",
-    description: "AI phân tích chuyên sâu 12 cung. Mua 1 lần, xem mãi mãi.",
+    title: "Gói Luận Giải Lá Số",
+    price: "39.000đ",
+    description: "3 lần luận giải AI chuyên sâu 12 cung. Thanh toán 1 lần, dùng cho nhiều lá số.",
   },
   van_han: {
     title: "Xem vận hạn năm",
