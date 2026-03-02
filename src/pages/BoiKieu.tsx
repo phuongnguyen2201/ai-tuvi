@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Sparkles, RefreshCw, BookOpen, Share2, History, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+// ── CHANGE 1: Import streaming hook ──
+import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 
 const fortuneStyles: Record<string, { bg: string; border: string; badge: string; badgeText: string }> = {
   excellent: {
@@ -47,17 +49,27 @@ const BoiKieu = () => {
   const [history, setHistory] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [verses, setVerses] = useState<any[]>([]);
-  const [useCount, setUseCount] = useState(() =>
-    parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10)
-  );
+  const [useCount, setUseCount] = useState(() => parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10));
+
+  // ── CHANGE 2: Streaming hook ──
+  const {
+    isStreaming: isStreamingAI,
+    streamedText,
+    error: streamError,
+    startStreaming,
+    abort: abortStreaming,
+  } = useStreamingAnalysis();
 
   const needsPayment = useCount >= FREE_USES && !kieuPackage;
 
   // Load verses, package, history on mount
   useEffect(() => {
-    supabase.from("kieu_verses").select("*").then(({ data }) => {
-      setVerses(data || []);
-    });
+    supabase
+      .from("kieu_verses")
+      .select("*")
+      .then(({ data }) => {
+        setVerses(data || []);
+      });
     loadKieuPackage();
     loadHistory();
   }, []);
@@ -123,26 +135,37 @@ const BoiKieu = () => {
         localStorage.setItem(STORAGE_KEY, String(newCount));
       }
 
-      // Gọi Claude
+      // Gọi Claude with STREAMING
       await handleAnalyze(randomVerse);
     }, 1500);
   };
 
-  // Analyze with Claude
+  // ── CHANGE 3: Analyze with STREAMING ──
   const handleAnalyze = async (selectedVerse: any) => {
     setIsAnalyzing(true);
+    setResult(null); // Clear so streaming text shows
+
     try {
-      const { data, error } = await supabase.functions.invoke("analyze-chart", {
-        body: {
+      const fullText = await startStreaming(
+        {
           analysisType: "boi_kieu",
           question,
           verse: selectedVerse.verse,
           fortune: selectedVerse.fortune,
         },
-      });
+        {
+          onError: (err) => {
+            console.error("[BoiKieu] Stream error:", err);
+            toast.error(err || "Lỗi khi luận giải. Thử lại nhé!");
+          },
+        },
+      );
 
-      if (error) throw error;
-      const analysisResult = data?.analysis || "";
+      if (!fullText) {
+        throw new Error("Không nhận được kết quả.");
+      }
+
+      const analysisResult = fullText;
       setResult(analysisResult);
 
       // Lưu DB nếu có package
@@ -184,8 +207,9 @@ const BoiKieu = () => {
     if (type === "verse") {
       shareText = `📜 Bói Kiều\n\n❓ ${question}\n\n"${verse.verse}"\n\n🔮 Xem tại: ai-tuvi.lovable.app`;
     } else {
-      if (!result) return;
-      const cleaned = result
+      const displayText = result || streamedText;
+      if (!displayText) return;
+      const cleaned = displayText
         .replace(/^#{1,3} /gm, "")
         .replace(/\*\*(.*?)\*\*/g, "$1")
         .replace(/\*(.*?)\*/g, "$1")
@@ -207,7 +231,7 @@ const BoiKieu = () => {
     toast.success(type === "verse" ? "📋 Đã sao chép câu Kiều!" : "📋 Đã sao chép luận giải!");
   };
 
-  // Markdown renderer (same as VanHan)
+  // Markdown renderer
   const renderMarkdown = (text: string) => {
     return text.split("\n").map((line, i) => {
       if (line.startsWith("## "))
@@ -230,7 +254,10 @@ const BoiKieu = () => {
         );
       if (line.startsWith("> "))
         return (
-          <blockquote key={i} className="border-l-4 border-primary/40 pl-4 italic text-muted-foreground my-3 bg-primary/5 py-2 rounded-r">
+          <blockquote
+            key={i}
+            className="border-l-4 border-primary/40 pl-4 italic text-muted-foreground my-3 bg-primary/5 py-2 rounded-r"
+          >
             {line.replace("> ", "")}
           </blockquote>
         );
@@ -271,18 +298,13 @@ const BoiKieu = () => {
   };
 
   const renderVerse = (verseText: string) => {
-    // DB lưu literal \n (escaped), cần replace thành newline thật
-    const normalized = verseText.replace(/\\n/g, '\n');
-    const parts = normalized.split('\n');
+    const normalized = verseText.replace(/\\n/g, "\n");
+    const parts = normalized.split("\n");
 
     return (
       <div className="text-center font-display italic py-2">
-        <div className="text-base leading-relaxed text-foreground">
-          "{parts[0]}
-        </div>
-        <div className="text-lg leading-relaxed text-foreground">
-          {parts[1] || ''}"
-        </div>
+        <div className="text-base leading-relaxed text-foreground">"{parts[0]}</div>
+        <div className="text-lg leading-relaxed text-foreground">{parts[1] || ""}"</div>
       </div>
     );
   };
@@ -292,6 +314,60 @@ const BoiKieu = () => {
   const usesLabel = kieuPackage
     ? `Còn ${kieuPackage.uses_remaining}/${kieuPackage.uses_total} lần trong gói`
     : `Còn ${FREE_USES - useCount}/${FREE_USES} lần miễn phí`;
+
+  // ── CHANGE 4: Streaming-aware AI result rendering ──
+  const renderAiResult = () => {
+    // STATE A: Streaming — text đang chảy
+    if ((isAnalyzing || isStreamingAI) && !result) {
+      return (
+        <div className={cn("rounded-2xl p-5 bg-gradient-to-br from-surface-3 to-surface-2 border border-primary/20")}>
+          <h3 className="font-display text-lg text-primary flex items-center gap-2 mb-4">
+            <Sparkles className="w-5 h-5 animate-pulse" />
+            Đang luận giải...
+          </h3>
+          {streamedText ? (
+            <div className="space-y-1">
+              {renderMarkdown(streamedText)}
+              <div className="flex items-center gap-2 mt-4 pt-2 border-t border-primary/10">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <span className="text-xs text-muted-foreground">Đang viết tiếp...</span>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Sparkles className="w-10 h-10 text-primary animate-spin mx-auto mb-4" />
+              <p className="font-display text-lg text-foreground mb-1">Đang kết nối AI...</p>
+              <p className="text-sm text-muted-foreground">AI đang phân tích câu Kiều cho bạn</p>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // STATE B: Completed
+    const displayText = result || streamedText;
+    if (!displayText) return null;
+
+    return (
+      <div className={cn("rounded-2xl p-5 bg-gradient-to-br from-secondary/5 to-surface-2 border border-secondary/20")}>
+        <div className="flex items-center gap-2 mb-4">
+          <Sparkles className="w-5 h-5 text-secondary" />
+          <h3 className="font-display text-lg text-secondary">Luận Giải AI</h3>
+        </div>
+        <div className="space-y-1">{renderMarkdown(displayText)}</div>
+        <div className="flex gap-2 mt-5">
+          <Button variant="ghost" size="sm" onClick={() => handleShare("verse")} className="flex-1 text-xs">
+            <Share2 className="w-3.5 h-3.5 mr-1" />
+            Chia sẻ câu Kiều
+          </Button>
+          <Button variant="goldOutline" size="sm" onClick={() => handleShare("full")} className="flex-1 text-xs">
+            <Share2 className="w-3.5 h-3.5 mr-1" />
+            Chia sẻ luận giải
+          </Button>
+        </div>
+      </div>
+    );
+  };
 
   const mainContent = (
     <div className="space-y-5">
@@ -309,7 +385,7 @@ const BoiKieu = () => {
       <div className="flex flex-col items-center gap-3 py-4">
         <button
           onClick={handleGieoQue}
-          disabled={isShaking || isAnalyzing}
+          disabled={isShaking || isAnalyzing || isStreamingAI}
           className={cn(
             "relative w-32 h-32 rounded-full",
             "bg-gradient-to-br from-primary to-primary/70",
@@ -319,7 +395,7 @@ const BoiKieu = () => {
             "transition-all duration-300",
             "hover:scale-105 active:scale-95",
             "disabled:opacity-60 disabled:cursor-not-allowed",
-            isShaking && "animate-[shake_0.5s_ease-in-out_infinite]"
+            isShaking && "animate-[shake_0.5s_ease-in-out_infinite]",
           )}
         >
           <div className="text-center">
@@ -338,58 +414,19 @@ const BoiKieu = () => {
 
       {/* Verse result */}
       {verse && style && (
-        <div
-          className={cn(
-            "rounded-2xl p-6 animate-scale-in",
-            "bg-gradient-to-br",
-            style.bg,
-            "border",
-            style.border
-          )}
-        >
+        <div className={cn("rounded-2xl p-6 animate-scale-in", "bg-gradient-to-br", style.bg, "border", style.border)}>
           <div className="flex justify-center mb-4">
-            <span className={cn("px-4 py-1 rounded-full text-sm font-medium", style.badge)}>
-              {style.badgeText}
-            </span>
+            <span className={cn("px-4 py-1 rounded-full text-sm font-medium", style.badge)}>{style.badgeText}</span>
           </div>
           {renderVerse(verse.verse)}
         </div>
       )}
 
-      {/* Analyzing spinner */}
-      {isAnalyzing && (
-        <div className={cn("rounded-2xl p-8 text-center bg-gradient-to-br from-surface-3 to-surface-2 border border-primary/20")}>
-          <div className="relative inline-block mb-4">
-            <Sparkles className="w-10 h-10 text-primary animate-spin" />
-          </div>
-          <p className="font-display text-lg text-foreground mb-1">Đang luận giải...</p>
-          <p className="text-sm text-muted-foreground">AI đang phân tích câu Kiều cho bạn</p>
-        </div>
-      )}
-
-      {/* Claude result */}
-      {result && !isAnalyzing && (
-        <div className={cn("rounded-2xl p-5 bg-gradient-to-br from-secondary/5 to-surface-2 border border-secondary/20")}>
-          <div className="flex items-center gap-2 mb-4">
-            <Sparkles className="w-5 h-5 text-secondary" />
-            <h3 className="font-display text-lg text-secondary">Luận Giải AI</h3>
-          </div>
-          <div className="space-y-1">{renderMarkdown(result)}</div>
-          <div className="flex gap-2 mt-5">
-            <Button variant="ghost" size="sm" onClick={() => handleShare("verse")} className="flex-1 text-xs">
-              <Share2 className="w-3.5 h-3.5 mr-1" />
-              Chia sẻ câu Kiều
-            </Button>
-            <Button variant="goldOutline" size="sm" onClick={() => handleShare("full")} className="flex-1 text-xs">
-              <Share2 className="w-3.5 h-3.5 mr-1" />
-              Chia sẻ luận giải
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* AI Result — streaming-aware */}
+      {renderAiResult()}
 
       {/* Hint */}
-      {!verse && !isShaking && !isAnalyzing && (
+      {!verse && !isShaking && !isAnalyzing && !isStreamingAI && (
         <p className="text-center text-sm text-muted-foreground">
           Tập trung vào câu hỏi trong tâm, rồi nhấn "Gieo Quẻ"
         </p>
@@ -406,7 +443,7 @@ const BoiKieu = () => {
               <BookOpen className="w-4 h-4 text-gold" />
               Lịch sử luận giải ({history.length} lần)
             </span>
-            <span>{showHistory ? '▲' : '▼'}</span>
+            <span>{showHistory ? "▲" : "▼"}</span>
           </button>
 
           {showHistory && (
@@ -423,34 +460,41 @@ const BoiKieu = () => {
                     setQuestion(item.question);
                     setResult(item.analysis_result);
                     setShowHistory(false);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
                   className="rounded-xl p-3 border border-border bg-surface-3 cursor-pointer hover:border-gold/30 transition-colors"
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs text-muted-foreground">
-                      {new Date(item.created_at).toLocaleDateString('vi-VN', {
-                        day: '2-digit', month: '2-digit', year: 'numeric',
-                        hour: '2-digit', minute: '2-digit'
+                      {new Date(item.created_at).toLocaleDateString("vi-VN", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
                       })}
                     </span>
-                    <span className={cn(
-                      "text-xs px-2 py-0.5 rounded-full",
-                      item.fortune === 'excellent' && "bg-gold/20 text-gold",
-                      item.fortune === 'good' && "bg-green-500/20 text-green-400",
-                      item.fortune === 'neutral' && "bg-purple-500/20 text-purple-400",
-                      item.fortune === 'challenging' && "bg-destructive/20 text-destructive",
-                    )}>
-                      {item.fortune === 'excellent' ? 'Đại Cát' :
-                       item.fortune === 'good' ? 'Cát' :
-                       item.fortune === 'neutral' ? 'Bình' : 'Hung'}
+                    <span
+                      className={cn(
+                        "text-xs px-2 py-0.5 rounded-full",
+                        item.fortune === "excellent" && "bg-gold/20 text-gold",
+                        item.fortune === "good" && "bg-green-500/20 text-green-400",
+                        item.fortune === "neutral" && "bg-purple-500/20 text-purple-400",
+                        item.fortune === "challenging" && "bg-destructive/20 text-destructive",
+                      )}
+                    >
+                      {item.fortune === "excellent"
+                        ? "Đại Cát"
+                        : item.fortune === "good"
+                          ? "Cát"
+                          : item.fortune === "neutral"
+                            ? "Bình"
+                            : "Hung"}
                     </span>
                   </div>
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {item.question}
-                  </p>
+                  <p className="text-sm font-medium text-foreground truncate">{item.question}</p>
                   <p className="text-xs text-muted-foreground italic truncate mt-0.5">
-                    "{item.verse.split('\n')[0]}..."
+                    "{item.verse.split("\n")[0]}..."
                   </p>
                 </div>
               ))}
