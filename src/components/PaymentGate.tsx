@@ -84,6 +84,7 @@ const PaymentGate = ({ feature, children, onUnlocked, title, price, description,
   }, [hasAccess]);
 
   // ── FIX: Re-check access when window regains focus ──
+  // (Covers: user switches to admin panel, admin confirms, user switches back)
   useEffect(() => {
     const handleFocus = () => {
       refresh();
@@ -92,7 +93,7 @@ const PaymentGate = ({ feature, children, onUnlocked, title, price, description,
     return () => window.removeEventListener("focus", handleFocus);
   }, [refresh]);
 
-  // ── FIX: Memoize onSuccess to prevent modal useEffect re-runs ──
+  // ── FIX: Memoize onSuccess to prevent VietQRPaymentModal useEffect re-runs ──
   const handlePaymentSuccess = useCallback(async () => {
     console.log("[PaymentGate] onSuccess called, refreshing...");
     setShowPayment(false);
@@ -100,6 +101,10 @@ const PaymentGate = ({ feature, children, onUnlocked, title, price, description,
     console.log("[PaymentGate] refresh done, hasAccess will update via state");
     onUnlocked?.();
   }, [refresh, onUnlocked]);
+
+  // ── FIX: Always render modal, never let it unmount due to isLoading/hasAccess changes ──
+  // Previously, the modal was only inside the "locked" branch, so it would unmount
+  // whenever isLoading flipped to true (causing the 5s reset bug).
 
   const renderLockedOverlay = () => (
     <div className="relative">
@@ -134,10 +139,9 @@ const PaymentGate = ({ feature, children, onUnlocked, title, price, description,
     </div>
   );
 
-  // ── FIX: Modal rendered OUTSIDE conditional branches ──
-  // Previously modal was inside locked branch only → unmounted when isLoading flipped
   return (
     <>
+      {/* Content area: loading / unlocked / locked */}
       {isLoading ? (
         <div className="animate-pulse rounded-lg bg-muted h-48" />
       ) : hasAccess ? (
@@ -146,6 +150,8 @@ const PaymentGate = ({ feature, children, onUnlocked, title, price, description,
         renderLockedOverlay()
       )}
 
+      {/* ── FIX: Modal is ALWAYS rendered here, outside conditional branches ── */}
+      {/* This prevents unmount/remount when isLoading or hasAccess changes */}
       <VietQRPaymentModal
         open={showPayment}
         onOpenChange={setShowPayment}
