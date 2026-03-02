@@ -31,11 +31,35 @@ export interface VietQRPaymentModalProps {
 }
 
 const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }: VietQRPaymentModalProps) => {
-  const [step, setStep] = useState<Step>("show_qr");
+  const storageKey = `payment_pending_${feature}`;
+
+  // Restore persisted pending state from localStorage
+  const getPersistedState = useCallback((): { step: Step; transferContent: string; userId: string } | null => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (!saved) return null;
+      const parsed = JSON.parse(saved);
+      // Validate: must have timestamp within 2 hours
+      if (parsed.timestamp && Date.now() - parsed.timestamp < 2 * 60 * 60 * 1000) {
+        return {
+          step: parsed.step || 'pending',
+          transferContent: parsed.transferContent || '',
+          userId: parsed.userId || '',
+        };
+      }
+      // Expired — clean up
+      localStorage.removeItem(storageKey);
+    } catch {}
+    return null;
+  }, [storageKey]);
+
+  const persisted = getPersistedState();
+
+  const [step, setStep] = useState<Step>(persisted?.step || "show_qr");
   const [selectedPlan, setSelectedPlan] = useState<"premium_monthly" | "premium_yearly">("premium_monthly");
   const [copied, setCopied] = useState(false);
-  const [userId, setUserId] = useState("");
-  const [transferContent, setTransferContent] = useState("");
+  const [userId, setUserId] = useState(persisted?.userId || "");
+  const [transferContent, setTransferContent] = useState(persisted?.transferContent || "");
   const [analysisResult, setAnalysisResult] = useState<string | null>(null);
   const [fakeProgress, setFakeProgress] = useState(0);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -51,20 +75,34 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
   const amount = PRICING[activeFeature] || 0;
   const label = getFeatureLabel(activeFeature);
 
+  // Persist pending state to localStorage whenever step becomes pending
+  const persistPendingState = useCallback((pendingStep: Step, tc: string, uid: string) => {
+    if (pendingStep === 'pending') {
+      localStorage.setItem(storageKey, JSON.stringify({
+        step: 'pending',
+        transferContent: tc,
+        userId: uid,
+        timestamp: Date.now(),
+      }));
+    }
+  }, [storageKey]);
+
   useEffect(() => {
     if (open && !prevOpenRef.current) {
       // Only reset when modal just opened (false → true)
-      const pendingId = localStorage.getItem(`payment_pending_${feature}`);
-      if (pendingId) {
+      const saved = getPersistedState();
+      if (saved && saved.step === 'pending') {
         setStep('pending');
+        setTransferContent(saved.transferContent);
+        setUserId(saved.userId);
       } else {
         setStep(isPremium ? "select_plan" : "show_qr");
+        loadUserId();
       }
       setCopied(false);
       setAnalysisResult(null);
       setFakeProgress(0);
       verifiedPayloadRef.current = null;
-      loadUserId();
     }
     if (!open && prevOpenRef.current) {
       // Modal just closed → cleanup
@@ -142,7 +180,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
     }
 
     setStep("pending");
-    localStorage.setItem(`payment_pending_${feature}`, 'true');
+    persistPendingState('pending', transferContent, user.id);
   };
 
   // (startPollingAnalysis removed - luan_giai now uses package-based access)
@@ -174,7 +212,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
             console.log('[Modal] luan_giai_packages UPDATE:', payload.new?.payment_status);
             if (payload.new?.payment_status === 'confirmed') {
               console.log('[Modal] ✅ luan_giai package confirmed');
-              localStorage.removeItem(`payment_pending_${feature}`);
+              localStorage.removeItem(storageKey);
               setStep('success');
               onSuccess?.();
             }
@@ -200,7 +238,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
           if (data && !cancelled) {
             console.log('[Modal] ✅ Polling detected confirmed luan_giai package');
             if (pollInterval) clearInterval(pollInterval);
-            localStorage.removeItem(`payment_pending_${feature}`);
+            localStorage.removeItem(storageKey);
             setStep('success');
             onSuccess?.();
           }
@@ -217,11 +255,11 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
           }, (payload: any) => {
             console.log('[Modal] Payment updated:', payload.new.status);
             if (payload.new.status === 'verified') {
-              localStorage.removeItem(`payment_pending_${feature}`);
+              localStorage.removeItem(storageKey);
               setStep('success');
               onSuccess?.();
             } else if (payload.new.status === 'rejected') {
-              localStorage.removeItem(`payment_pending_${feature}`);
+              localStorage.removeItem(storageKey);
               setStep('show_qr');
               toast({
                 title: "Giao dịch bị từ chối",
@@ -247,7 +285,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
           if (data && !cancelled) {
             console.log('[Modal] Polling detected verified payment');
             if (pollInterval) clearInterval(pollInterval);
-            localStorage.removeItem(`payment_pending_${feature}`);
+            localStorage.removeItem(storageKey);
             setStep('success');
             onSuccess?.();
           }
@@ -268,7 +306,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
   const handleClose = () => {
     cleanupPolling();
     if (step !== 'pending') {
-      localStorage.removeItem(`payment_pending_${feature}`);
+      localStorage.removeItem(storageKey);
     }
     onOpenChange(false);
     if (step === 'success') {
