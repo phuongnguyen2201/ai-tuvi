@@ -24,6 +24,24 @@ export interface VietQRPaymentModalProps {
   metadata?: Record<string, any>;
 }
 
+// ══════════════════════════════════════════════════════════════
+// FIX: Package config — defines how to create packages per feature
+// ══════════════════════════════════════════════════════════════
+const PACKAGE_CONFIG: Record<
+  string,
+  {
+    table: string;
+    usesTotal: number;
+    extraFields?: Record<string, any>;
+  }
+> = {
+  boi_kieu: { table: "kieu_packages", usesTotal: 10 },
+  boi_que: { table: "boi_que_packages", usesTotal: 10 },
+  van_han_week: { table: "van_han_packages", usesTotal: 9, extraFields: { time_frame: "week" } },
+  van_han_month: { table: "van_han_packages", usesTotal: 6, extraFields: { time_frame: "month" } },
+  van_han_year: { table: "van_han_packages", usesTotal: 3, extraFields: { time_frame: "year" } },
+};
+
 const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }: VietQRPaymentModalProps) => {
   const storageKey = `payment_pending_${feature}`;
 
@@ -68,6 +86,45 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
   const activeFeature: FeatureKey = isPremium ? selectedPlan : (feature as FeatureKey);
   const amount = PRICING[activeFeature] || 0;
   const label = getFeatureLabel(activeFeature);
+
+  // ══════════════════════════════════════════════════════════════
+  // FIX: Create feature package when payment is verified
+  // This was the missing step — payment got verified but no
+  // package record was created for boi_kieu, boi_que, van_han_*
+  // ══════════════════════════════════════════════════════════════
+  const createFeaturePackage = useCallback(
+    async (uid: string, paymentId: string) => {
+      const config = PACKAGE_CONFIG[feature];
+      if (!config) {
+        console.log("[Modal] No package config for feature:", feature, "(premium/luan_giai handled separately)");
+        return;
+      }
+
+      console.log("[Modal] Creating package:", config.table, "for user:", uid, "payment:", paymentId);
+
+      const record: Record<string, any> = {
+        user_id: uid,
+        payment_id: paymentId,
+        uses_total: config.usesTotal,
+        uses_remaining: config.usesTotal,
+        ...(config.extraFields || {}),
+      };
+
+      const { error } = await supabase.from(config.table).insert(record);
+
+      if (error) {
+        // Duplicate insert guard — if package already exists, that's fine
+        if (error.code === "23505") {
+          console.log("[Modal] Package already exists (duplicate), skipping");
+        } else {
+          console.error("[Modal] Package creation error:", error);
+        }
+      } else {
+        console.log("[Modal] ✅ Package created successfully in", config.table);
+      }
+    },
+    [feature],
+  );
 
   // Persist pending state to localStorage whenever step becomes pending
   const persistPendingState = useCallback(
@@ -259,7 +316,11 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
           }
         }, 5000);
       } else {
-        // ── FIX: Listen for THIS SPECIFIC payment only (filter by transfer_content) ──
+        // ══════════════════════════════════════════════════════════
+        // NON-LUAN_GIAI: boi_kieu, boi_que, van_han_*, premium
+        // Listen for payments.status === "verified"
+        // FIX: Also create the feature package when verified
+        // ══════════════════════════════════════════════════════════
         console.log("[Modal] Setup payment listener, transfer_content:", transferContent);
 
         channel = supabase
@@ -272,7 +333,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
               table: "payments",
               filter: `transfer_content=eq.${transferContent}`,
             },
-            (payload: any) => {
+            async (payload: any) => {
               console.log(
                 "[Modal] Payment updated:",
                 payload.new.status,
@@ -280,6 +341,8 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
                 payload.new.transfer_content,
               );
               if (payload.new.status === "verified") {
+                // ── FIX: Create feature package ──
+                await createFeaturePackage(user.id, payload.new.id);
                 localStorage.removeItem(storageKey);
                 setStep("success");
                 onSuccess?.();
@@ -298,13 +361,13 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
             console.log("[Modal] Realtime subscription status:", status);
           });
 
-        // ── FIX: Polling also filters by transfer_content of THIS payment ──
+        // ── Polling fallback — also creates package on verified ──
         pollInterval = setInterval(async () => {
           if (cancelled) return;
           console.log("[Modal] Polling payments for transfer_content:", transferContent);
           const { data } = await supabase
             .from("payments")
-            .select("status")
+            .select("id, status")
             .eq("transfer_content", transferContent)
             .eq("status", "verified")
             .maybeSingle();
@@ -312,6 +375,8 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
           if (data && !cancelled) {
             console.log("[Modal] ✅ Polling detected verified payment for THIS transfer");
             if (pollInterval) clearInterval(pollInterval);
+            // ── FIX: Create feature package ──
+            await createFeaturePackage(user.id, data.id);
             localStorage.removeItem(storageKey);
             setStep("success");
             onSuccess?.();
@@ -328,7 +393,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
       if (pollInterval) clearInterval(pollInterval);
       if (channel) supabase.removeChannel(channel);
     };
-  }, [step, isLuanGiai, transferContent, onSuccess, toast]);
+  }, [step, isLuanGiai, transferContent, onSuccess, toast, createFeaturePackage]);
 
   const handleClose = () => {
     cleanupPolling();
@@ -483,7 +548,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
           <ScrollArea className="max-h-[50vh] rounded-lg border border-border bg-muted/30 p-4">
             <div
               className="prose prose-sm prose-invert max-w-none text-foreground"
-              dangerouslySetInnerHTML={{ __html: renderMarkdown(analysisResult) }}
+              dangerouslySetInnerHTML={{ __html: renderMarkdownHTML(analysisResult) }}
             />
           </ScrollArea>
           <Button variant="gold" size="lg" className="w-full" onClick={handleClose}>
@@ -547,7 +612,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
 };
 
 // Simple markdown → HTML renderer
-function renderMarkdown(md: string): string {
+function renderMarkdownHTML(md: string): string {
   return md
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
