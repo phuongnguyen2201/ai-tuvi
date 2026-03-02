@@ -1,11 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -42,9 +36,9 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
       // Validate: must have timestamp within 2 hours
       if (parsed.timestamp && Date.now() - parsed.timestamp < 2 * 60 * 60 * 1000) {
         return {
-          step: parsed.step || 'pending',
-          transferContent: parsed.transferContent || '',
-          userId: parsed.userId || '',
+          step: parsed.step || "pending",
+          transferContent: parsed.transferContent || "",
+          userId: parsed.userId || "",
         };
       }
       // Expired — clean up
@@ -76,23 +70,29 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
   const label = getFeatureLabel(activeFeature);
 
   // Persist pending state to localStorage whenever step becomes pending
-  const persistPendingState = useCallback((pendingStep: Step, tc: string, uid: string) => {
-    if (pendingStep === 'pending') {
-      localStorage.setItem(storageKey, JSON.stringify({
-        step: 'pending',
-        transferContent: tc,
-        userId: uid,
-        timestamp: Date.now(),
-      }));
-    }
-  }, [storageKey]);
+  const persistPendingState = useCallback(
+    (pendingStep: Step, tc: string, uid: string) => {
+      if (pendingStep === "pending") {
+        localStorage.setItem(
+          storageKey,
+          JSON.stringify({
+            step: "pending",
+            transferContent: tc,
+            userId: uid,
+            timestamp: Date.now(),
+          }),
+        );
+      }
+    },
+    [storageKey],
+  );
 
   useEffect(() => {
     if (open && !prevOpenRef.current) {
       // Only reset when modal just opened (false → true)
       const saved = getPersistedState();
-      if (saved && saved.step === 'pending') {
-        setStep('pending');
+      if (saved && saved.step === "pending") {
+        setStep("pending");
         setTransferContent(saved.transferContent);
         setUserId(saved.userId);
       } else {
@@ -112,13 +112,24 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
   }, [open, feature]);
 
   const cleanupPolling = useCallback(() => {
-    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
-    if (timeoutRef.current) { clearTimeout(timeoutRef.current); timeoutRef.current = null; }
-    if (progressRef.current) { clearInterval(progressRef.current); progressRef.current = null; }
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    if (progressRef.current) {
+      clearInterval(progressRef.current);
+      progressRef.current = null;
+    }
   }, []);
 
   const loadUserId = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (user) {
       setUserId(user.id);
       setTransferContent(generateTransferContent(user.id, activeFeature));
@@ -134,159 +145,175 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
   };
 
   const handleConfirmTransfer = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       toast({ title: "Vui lòng đăng nhập trước" });
       return;
     }
 
     // Insert payment record
-    const { error } = await supabase
-      .from('payments')
-      .insert({
-        user_id: user.id,
-        amount: amount,
-        plan: activeFeature,
-        payment_type: 'vietqr',
-        feature_unlocked: activeFeature,
-        status: 'pending',
-        transfer_content: transferContent,
-        notes: metadata ? JSON.stringify(metadata) : null,
-      });
+    const { error } = await supabase.from("payments").insert({
+      user_id: user.id,
+      amount: amount,
+      plan: activeFeature,
+      payment_type: "vietqr",
+      feature_unlocked: activeFeature,
+      status: "pending",
+      transfer_content: transferContent,
+      notes: metadata ? JSON.stringify(metadata) : null,
+    });
 
     if (error) {
-      console.error('Payment insert error:', error);
+      console.error("Payment insert error:", error);
       toast({ title: "Lỗi", description: error.message });
       return;
     }
 
     // For luan_giai, also create a pending package
     if (isLuanGiai) {
-      const { error: pkgError } = await supabase
-        .from('luan_giai_packages')
-        .insert({
-          user_id: user.id,
-          total_uses: 3,
-          remaining_uses: 3,
-          amount: amount,
-          payment_status: 'pending',
-          session_id: transferContent,
-          transfer_content: transferContent,
-        });
+      const { error: pkgError } = await supabase.from("luan_giai_packages").insert({
+        user_id: user.id,
+        total_uses: 3,
+        remaining_uses: 3,
+        amount: amount,
+        payment_status: "pending",
+        session_id: transferContent,
+        transfer_content: transferContent,
+      });
 
       if (pkgError) {
-        console.error('luan_giai_packages insert error:', pkgError);
+        console.error("luan_giai_packages insert error:", pkgError);
       }
     }
 
     setStep("pending");
-    persistPendingState('pending', transferContent, user.id);
+    persistPendingState("pending", transferContent, user.id);
   };
-
-  // (startPollingAnalysis removed - luan_giai now uses package-based access)
 
   // Realtime subscription for payment/chart status
   useEffect(() => {
-    if (step !== 'pending') return;
+    if (step !== "pending") return;
+    // ── FIX: Must have transferContent to poll accurately ──
+    if (!transferContent) return;
 
     let channel: ReturnType<typeof supabase.channel> | null = null;
     let pollInterval: ReturnType<typeof setInterval> | null = null;
     let cancelled = false;
 
     const setup = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user || cancelled) return;
 
       if (isLuanGiai) {
-        console.log('[Modal] Setup luan_giai listener for user:', user.id);
+        console.log("[Modal] Setup luan_giai listener for user:", user.id);
 
         // LAYER 1: Realtime - listen for luan_giai_packages confirmation
         channel = supabase
-          .channel('luan-giai-access-' + user.id)
-          .on('postgres_changes', {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'luan_giai_packages',
-            filter: `user_id=eq.${user.id}`,
-          }, (payload: any) => {
-            console.log('[Modal] luan_giai_packages UPDATE:', payload.new?.payment_status);
-            if (payload.new?.payment_status === 'confirmed') {
-              console.log('[Modal] ✅ luan_giai package confirmed');
-              localStorage.removeItem(storageKey);
-              setStep('success');
-              onSuccess?.();
-            }
-          })
+          .channel("luan-giai-access-" + user.id)
+          .on(
+            "postgres_changes",
+            {
+              event: "UPDATE",
+              schema: "public",
+              table: "luan_giai_packages",
+              filter: `user_id=eq.${user.id}`,
+            },
+            (payload: any) => {
+              console.log("[Modal] luan_giai_packages UPDATE:", payload.new?.payment_status);
+              if (payload.new?.payment_status === "confirmed") {
+                console.log("[Modal] ✅ luan_giai package confirmed");
+                localStorage.removeItem(storageKey);
+                setStep("success");
+                onSuccess?.();
+              }
+            },
+          )
           .subscribe((status) => {
-            console.log('[Modal] Realtime status:', status);
+            console.log("[Modal] Realtime status:", status);
           });
 
         // LAYER 2: Polling fallback mỗi 5 giây
-        console.log('[Modal] Starting polling for luan_giai_packages');
+        console.log("[Modal] Starting polling for luan_giai_packages");
         pollInterval = setInterval(async () => {
           if (cancelled) return;
           const { data } = await supabase
-            .from('luan_giai_packages')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('payment_status', 'confirmed')
-            .gt('remaining_uses', 0)
-            .order('created_at', { ascending: false })
+            .from("luan_giai_packages")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("payment_status", "confirmed")
+            .gt("remaining_uses", 0)
+            .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle();
 
           if (data && !cancelled) {
-            console.log('[Modal] ✅ Polling detected confirmed luan_giai package');
+            console.log("[Modal] ✅ Polling detected confirmed luan_giai package");
             if (pollInterval) clearInterval(pollInterval);
             localStorage.removeItem(storageKey);
-            setStep('success');
+            setStep("success");
             onSuccess?.();
           }
         }, 5000);
       } else {
-        // Listen payments UPDATE for other features
-        channel = supabase
-          .channel('payment-status-' + user.id)
-          .on('postgres_changes', {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'payments',
-            filter: `user_id=eq.${user.id}`,
-          }, (payload: any) => {
-            console.log('[Modal] Payment updated:', payload.new.status);
-            if (payload.new.status === 'verified') {
-              localStorage.removeItem(storageKey);
-              setStep('success');
-              onSuccess?.();
-            } else if (payload.new.status === 'rejected') {
-              localStorage.removeItem(storageKey);
-              setStep('show_qr');
-              toast({
-                title: "Giao dịch bị từ chối",
-                description: "Vui lòng kiểm tra lại thông tin chuyển khoản",
-                variant: "destructive",
-              });
-            }
-          })
-          .subscribe();
+        // ── FIX: Listen for THIS SPECIFIC payment only (filter by transfer_content) ──
+        console.log("[Modal] Setup payment listener, transfer_content:", transferContent);
 
-        // Polling fallback mỗi 5s
+        channel = supabase
+          .channel("payment-status-" + transferContent)
+          .on(
+            "postgres_changes",
+            {
+              event: "UPDATE",
+              schema: "public",
+              table: "payments",
+              filter: `transfer_content=eq.${transferContent}`,
+            },
+            (payload: any) => {
+              console.log(
+                "[Modal] Payment updated:",
+                payload.new.status,
+                "for transfer:",
+                payload.new.transfer_content,
+              );
+              if (payload.new.status === "verified") {
+                localStorage.removeItem(storageKey);
+                setStep("success");
+                onSuccess?.();
+              } else if (payload.new.status === "rejected") {
+                localStorage.removeItem(storageKey);
+                setStep("show_qr");
+                toast({
+                  title: "Giao dịch bị từ chối",
+                  description: "Vui lòng kiểm tra lại thông tin chuyển khoản",
+                  variant: "destructive",
+                });
+              }
+            },
+          )
+          .subscribe((status) => {
+            console.log("[Modal] Realtime subscription status:", status);
+          });
+
+        // ── FIX: Polling also filters by transfer_content of THIS payment ──
         pollInterval = setInterval(async () => {
           if (cancelled) return;
+          console.log("[Modal] Polling payments for transfer_content:", transferContent);
           const { data } = await supabase
-            .from('payments')
-            .select('status')
-            .eq('user_id', user.id)
-            .eq('status', 'verified')
-            .order('created_at', { ascending: false })
-            .limit(1)
+            .from("payments")
+            .select("status")
+            .eq("transfer_content", transferContent)
+            .eq("status", "verified")
             .maybeSingle();
 
           if (data && !cancelled) {
-            console.log('[Modal] Polling detected verified payment');
+            console.log("[Modal] ✅ Polling detected verified payment for THIS transfer");
             if (pollInterval) clearInterval(pollInterval);
             localStorage.removeItem(storageKey);
-            setStep('success');
+            setStep("success");
             onSuccess?.();
           }
         }, 5000);
@@ -297,32 +324,29 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
 
     return () => {
       cancelled = true;
-      console.log('[Modal] Cleanup polling + channel');
+      console.log("[Modal] Cleanup polling + channel");
       if (pollInterval) clearInterval(pollInterval);
       if (channel) supabase.removeChannel(channel);
     };
-  }, [step, isLuanGiai, metadata, onSuccess, toast]);
+  }, [step, isLuanGiai, transferContent, onSuccess, toast]);
 
   const handleClose = () => {
     cleanupPolling();
-    if (step !== 'pending') {
+    if (step !== "pending") {
       localStorage.removeItem(storageKey);
     }
     onOpenChange(false);
-    if (step === 'success') {
+    if (step === "success") {
       onSuccess?.(analysisResult || undefined);
     }
   };
 
-  const formatAmount = (amount: number) =>
-    amount.toLocaleString("vi-VN") + "đ";
+  const formatAmount = (amount: number) => amount.toLocaleString("vi-VN") + "đ";
 
   // ── Step: Select Plan (Premium only) ──
   const renderSelectPlan = () => (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground text-center">
-        Chọn gói Premium phù hợp với bạn
-      </p>
+      <p className="text-sm text-muted-foreground text-center">Chọn gói Premium phù hợp với bạn</p>
       <div className="grid grid-cols-2 gap-3">
         <button
           onClick={() => setSelectedPlan("premium_monthly")}
@@ -386,7 +410,11 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
           <span className="text-muted-foreground">Nội dung</span>
           <div className="flex items-center gap-2">
             <span className="font-bold text-primary">{transferContent}</span>
-            <button onClick={handleCopy} className="text-muted-foreground hover:text-foreground transition-colors" title="Sao chép">
+            <button
+              onClick={handleCopy}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              title="Sao chép"
+            >
               {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
             </button>
           </div>
@@ -468,9 +496,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
           <div className="space-y-1">
             <p className="font-bold text-xl text-foreground">Thanh toán thành công!</p>
             <p className="text-sm text-muted-foreground">
-              {isLuanGiai
-                ? "Kết quả luận giải sẽ hiện khi bạn quay lại trang"
-                : `Tính năng ${label} đã được mở khóa`}
+              {isLuanGiai ? "Kết quả luận giải sẽ hiện khi bạn quay lại trang" : `Tính năng ${label} đã được mở khóa`}
             </p>
           </div>
           <Button variant="gold" size="lg" className="w-full" onClick={handleClose}>
@@ -507,7 +533,9 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className={`border-border bg-card ${step === 'success' && analysisResult ? 'max-w-2xl' : 'max-w-md'}`}>
+      <DialogContent
+        className={`border-border bg-card ${step === "success" && analysisResult ? "max-w-2xl" : "max-w-md"}`}
+      >
         <DialogHeader>
           <DialogTitle className="text-center font-display">{stepTitle[step]}</DialogTitle>
           <DialogDescription className="text-center">{stepDesc[step]}</DialogDescription>
@@ -521,17 +549,17 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
 // Simple markdown → HTML renderer
 function renderMarkdown(md: string): string {
   return md
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
     .replace(/^### (.+)$/gm, '<h3 class="text-base font-bold text-primary mt-4 mb-2">$1</h3>')
     .replace(/^## (.+)$/gm, '<h2 class="text-lg font-bold text-primary mt-5 mb-2">$1</h2>')
     .replace(/^# (.+)$/gm, '<h1 class="text-xl font-bold text-primary mt-6 mb-3">$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
     .replace(/^- (.+)$/gm, '<li class="ml-4 list-disc">$1</li>')
-    .replace(/\n\n/g, '<br/><br/>')
-    .replace(/\n/g, '<br/>');
+    .replace(/\n\n/g, "<br/><br/>")
+    .replace(/\n/g, "<br/>");
 }
 
 export default VietQRPaymentModal;
