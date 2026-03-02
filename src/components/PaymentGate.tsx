@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -83,18 +83,25 @@ const PaymentGate = ({ feature, children, onUnlocked, title, price, description,
     if (hasAccess) onUnlocked?.();
   }, [hasAccess]);
 
-  // Loading
-  if (isLoading) {
-    return <div className="animate-pulse rounded-lg bg-muted h-48" />;
-  }
+  // ── FIX: Re-check access when window regains focus ──
+  useEffect(() => {
+    const handleFocus = () => {
+      refresh();
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [refresh]);
 
-  // Unlocked
-  if (hasAccess) {
-    return <>{children}</>;
-  }
+  // ── FIX: Memoize onSuccess to prevent modal useEffect re-runs ──
+  const handlePaymentSuccess = useCallback(async () => {
+    console.log("[PaymentGate] onSuccess called, refreshing...");
+    setShowPayment(false);
+    await refresh();
+    console.log("[PaymentGate] refresh done, hasAccess will update via state");
+    onUnlocked?.();
+  }, [refresh, onUnlocked]);
 
-  // Locked
-  return (
+  const renderLockedOverlay = () => (
     <div className="relative">
       <div className="blur-sm pointer-events-none select-none" aria-hidden="true">
         {children}
@@ -113,7 +120,7 @@ const PaymentGate = ({ feature, children, onUnlocked, title, price, description,
             className="w-full mb-3"
             onClick={() => {
               if (!currentUser) {
-                navigate('/auth?redirect=' + encodeURIComponent(window.location.pathname));
+                navigate("/auth?redirect=" + encodeURIComponent(window.location.pathname));
                 return;
               }
               setShowPayment(true);
@@ -121,26 +128,32 @@ const PaymentGate = ({ feature, children, onUnlocked, title, price, description,
           >
             Mở khóa với QR
           </Button>
-          <p className="text-xs text-muted-foreground">
-            Thanh toán nhanh qua ngân hàng
-          </p>
+          <p className="text-xs text-muted-foreground">Thanh toán nhanh qua ngân hàng</p>
         </Card>
       </div>
+    </div>
+  );
+
+  // ── FIX: Modal rendered OUTSIDE conditional branches ──
+  // Previously modal was inside locked branch only → unmounted when isLoading flipped
+  return (
+    <>
+      {isLoading ? (
+        <div className="animate-pulse rounded-lg bg-muted h-48" />
+      ) : hasAccess ? (
+        <>{children}</>
+      ) : (
+        renderLockedOverlay()
+      )}
 
       <VietQRPaymentModal
         open={showPayment}
         onOpenChange={setShowPayment}
         feature={feature}
         metadata={metadata}
-        onSuccess={async () => {
-          console.log('[PaymentGate] onSuccess called, refreshing...');
-          setShowPayment(false);
-          await refresh();
-          console.log('[PaymentGate] refresh done, hasAccess will update via state');
-          onUnlocked?.();
-        }}
+        onSuccess={handlePaymentSuccess}
       />
-    </div>
+    </>
   );
 };
 
