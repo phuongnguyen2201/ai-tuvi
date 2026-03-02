@@ -262,6 +262,24 @@ const VanHan = () => {
     }
   };
 
+  const handleRetryAnalyze = async () => {
+    if (!selectedChart) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Delete old cached result
+    await supabase
+      .from('van_han_analyses')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('chart_hash', selectedChart.chart_hash)
+      .eq('time_frame', activeTab)
+      .eq('period', timeInfo.period);
+
+    // Clear current display so "Luận Giải AI" button reappears
+    setCurrentResult(null);
+  };
+
 
   const cleanMarkdown = (text: string): string => {
     return text
@@ -400,6 +418,16 @@ const VanHan = () => {
             Chia sẻ luận giải
           </Button>
         </div>
+        {vanHanPackage && vanHanPackage.uses_remaining > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRetryAnalyze}
+            className="w-full mt-2 text-xs text-muted-foreground"
+          >
+            🔄 Luận giải lại ({vanHanPackage.uses_remaining} lần còn lại)
+          </Button>
+        )}
       </div>
     );
   };

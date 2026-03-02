@@ -204,8 +204,9 @@ Kết thúc bằng câu châm ngôn:
       // VAN HAN - Vận hạn theo tuần/tháng/năm
       // ============================================================
     } else {
-      const { timeFrame, period, chartData } = body;
-      const chartContext = buildChartContext(chartData);
+      const { timeFrame, period, chartData, fullChartData } = body;
+      const bestChartData = fullChartData || chartData;
+      const chartContext = buildChartContext(bestChartData);
       const timeContext = buildTimeContext(timeFrame, period);
 
       systemPrompt = `Bạn là một chuyên gia Tử Vi Việt Nam uyên thâm với hơn 30 năm kinh nghiệm.
