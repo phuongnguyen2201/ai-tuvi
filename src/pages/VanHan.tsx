@@ -7,13 +7,9 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { astro } from "iztro";
 import { toast } from "sonner";
-import {
-  Sparkles,
-  ChevronRight,
-  ChevronLeft,
-  Loader2,
-  Share2,
-} from "lucide-react";
+import { Sparkles, ChevronRight, ChevronLeft, Loader2, Share2 } from "lucide-react";
+// ── CHANGE 1: Import streaming hook ──
+import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 
 // ── Types ──
 type TimeFrame = "week" | "month" | "year";
@@ -38,9 +34,7 @@ function getWeekInfo(offset: number) {
   start.setDate(start.getDate() - start.getDay() + 1 + offset * 7);
   const end = new Date(start);
   end.setDate(end.getDate() + 6);
-  const weekNum = Math.ceil(
-    ((start.getTime() - new Date(start.getFullYear(), 0, 1).getTime()) / 86400000 + 1) / 7
-  );
+  const weekNum = Math.ceil(((start.getTime() - new Date(start.getFullYear(), 0, 1).getTime()) / 86400000 + 1) / 7);
   const fmt = (d: Date) => `${d.getDate()}/${d.getMonth() + 1}`;
   return {
     label: `Tuần ${weekNum} (${fmt(start)} - ${fmt(end)}/${end.getFullYear()})`,
@@ -81,6 +75,15 @@ const VanHan = () => {
   const [currentResult, setCurrentResult] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+  // ── CHANGE 2: Streaming hook ──
+  const {
+    isStreaming: isStreamingAI,
+    streamedText,
+    error: streamError,
+    startStreaming,
+    abort: abortStreaming,
+  } = useStreamingAnalysis();
+
   // Load user charts from chart_analyses
   useEffect(() => {
     loadUserCharts();
@@ -88,14 +91,19 @@ const VanHan = () => {
 
   const loadUserCharts = async () => {
     setChartsLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setChartsLoading(false); return; }
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setChartsLoading(false);
+      return;
+    }
 
     const { data } = await supabase
-      .from('chart_analyses')
-      .select('id, chart_hash, birth_data, chart_data, created_at')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+      .from("chart_analyses")
+      .select("id, chart_hash, birth_data, chart_data, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
 
     setCharts(data || []);
     if (data && data.length > 0) {
@@ -106,16 +114,18 @@ const VanHan = () => {
 
   // Load package for current timeframe
   const loadPackage = async (timeFrame: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
 
     const { data } = await supabase
-      .from('van_han_packages')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('time_frame', timeFrame)
-      .gt('uses_remaining', 0)
-      .order('created_at', { ascending: false })
+      .from("van_han_packages")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("time_frame", timeFrame)
+      .gt("uses_remaining", 0)
+      .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
@@ -138,16 +148,18 @@ const VanHan = () => {
   }, [selectedChart, activeTab, timeOffset]);
 
   const autoLoadCached = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
 
     const { data: cached } = await supabase
-      .from('van_han_analyses')
-      .select('analysis_result')
-      .eq('user_id', user.id)
-      .eq('chart_hash', selectedChart.chart_hash)
-      .eq('time_frame', activeTab)
-      .eq('period', timeInfo.period)
+      .from("van_han_analyses")
+      .select("analysis_result")
+      .eq("user_id", user.id)
+      .eq("chart_hash", selectedChart.chart_hash)
+      .eq("time_frame", activeTab)
+      .eq("period", timeInfo.period)
       .maybeSingle();
 
     if (cached?.analysis_result) {
@@ -160,27 +172,31 @@ const VanHan = () => {
   const currentTab = TABS.find((t) => t.key === activeTab)!;
 
   const timeInfo =
-    activeTab === "week" ? getWeekInfo(timeOffset) :
-    activeTab === "month" ? getMonthInfo(timeOffset) :
-    getYearInfo(timeOffset);
+    activeTab === "week"
+      ? getWeekInfo(timeOffset)
+      : activeTab === "month"
+        ? getMonthInfo(timeOffset)
+        : getYearInfo(timeOffset);
 
   const maxOffset = activeTab === "year" ? 1 : 2;
 
-  // Analyze
+  // ── CHANGE 3: Analyze with STREAMING ──
   const handleAnalyze = async () => {
     if (!selectedChart || !vanHanPackage) return;
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Check cache
+    // Check cache first
     const { data: cached } = await supabase
-      .from('van_han_analyses')
-      .select('analysis_result')
-      .eq('user_id', user.id)
-      .eq('chart_hash', selectedChart.chart_hash)
-      .eq('time_frame', activeTab)
-      .eq('period', timeInfo.period)
+      .from("van_han_analyses")
+      .select("analysis_result")
+      .eq("user_id", user.id)
+      .eq("chart_hash", selectedChart.chart_hash)
+      .eq("time_frame", activeTab)
+      .eq("period", timeInfo.period)
       .maybeSingle();
 
     if (cached?.analysis_result) {
@@ -193,13 +209,27 @@ const VanHan = () => {
     if (!fullChartData || Object.keys(fullChartData).length < 5) {
       try {
         const bd = selectedChart.birth_data as any;
-        const astrolabe = bd.calendarType === 'lunar'
-          ? astro.byLunar(bd.birthDate, parseInt(bd.birthHour || '0'), bd.gender === 'Nam' ? '男' : '女', false, false, 'vi-VN')
-          : astro.bySolar(bd.birthDate, parseInt(bd.birthHour || '0'), bd.gender === 'Nam' ? '男' : '女', true, 'vi-VN');
+        const astrolabe =
+          bd.calendarType === "lunar"
+            ? astro.byLunar(
+                bd.birthDate,
+                parseInt(bd.birthHour || "0"),
+                bd.gender === "Nam" ? "男" : "女",
+                false,
+                false,
+                "vi-VN",
+              )
+            : astro.bySolar(
+                bd.birthDate,
+                parseInt(bd.birthHour || "0"),
+                bd.gender === "Nam" ? "男" : "女",
+                true,
+                "vi-VN",
+              );
         fullChartData = {
           solarDate: astrolabe.solarDate,
           lunarDate: astrolabe.lunarDate,
-          lunarYear: bd.birthDate?.split('-')[0],
+          lunarYear: bd.birthDate?.split("-")[0],
           gender: bd.gender,
           birthHour: bd.birthHour,
           cuc: astrolabe.fiveElementsClass,
@@ -216,45 +246,56 @@ const VanHan = () => {
           })),
         };
       } catch (e) {
-        console.error('Failed to compute chart:', e);
+        console.error("Failed to compute chart:", e);
         fullChartData = selectedChart.chart_data;
       }
     }
 
-    // Call Claude
+    // Call Claude with STREAMING
     setIsAnalyzing(true);
+    setCurrentResult(null); // Clear so streaming text shows
+
     try {
-      const { data, error } = await supabase.functions.invoke('analyze-chart', {
-        body: {
-          analysisType: 'van_han',
+      const fullText = await startStreaming(
+        {
+          analysisType: "van_han",
           timeFrame: activeTab,
           period: timeInfo.period,
           chartData: selectedChart.birth_data,
           fullChartData,
-        }
-      });
+        },
+        {
+          onError: (err) => {
+            console.error("[VanHan] Stream error:", err);
+            toast.error(err || "AI đang bận. Vui lòng thử lại sau.");
+          },
+        },
+      );
 
-      if (error) throw error;
-      const result = data?.analysis || "Không nhận được kết quả phân tích.";
+      if (!fullText || fullText.length < 50) {
+        throw new Error("Không nhận được kết quả phân tích.");
+      }
 
-      // Save to DB + decrement uses
-      await supabase.from('van_han_analyses').insert({
+      // Save to DB
+      await supabase.from("van_han_analyses").insert({
         user_id: user.id,
         package_id: vanHanPackage.id,
         chart_hash: selectedChart.chart_hash,
         time_frame: activeTab,
         period: timeInfo.period,
         birth_data: selectedChart.birth_data,
-        analysis_result: result,
+        analysis_result: fullText,
       });
 
-      await supabase.from('van_han_packages')
+      // Decrement uses
+      await supabase
+        .from("van_han_packages")
         .update({ uses_remaining: vanHanPackage.uses_remaining - 1 })
-        .eq('id', vanHanPackage.id);
+        .eq("id", vanHanPackage.id);
 
-      setCurrentResult(result);
+      setCurrentResult(fullText);
       loadPackage(activeTab);
-    } catch (err) {
+    } catch (err: any) {
       console.error("AI analysis error:", err);
       toast.error("Lỗi khi phân tích. Vui lòng thử lại.");
     } finally {
@@ -264,31 +305,36 @@ const VanHan = () => {
 
   const handleRetryAnalyze = async () => {
     if (!selectedChart) return;
-    const { data: { user } } = await supabase.auth.getUser();
+
+    // Abort any in-progress stream
+    abortStreaming();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
 
     // Delete old cached result
     await supabase
-      .from('van_han_analyses')
+      .from("van_han_analyses")
       .delete()
-      .eq('user_id', user.id)
-      .eq('chart_hash', selectedChart.chart_hash)
-      .eq('time_frame', activeTab)
-      .eq('period', timeInfo.period);
+      .eq("user_id", user.id)
+      .eq("chart_hash", selectedChart.chart_hash)
+      .eq("time_frame", activeTab)
+      .eq("period", timeInfo.period);
 
     // Clear current display so "Luận Giải AI" button reappears
     setCurrentResult(null);
   };
 
-
   const cleanMarkdown = (text: string): string => {
     return text
-      .replace(/^#{1,3} /gm, '')
-      .replace(/\*\*(.*?)\*\*/g, '$1')
-      .replace(/\*(.*?)\*/g, '$1')
-      .replace(/^[-•] /gm, '• ')
-      .replace(/^> /gm, '')
-      .replace(/\n{3,}/g, '\n\n')
+      .replace(/^#{1,3} /gm, "")
+      .replace(/\*\*(.*?)\*\*/g, "$1")
+      .replace(/\*(.*?)\*/g, "$1")
+      .replace(/^[-•] /gm, "• ")
+      .replace(/^> /gm, "")
+      .replace(/\n{3,}/g, "\n\n")
       .trim();
   };
 
@@ -297,17 +343,17 @@ const VanHan = () => {
     return match ? match[1].trim() : null;
   };
 
-  const handleShare = async (type: 'full' | 'quote') => {
+  const handleShare = async (type: "full" | "quote") => {
     if (!currentResult) return;
 
-    let shareText = '';
-    if (type === 'full') {
+    let shareText = "";
+    if (type === "full") {
       const cleaned = cleanMarkdown(currentResult);
       shareText = `✨ ${timeInfo.label} - Tử Vi App\n\n${cleaned}\n\n🔮 Xem tại: ai-tuvi.lovable.app`;
     } else {
       const chamNgon = extractChamNgon(currentResult);
       if (!chamNgon) {
-        toast.error('Không tìm thấy câu châm ngôn');
+        toast.error("Không tìm thấy câu châm ngôn");
         return;
       }
       shareText = `✨ ${chamNgon}\n\n🔮 Xem tại: ai-tuvi.lovable.app`;
@@ -318,7 +364,7 @@ const VanHan = () => {
         await navigator.share({
           title: `Tử Vi - ${timeInfo.label}`,
           text: shareText,
-          url: 'https://ai-tuvi.lovable.app',
+          url: "https://ai-tuvi.lovable.app",
         });
         return;
       } catch (e) {
@@ -327,66 +373,122 @@ const VanHan = () => {
     }
 
     await navigator.clipboard.writeText(shareText);
-    toast.success(
-      type === 'full'
-        ? '📋 Đã sao chép luận giải!'
-        : '📋 Đã sao chép châm ngôn!'
-    );
+    toast.success(type === "full" ? "📋 Đã sao chép luận giải!" : "📋 Đã sao chép châm ngôn!");
   };
 
   // ── Markdown renderer ──
   const renderMarkdown = (text: string) => {
-    return text.split('\n').map((line, i) => {
-      if (line.startsWith('## ')) return <h2 key={i} className="text-lg font-bold text-primary mt-5 mb-2 border-b border-primary/20 pb-1">{line.replace('## ', '')}</h2>;
-      if (line.startsWith('### ')) return <h3 key={i} className="text-md font-semibold text-secondary mt-4 mb-2">{line.replace('### ', '')}</h3>;
-      if (line.startsWith('# ')) return <h1 key={i} className="text-xl font-bold text-foreground mt-5 mb-3">{line.replace('# ', '')}</h1>;
-      if (line.startsWith('> ')) return <blockquote key={i} className="border-l-4 border-primary/40 pl-4 italic text-muted-foreground my-3 bg-primary/5 py-2 rounded-r">{line.replace('> ', '')}</blockquote>;
-      if (line.startsWith('- ') || line.startsWith('* ')) return <li key={i} className="text-muted-foreground ml-4 list-disc text-sm">{renderBold(line.replace(/^[-*] /, ''))}</li>;
-      if (/^\d+\. /.test(line)) return <li key={i} className="text-muted-foreground ml-4 list-decimal text-sm">{renderBold(line.replace(/^\d+\. /, ''))}</li>;
-      if (line === '---' || line === '***') return <hr key={i} className="border-primary/20 my-4" />;
-      if (line.trim() === '') return <div key={i} className="h-2" />;
-      return <p key={i} className="text-muted-foreground leading-relaxed text-sm">{renderBold(line)}</p>;
+    return text.split("\n").map((line, i) => {
+      if (line.startsWith("## "))
+        return (
+          <h2 key={i} className="text-lg font-bold text-primary mt-5 mb-2 border-b border-primary/20 pb-1">
+            {line.replace("## ", "")}
+          </h2>
+        );
+      if (line.startsWith("### "))
+        return (
+          <h3 key={i} className="text-md font-semibold text-secondary mt-4 mb-2">
+            {line.replace("### ", "")}
+          </h3>
+        );
+      if (line.startsWith("# "))
+        return (
+          <h1 key={i} className="text-xl font-bold text-foreground mt-5 mb-3">
+            {line.replace("# ", "")}
+          </h1>
+        );
+      if (line.startsWith("> "))
+        return (
+          <blockquote
+            key={i}
+            className="border-l-4 border-primary/40 pl-4 italic text-muted-foreground my-3 bg-primary/5 py-2 rounded-r"
+          >
+            {line.replace("> ", "")}
+          </blockquote>
+        );
+      if (line.startsWith("- ") || line.startsWith("* "))
+        return (
+          <li key={i} className="text-muted-foreground ml-4 list-disc text-sm">
+            {renderBold(line.replace(/^[-*] /, ""))}
+          </li>
+        );
+      if (/^\d+\. /.test(line))
+        return (
+          <li key={i} className="text-muted-foreground ml-4 list-decimal text-sm">
+            {renderBold(line.replace(/^\d+\. /, ""))}
+          </li>
+        );
+      if (line === "---" || line === "***") return <hr key={i} className="border-primary/20 my-4" />;
+      if (line.trim() === "") return <div key={i} className="h-2" />;
+      return (
+        <p key={i} className="text-muted-foreground leading-relaxed text-sm">
+          {renderBold(line)}
+        </p>
+      );
     });
   };
 
   const renderBold = (text: string): React.ReactNode => {
     const parts = text.split(/(\*\*[^*]+\*\*)/g);
     return parts.map((part, i) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={i} className="text-foreground font-semibold">{part.slice(2, -2)}</strong>;
+      if (part.startsWith("**") && part.endsWith("**")) {
+        return (
+          <strong key={i} className="text-foreground font-semibold">
+            {part.slice(2, -2)}
+          </strong>
+        );
       }
       return part;
     });
   };
 
-  // ── Render AI result ──
+  // ── CHANGE 4: Render AI result with streaming states ──
   const renderAiResult = () => {
-    if (isAnalyzing) {
+    // ── STATE A: STREAMING — text đang chảy real-time ──
+    if ((isAnalyzing || isStreamingAI) && !currentResult) {
       return (
-        <div className={cn("rounded-2xl p-8 text-center bg-gradient-to-br from-surface-3 to-surface-2 border border-primary/20")}>
-          <div className="relative inline-block mb-4">
-            <Sparkles className="w-10 h-10 text-primary animate-spin" />
-          </div>
-          <p className="font-display text-lg text-foreground mb-1">Đang phân tích lá số...</p>
-          <p className="text-sm text-muted-foreground">AI đang luận giải vận hạn {timeInfo.label}</p>
+        <div className={cn("rounded-2xl p-5 bg-gradient-to-br from-surface-3 to-surface-2 border border-primary/20")}>
+          <h3 className="font-display text-lg text-primary flex items-center gap-2 mb-4">
+            <Sparkles className="w-5 h-5 animate-pulse" />
+            Đang luận giải...
+            <span className="text-xs font-normal text-muted-foreground ml-2">(streaming real-time)</span>
+          </h3>
+          {streamedText ? (
+            <div className="space-y-1">
+              {renderMarkdown(streamedText)}
+              <div className="flex items-center gap-2 mt-4 pt-2 border-t border-primary/10">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <span className="text-xs text-muted-foreground">Đang viết tiếp...</span>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="relative inline-block mb-4">
+                <Sparkles className="w-10 h-10 text-primary animate-spin" />
+              </div>
+              <p className="font-display text-lg text-foreground mb-1">Đang kết nối AI...</p>
+              <p className="text-sm text-muted-foreground">Kết quả sẽ hiện ra từng phần trong giây lát</p>
+            </div>
+          )}
         </div>
       );
     }
 
-    if (!currentResult) {
+    // ── STATE B: NO RESULT — show analyze button ──
+    if (!currentResult && !streamedText) {
       return (
         <div className="text-center py-6">
           <Button variant="gold" size="lg" onClick={handleAnalyze} disabled={!vanHanPackage}>
             <Sparkles className="w-5 h-5 mr-2" />
             Luận Giải AI {timeInfo.label}
           </Button>
-          <p className="text-xs text-muted-foreground mt-2">
-            Phân tích chuyên sâu bằng AI dựa trên lá số của bạn
-          </p>
+          <p className="text-xs text-muted-foreground mt-2">Phân tích chuyên sâu bằng AI dựa trên lá số của bạn</p>
         </div>
       );
     }
 
+    // ── STATE C: COMPLETED — show full result ──
+    const displayText = currentResult || streamedText;
     return (
       <div className={cn("rounded-2xl p-5 bg-gradient-to-br from-secondary/5 to-surface-2 border border-secondary/20")}>
         <div className="flex items-center justify-between mb-4">
@@ -395,25 +497,13 @@ const VanHan = () => {
             Luận Giải AI - {timeInfo.label}
           </h3>
         </div>
-        <div className="space-y-1">
-          {renderMarkdown(currentResult)}
-        </div>
+        <div className="space-y-1">{renderMarkdown(displayText)}</div>
         <div className="flex gap-2 mt-5">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleShare('quote')}
-            className="flex-1 text-xs"
-          >
+          <Button variant="ghost" size="sm" onClick={() => handleShare("quote")} className="flex-1 text-xs">
             <Share2 className="w-3.5 h-3.5 mr-1" />
             Chia sẻ châm ngôn
           </Button>
-          <Button
-            variant="goldOutline"
-            size="sm"
-            onClick={() => handleShare('full')}
-            className="flex-1 text-xs"
-          >
+          <Button variant="goldOutline" size="sm" onClick={() => handleShare("full")} className="flex-1 text-xs">
             <Share2 className="w-3.5 h-3.5 mr-1" />
             Chia sẻ luận giải
           </Button>
@@ -440,16 +530,16 @@ const VanHan = () => {
 
     if (charts.length === 0) {
       return (
-        <div className={cn(
-          "rounded-2xl p-6 text-center",
-          "bg-gradient-to-br from-surface-3 to-surface-2",
-          "border border-border"
-        )}>
+        <div
+          className={cn(
+            "rounded-2xl p-6 text-center",
+            "bg-gradient-to-br from-surface-3 to-surface-2",
+            "border border-border",
+          )}
+        >
           <div className="text-4xl mb-3">🔮</div>
           <h3 className="font-display text-lg text-foreground mb-2">Chưa có lá số</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Bạn cần lập lá số tử vi trước để xem vận hạn chi tiết
-          </p>
+          <p className="text-sm text-muted-foreground mb-4">Bạn cần lập lá số tử vi trước để xem vận hạn chi tiết</p>
           <Button variant="gold" size="lg" onClick={() => navigate("/lap-la-so")}>
             Lập lá số ngay
             <ChevronRight className="w-4 h-4 ml-1" />
@@ -463,16 +553,16 @@ const VanHan = () => {
     return (
       <div className="space-y-3">
         {/* Selected chart display */}
-        <div className={cn(
-          "rounded-2xl p-4 flex items-center justify-between",
-          "bg-gradient-to-br from-surface-3 to-surface-2",
-          "border border-primary/20"
-        )}>
+        <div
+          className={cn(
+            "rounded-2xl p-4 flex items-center justify-between",
+            "bg-gradient-to-br from-surface-3 to-surface-2",
+            "border border-primary/20",
+          )}
+        >
           <div>
             <p className="text-xs text-muted-foreground">Lá số đang chọn</p>
-            <p className="font-medium text-foreground text-sm">
-              {bd?.personName || 'Không tên'}
-            </p>
+            <p className="font-medium text-foreground text-sm">{bd?.personName || "Không tên"}</p>
             <p className="text-xs text-muted-foreground">
               {bd?.birthDate} · {bd?.gender}
             </p>
@@ -488,26 +578,31 @@ const VanHan = () => {
         {showChartPicker && (
           <div className="rounded-2xl p-4 bg-surface-3 border border-border">
             <h3 className="text-sm font-medium mb-3 text-foreground">Chọn lá số</h3>
-            {charts.map(chart => (
-              <button key={chart.id}
-                onClick={() => { setSelectedChart(chart); setShowChartPicker(false); setCurrentResult(null); }}
+            {charts.map((chart) => (
+              <button
+                key={chart.id}
+                onClick={() => {
+                  setSelectedChart(chart);
+                  setShowChartPicker(false);
+                  setCurrentResult(null);
+                }}
                 className={cn(
                   "w-full text-left p-3 rounded-xl mb-2 border transition-all",
                   selectedChart?.id === chart.id
                     ? "border-primary/50 bg-primary/10"
-                    : "border-border bg-surface-4 hover:border-muted-foreground"
+                    : "border-border bg-surface-4 hover:border-muted-foreground",
                 )}
               >
-                <p className="font-medium text-sm text-foreground">
-                  {chart.birth_data?.personName || 'Không tên'}
-                </p>
+                <p className="font-medium text-sm text-foreground">{chart.birth_data?.personName || "Không tên"}</p>
                 <p className="text-xs text-muted-foreground">
                   {chart.birth_data?.birthDate} · {chart.birth_data?.gender}
                 </p>
               </button>
             ))}
-            <button onClick={() => navigate('/lap-la-so')}
-              className="w-full text-center text-sm text-primary mt-2 hover:underline">
+            <button
+              onClick={() => navigate("/lap-la-so")}
+              className="w-full text-center text-sm text-primary mt-2 hover:underline"
+            >
               + Tạo lá số mới
             </button>
           </div>
@@ -537,12 +632,8 @@ const VanHan = () => {
             <Sparkles className="w-4 h-4 text-primary" />
             <span className="text-sm font-medium text-primary">Luận Giải AI</span>
           </div>
-          <h2 className="font-display text-2xl text-foreground">
-            Dự Đoán Vận Hạn
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Phân tích chi tiết vận mệnh theo thời gian
-          </p>
+          <h2 className="font-display text-2xl text-foreground">Dự Đoán Vận Hạn</h2>
+          <p className="text-sm text-muted-foreground">Phân tích chi tiết vận mệnh theo thời gian</p>
         </div>
 
         {/* Tab Selector */}
@@ -555,7 +646,7 @@ const VanHan = () => {
                 "flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all",
                 activeTab === tab.key
                   ? "bg-primary/15 text-primary border border-primary/30"
-                  : "text-muted-foreground hover:text-foreground hover:bg-surface-4"
+                  : "text-muted-foreground hover:text-foreground hover:bg-surface-4",
               )}
             >
               <span>{tab.icon}</span>
@@ -576,9 +667,7 @@ const VanHan = () => {
           </button>
           <div className="text-center">
             <p className="font-display text-foreground font-medium">{timeInfo.label}</p>
-            {timeOffset === 0 && (
-              <p className="text-xs text-primary">Hiện tại</p>
-            )}
+            {timeOffset === 0 && <p className="text-xs text-primary">Hiện tại</p>}
           </div>
           <button
             onClick={() => setTimeOffset((o) => Math.min(o + 1, maxOffset))}
