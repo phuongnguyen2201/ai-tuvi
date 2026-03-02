@@ -110,7 +110,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
         ...(config.extraFields || {}),
       };
 
-      const { error } = await supabase.from(config.table).insert(record);
+      const { error } = await (supabase.from as any)(config.table).insert(record);
 
       if (error) {
         // Duplicate insert guard — if package already exists, that's fine
