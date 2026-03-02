@@ -8,119 +8,591 @@ import { cn } from "@/lib/utils";
 import { Share2, RotateCcw, Sparkles, Loader2, Search, ChevronDown, ChevronUp, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+// ── CHANGE 1: Import streaming hook ──
+import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 
 // 64 quẻ Kinh Dịch
 const QUE_DATA = [
-  { id: 1, name: "Thuần Càn", symbol: "☰☰", element: "Trời", summary: "Quẻ của sức mạnh, sáng tạo và thành công lớn. Mọi việc hanh thông nếu giữ chính đạo.", fortune: "excellent" },
-  { id: 2, name: "Thuần Khôn", symbol: "☷☷", element: "Đất", summary: "Quẻ của sự bao dung, nhẫn nại. Thuận theo tự nhiên, không nên gượng ép.", fortune: "good" },
-  { id: 3, name: "Thủy Lôi Truân", symbol: "☵☳", element: "Nước/Sấm", summary: "Khởi đầu gian nan nhưng sẽ thành công nếu kiên trì.", fortune: "challenging" },
-  { id: 4, name: "Sơn Thủy Mông", symbol: "☶☵", element: "Núi/Nước", summary: "Quẻ của sự học hỏi và khai sáng. Cần tìm thầy chỉ đường.", fortune: "neutral" },
-  { id: 5, name: "Thủy Thiên Nhu", symbol: "☵☰", element: "Nước/Trời", summary: "Chờ đợi đúng thời cơ. Kiên nhẫn sẽ được thưởng.", fortune: "good" },
-  { id: 6, name: "Thiên Thủy Tụng", symbol: "☰☵", element: "Trời/Nước", summary: "Tranh chấp, xung đột. Nên tìm trọng tài, tránh kiện cáo.", fortune: "challenging" },
-  { id: 7, name: "Địa Thủy Sư", symbol: "☷☵", element: "Đất/Nước", summary: "Quẻ của sự lãnh đạo và tổ chức. Cần kỷ luật để thành công.", fortune: "good" },
-  { id: 8, name: "Thủy Địa Tỷ", symbol: "☵☷", element: "Nước/Đất", summary: "Đoàn kết, hợp tác. Tìm đồng minh, liên kết sức mạnh.", fortune: "excellent" },
-  { id: 9, name: "Phong Thiên Tiểu Súc", symbol: "☴☰", element: "Gió/Trời", summary: "Tích lũy nhỏ, tiến từng bước. Chưa đủ lực để làm lớn.", fortune: "neutral" },
-  { id: 10, name: "Thiên Trạch Lý", symbol: "☰☱", element: "Trời/Hồ", summary: "Cẩn thận từng bước, như đi trên lưng hổ. Thận trọng sẽ an toàn.", fortune: "neutral" },
-  { id: 11, name: "Địa Thiên Thái", symbol: "☷☰", element: "Đất/Trời", summary: "Quẻ đại cát! Thông suốt, hanh thông, vạn sự như ý.", fortune: "excellent" },
-  { id: 12, name: "Thiên Địa Bĩ", symbol: "☰☷", element: "Trời/Đất", summary: "Bế tắc, trì trệ. Cần ẩn nhẫn chờ thời, không nên hành động.", fortune: "challenging" },
-  { id: 13, name: "Thiên Hỏa Đồng Nhân", symbol: "☰☲", element: "Trời/Lửa", summary: "Hòa hợp với mọi người, đoàn kết sức mạnh. Hợp tác sẽ thành công.", fortune: "good" },
-  { id: 14, name: "Hỏa Thiên Đại Hữu", symbol: "☲☰", element: "Lửa/Trời", summary: "Đại cát, sở hữu lớn. Thời kỳ thịnh vượng, tài lộc dồi dào.", fortune: "excellent" },
-  { id: 15, name: "Địa Sơn Khiêm", symbol: "☷☶", element: "Đất/Núi", summary: "Khiêm tốn mang lại phúc lành. Người khiêm nhường được kính trọng.", fortune: "good" },
-  { id: 16, name: "Lôi Địa Dự", symbol: "☳☷", element: "Sấm/Đất", summary: "Vui vẻ, hoan hỉ. Thời điểm tốt để hành động và mở rộng.", fortune: "good" },
-  { id: 17, name: "Trạch Lôi Tùy", symbol: "☱☳", element: "Hồ/Sấm", summary: "Thuận theo hoàn cảnh, linh hoạt thích ứng sẽ thành công.", fortune: "good" },
-  { id: 18, name: "Sơn Phong Cổ", symbol: "☶☴", element: "Núi/Gió", summary: "Sửa chữa sai lầm cũ, cải cách đổi mới. Cần hành động quyết đoán.", fortune: "neutral" },
-  { id: 19, name: "Địa Trạch Lâm", symbol: "☷☱", element: "Đất/Hồ", summary: "Tiến đến gần, cơ hội lớn đang đến. Nắm bắt thời cơ.", fortune: "excellent" },
-  { id: 20, name: "Phong Địa Quan", symbol: "☴☷", element: "Gió/Đất", summary: "Quan sát, chiêm nghiệm. Nhìn lại bản thân trước khi hành động.", fortune: "neutral" },
-  { id: 21, name: "Hỏa Lôi Phệ Hạp", symbol: "☲☳", element: "Lửa/Sấm", summary: "Cần quyết đoán xử lý vấn đề. Công lý sẽ được thực thi.", fortune: "neutral" },
-  { id: 22, name: "Sơn Hỏa Bí", symbol: "☶☲", element: "Núi/Lửa", summary: "Vẻ đẹp bề ngoài, trang sức. Chú trọng hình thức nhưng đừng quên nội dung.", fortune: "good" },
-  { id: 23, name: "Sơn Địa Bác", symbol: "☶☷", element: "Núi/Đất", summary: "Suy tàn, bóc lột. Thời kỳ khó khăn, cần giữ gìn nguồn lực.", fortune: "challenging" },
-  { id: 24, name: "Địa Lôi Phục", symbol: "☷☳", element: "Đất/Sấm", summary: "Phục hồi, quay trở lại. Sau bóng tối là ánh sáng.", fortune: "good" },
-  { id: 25, name: "Thiên Lôi Vô Vọng", symbol: "☰☳", element: "Trời/Sấm", summary: "Chân thật, không vọng tưởng. Hành động theo lẽ tự nhiên.", fortune: "good" },
-  { id: 26, name: "Sơn Thiên Đại Súc", symbol: "☶☰", element: "Núi/Trời", summary: "Tích lũy lớn, tiềm năng to lớn. Thời điểm tốt để đầu tư dài hạn.", fortune: "excellent" },
-  { id: 27, name: "Sơn Lôi Di", symbol: "☶☳", element: "Núi/Sấm", summary: "Nuôi dưỡng, chăm sóc. Chú ý sức khỏe và dinh dưỡng tinh thần.", fortune: "neutral" },
-  { id: 28, name: "Trạch Phong Đại Quá", symbol: "☱☴", element: "Hồ/Gió", summary: "Quá mức, vượt giới hạn. Cẩn thận không nên quá sức.", fortune: "challenging" },
-  { id: 29, name: "Thuần Khảm", symbol: "☵☵", element: "Nước", summary: "Hiểm nguy chồng chất. Giữ vững niềm tin, vượt qua thử thách.", fortune: "challenging" },
-  { id: 30, name: "Thuần Ly", symbol: "☲☲", element: "Lửa", summary: "Sáng suốt, rực rỡ. Trí tuệ soi đường, nhưng cần biết dừng đúng lúc.", fortune: "good" },
-  { id: 31, name: "Trạch Sơn Hàm", symbol: "☱☶", element: "Hồ/Núi", summary: "Cảm ứng, thu hút lẫn nhau. Tình duyên tốt đẹp, mối quan hệ hài hòa.", fortune: "good" },
-  { id: 32, name: "Lôi Phong Hằng", symbol: "☳☴", element: "Sấm/Gió", summary: "Bền vững, kiên định. Giữ vững lập trường sẽ thành công lâu dài.", fortune: "good" },
-  { id: 33, name: "Thiên Sơn Độn", symbol: "☰☶", element: "Trời/Núi", summary: "Rút lui đúng lúc là khôn ngoan. Biết tiến biết lùi.", fortune: "neutral" },
-  { id: 34, name: "Lôi Thiên Đại Tráng", symbol: "☳☰", element: "Sấm/Trời", summary: "Sức mạnh lớn, hùng tráng. Dùng sức mạnh đúng cách, tránh bạo lực.", fortune: "good" },
-  { id: 35, name: "Hỏa Địa Tấn", symbol: "☲☷", element: "Lửa/Đất", summary: "Tiến bộ, thăng tiến. Sự nghiệp phát triển thuận lợi.", fortune: "excellent" },
-  { id: 36, name: "Địa Hỏa Minh Di", symbol: "☷☲", element: "Đất/Lửa", summary: "Ánh sáng bị che khuất. Ẩn nhẫn chờ thời, giữ trí tuệ bên trong.", fortune: "challenging" },
-  { id: 37, name: "Phong Hỏa Gia Nhân", symbol: "☴☲", element: "Gió/Lửa", summary: "Gia đình hòa thuận, nội bộ ổn định. Chăm lo gia đạo.", fortune: "good" },
-  { id: 38, name: "Hỏa Trạch Khuê", symbol: "☲☱", element: "Lửa/Hồ", summary: "Đối lập, mâu thuẫn. Tìm điểm chung trong sự khác biệt.", fortune: "neutral" },
-  { id: 39, name: "Thủy Sơn Kiển", symbol: "☵☶", element: "Nước/Núi", summary: "Gian nan, trở ngại. Cần sự giúp đỡ, không nên đơn độc.", fortune: "challenging" },
-  { id: 40, name: "Lôi Thủy Giải", symbol: "☳☵", element: "Sấm/Nước", summary: "Giải thoát, tháo gỡ khó khăn. Vấn đề sẽ được giải quyết.", fortune: "good" },
-  { id: 41, name: "Sơn Trạch Tổn", symbol: "☶☱", element: "Núi/Hồ", summary: "Giảm bớt, hy sinh. Bớt cái thừa, bù cái thiếu sẽ cân bằng.", fortune: "neutral" },
-  { id: 42, name: "Phong Lôi Ích", symbol: "☴☳", element: "Gió/Sấm", summary: "Được lợi, gia tăng. Thời điểm tốt để mở rộng và phát triển.", fortune: "excellent" },
-  { id: 43, name: "Trạch Thiên Quải", symbol: "☱☰", element: "Hồ/Trời", summary: "Quyết đoán, cắt đứt. Loại bỏ cái xấu, giữ cái tốt.", fortune: "neutral" },
-  { id: 44, name: "Thiên Phong Cấu", symbol: "☰☴", element: "Trời/Gió", summary: "Gặp gỡ bất ngờ. Cẩn thận với những mối quan hệ mới.", fortune: "neutral" },
-  { id: 45, name: "Trạch Địa Tụy", symbol: "☱☷", element: "Hồ/Đất", summary: "Tụ họp, đoàn tụ. Sức mạnh tập thể, hợp tác thành công.", fortune: "good" },
-  { id: 46, name: "Địa Phong Thăng", symbol: "☷☴", element: "Đất/Gió", summary: "Đi lên, phát triển. Tiến bộ từ từ nhưng chắc chắn.", fortune: "excellent" },
-  { id: 47, name: "Trạch Thủy Khốn", symbol: "☱☵", element: "Hồ/Nước", summary: "Cùng quẫn, khốn đốn. Giữ vững ý chí, khó khăn sẽ qua.", fortune: "challenging" },
-  { id: 48, name: "Thủy Phong Tỉnh", symbol: "☵☴", element: "Nước/Gió", summary: "Giếng nước, nguồn sống. Nuôi dưỡng bản thân và người khác.", fortune: "good" },
-  { id: 49, name: "Trạch Hỏa Cách", symbol: "☱☲", element: "Hồ/Lửa", summary: "Cách mạng, đổi mới. Thời điểm thay đổi lớn đã đến.", fortune: "neutral" },
-  { id: 50, name: "Hỏa Phong Đỉnh", symbol: "☲☴", element: "Lửa/Gió", summary: "Vạc đỉnh, thành tựu. Được tín nhiệm, sự nghiệp vững chắc.", fortune: "excellent" },
-  { id: 51, name: "Thuần Chấn", symbol: "☳☳", element: "Sấm", summary: "Chấn động, bất ngờ. Sợ hãi ban đầu nhưng kết cục tốt đẹp.", fortune: "neutral" },
-  { id: 52, name: "Thuần Cấn", symbol: "☶☶", element: "Núi", summary: "Dừng lại, tĩnh lặng. Biết dừng đúng lúc là trí tuệ.", fortune: "neutral" },
-  { id: 53, name: "Phong Sơn Tiệm", symbol: "☴☶", element: "Gió/Núi", summary: "Tiến dần, từng bước. Kiên nhẫn tiến lên sẽ đạt mục tiêu.", fortune: "good" },
-  { id: 54, name: "Lôi Trạch Quy Muội", symbol: "☳☱", element: "Sấm/Hồ", summary: "Hôn nhân, kết hợp. Cẩn thận trong cam kết, đừng vội vàng.", fortune: "neutral" },
-  { id: 55, name: "Lôi Hỏa Phong", symbol: "☳☲", element: "Sấm/Lửa", summary: "Phong phú, thịnh vượng. Đỉnh cao nhưng cần chuẩn bị cho suy thoái.", fortune: "excellent" },
-  { id: 56, name: "Hỏa Sơn Lữ", symbol: "☲☶", element: "Lửa/Núi", summary: "Lữ khách, phiêu bạt. Cẩn thận khi xa nhà, giữ mình khiêm tốn.", fortune: "neutral" },
-  { id: 57, name: "Thuần Tốn", symbol: "☴☴", element: "Gió", summary: "Thuận theo, len lỏi. Nhẹ nhàng nhưng kiên trì sẽ thấm sâu.", fortune: "good" },
-  { id: 58, name: "Thuần Đoài", symbol: "☱☱", element: "Hồ", summary: "Vui vẻ, hòa nhã. Niềm vui lan tỏa, giao tiếp tốt đẹp.", fortune: "good" },
-  { id: 59, name: "Phong Thủy Hoán", symbol: "☴☵", element: "Gió/Nước", summary: "Phân tán, giải tỏa. Phá vỡ bế tắc, mở ra hướng mới.", fortune: "neutral" },
-  { id: 60, name: "Thủy Trạch Tiết", symbol: "☵☱", element: "Nước/Hồ", summary: "Tiết chế, điều độ. Biết giới hạn của mình sẽ thành công.", fortune: "good" },
-  { id: 61, name: "Phong Trạch Trung Phu", symbol: "☴☱", element: "Gió/Hồ", summary: "Thành tín, trung thực. Lòng tin chân thành cảm hóa mọi người.", fortune: "good" },
-  { id: 62, name: "Lôi Sơn Tiểu Quá", symbol: "☳☶", element: "Sấm/Núi", summary: "Vượt quá chút ít, cẩn thận việc nhỏ. Khiêm tốn trong hành động.", fortune: "neutral" },
-  { id: 63, name: "Thủy Hỏa Ký Tế", symbol: "☵☲", element: "Nước/Lửa", summary: "Đã hoàn thành, viên mãn. Giữ gìn thành quả, cẩn thận lúc cuối.", fortune: "good" },
-  { id: 64, name: "Hỏa Thủy Vị Tế", symbol: "☲☵", element: "Lửa/Nước", summary: "Chưa hoàn thành, còn dang dở. Kiên trì đến cùng, thành công sẽ đến.", fortune: "neutral" },
+  {
+    id: 1,
+    name: "Thuần Càn",
+    symbol: "☰☰",
+    element: "Trời",
+    summary: "Quẻ của sức mạnh, sáng tạo và thành công lớn. Mọi việc hanh thông nếu giữ chính đạo.",
+    fortune: "excellent",
+  },
+  {
+    id: 2,
+    name: "Thuần Khôn",
+    symbol: "☷☷",
+    element: "Đất",
+    summary: "Quẻ của sự bao dung, nhẫn nại. Thuận theo tự nhiên, không nên gượng ép.",
+    fortune: "good",
+  },
+  {
+    id: 3,
+    name: "Thủy Lôi Truân",
+    symbol: "☵☳",
+    element: "Nước/Sấm",
+    summary: "Khởi đầu gian nan nhưng sẽ thành công nếu kiên trì.",
+    fortune: "challenging",
+  },
+  {
+    id: 4,
+    name: "Sơn Thủy Mông",
+    symbol: "☶☵",
+    element: "Núi/Nước",
+    summary: "Quẻ của sự học hỏi và khai sáng. Cần tìm thầy chỉ đường.",
+    fortune: "neutral",
+  },
+  {
+    id: 5,
+    name: "Thủy Thiên Nhu",
+    symbol: "☵☰",
+    element: "Nước/Trời",
+    summary: "Chờ đợi đúng thời cơ. Kiên nhẫn sẽ được thưởng.",
+    fortune: "good",
+  },
+  {
+    id: 6,
+    name: "Thiên Thủy Tụng",
+    symbol: "☰☵",
+    element: "Trời/Nước",
+    summary: "Tranh chấp, xung đột. Nên tìm trọng tài, tránh kiện cáo.",
+    fortune: "challenging",
+  },
+  {
+    id: 7,
+    name: "Địa Thủy Sư",
+    symbol: "☷☵",
+    element: "Đất/Nước",
+    summary: "Quẻ của sự lãnh đạo và tổ chức. Cần kỷ luật để thành công.",
+    fortune: "good",
+  },
+  {
+    id: 8,
+    name: "Thủy Địa Tỷ",
+    symbol: "☵☷",
+    element: "Nước/Đất",
+    summary: "Đoàn kết, hợp tác. Tìm đồng minh, liên kết sức mạnh.",
+    fortune: "excellent",
+  },
+  {
+    id: 9,
+    name: "Phong Thiên Tiểu Súc",
+    symbol: "☴☰",
+    element: "Gió/Trời",
+    summary: "Tích lũy nhỏ, tiến từng bước. Chưa đủ lực để làm lớn.",
+    fortune: "neutral",
+  },
+  {
+    id: 10,
+    name: "Thiên Trạch Lý",
+    symbol: "☰☱",
+    element: "Trời/Hồ",
+    summary: "Cẩn thận từng bước, như đi trên lưng hổ. Thận trọng sẽ an toàn.",
+    fortune: "neutral",
+  },
+  {
+    id: 11,
+    name: "Địa Thiên Thái",
+    symbol: "☷☰",
+    element: "Đất/Trời",
+    summary: "Quẻ đại cát! Thông suốt, hanh thông, vạn sự như ý.",
+    fortune: "excellent",
+  },
+  {
+    id: 12,
+    name: "Thiên Địa Bĩ",
+    symbol: "☰☷",
+    element: "Trời/Đất",
+    summary: "Bế tắc, trì trệ. Cần ẩn nhẫn chờ thời, không nên hành động.",
+    fortune: "challenging",
+  },
+  {
+    id: 13,
+    name: "Thiên Hỏa Đồng Nhân",
+    symbol: "☰☲",
+    element: "Trời/Lửa",
+    summary: "Hòa hợp với mọi người, đoàn kết sức mạnh. Hợp tác sẽ thành công.",
+    fortune: "good",
+  },
+  {
+    id: 14,
+    name: "Hỏa Thiên Đại Hữu",
+    symbol: "☲☰",
+    element: "Lửa/Trời",
+    summary: "Đại cát, sở hữu lớn. Thời kỳ thịnh vượng, tài lộc dồi dào.",
+    fortune: "excellent",
+  },
+  {
+    id: 15,
+    name: "Địa Sơn Khiêm",
+    symbol: "☷☶",
+    element: "Đất/Núi",
+    summary: "Khiêm tốn mang lại phúc lành. Người khiêm nhường được kính trọng.",
+    fortune: "good",
+  },
+  {
+    id: 16,
+    name: "Lôi Địa Dự",
+    symbol: "☳☷",
+    element: "Sấm/Đất",
+    summary: "Vui vẻ, hoan hỉ. Thời điểm tốt để hành động và mở rộng.",
+    fortune: "good",
+  },
+  {
+    id: 17,
+    name: "Trạch Lôi Tùy",
+    symbol: "☱☳",
+    element: "Hồ/Sấm",
+    summary: "Thuận theo hoàn cảnh, linh hoạt thích ứng sẽ thành công.",
+    fortune: "good",
+  },
+  {
+    id: 18,
+    name: "Sơn Phong Cổ",
+    symbol: "☶☴",
+    element: "Núi/Gió",
+    summary: "Sửa chữa sai lầm cũ, cải cách đổi mới. Cần hành động quyết đoán.",
+    fortune: "neutral",
+  },
+  {
+    id: 19,
+    name: "Địa Trạch Lâm",
+    symbol: "☷☱",
+    element: "Đất/Hồ",
+    summary: "Tiến đến gần, cơ hội lớn đang đến. Nắm bắt thời cơ.",
+    fortune: "excellent",
+  },
+  {
+    id: 20,
+    name: "Phong Địa Quan",
+    symbol: "☴☷",
+    element: "Gió/Đất",
+    summary: "Quan sát, chiêm nghiệm. Nhìn lại bản thân trước khi hành động.",
+    fortune: "neutral",
+  },
+  {
+    id: 21,
+    name: "Hỏa Lôi Phệ Hạp",
+    symbol: "☲☳",
+    element: "Lửa/Sấm",
+    summary: "Cần quyết đoán xử lý vấn đề. Công lý sẽ được thực thi.",
+    fortune: "neutral",
+  },
+  {
+    id: 22,
+    name: "Sơn Hỏa Bí",
+    symbol: "☶☲",
+    element: "Núi/Lửa",
+    summary: "Vẻ đẹp bề ngoài, trang sức. Chú trọng hình thức nhưng đừng quên nội dung.",
+    fortune: "good",
+  },
+  {
+    id: 23,
+    name: "Sơn Địa Bác",
+    symbol: "☶☷",
+    element: "Núi/Đất",
+    summary: "Suy tàn, bóc lột. Thời kỳ khó khăn, cần giữ gìn nguồn lực.",
+    fortune: "challenging",
+  },
+  {
+    id: 24,
+    name: "Địa Lôi Phục",
+    symbol: "☷☳",
+    element: "Đất/Sấm",
+    summary: "Phục hồi, quay trở lại. Sau bóng tối là ánh sáng.",
+    fortune: "good",
+  },
+  {
+    id: 25,
+    name: "Thiên Lôi Vô Vọng",
+    symbol: "☰☳",
+    element: "Trời/Sấm",
+    summary: "Chân thật, không vọng tưởng. Hành động theo lẽ tự nhiên.",
+    fortune: "good",
+  },
+  {
+    id: 26,
+    name: "Sơn Thiên Đại Súc",
+    symbol: "☶☰",
+    element: "Núi/Trời",
+    summary: "Tích lũy lớn, tiềm năng to lớn. Thời điểm tốt để đầu tư dài hạn.",
+    fortune: "excellent",
+  },
+  {
+    id: 27,
+    name: "Sơn Lôi Di",
+    symbol: "☶☳",
+    element: "Núi/Sấm",
+    summary: "Nuôi dưỡng, chăm sóc. Chú ý sức khỏe và dinh dưỡng tinh thần.",
+    fortune: "neutral",
+  },
+  {
+    id: 28,
+    name: "Trạch Phong Đại Quá",
+    symbol: "☱☴",
+    element: "Hồ/Gió",
+    summary: "Quá mức, vượt giới hạn. Cẩn thận không nên quá sức.",
+    fortune: "challenging",
+  },
+  {
+    id: 29,
+    name: "Thuần Khảm",
+    symbol: "☵☵",
+    element: "Nước",
+    summary: "Hiểm nguy chồng chất. Giữ vững niềm tin, vượt qua thử thách.",
+    fortune: "challenging",
+  },
+  {
+    id: 30,
+    name: "Thuần Ly",
+    symbol: "☲☲",
+    element: "Lửa",
+    summary: "Sáng suốt, rực rỡ. Trí tuệ soi đường, nhưng cần biết dừng đúng lúc.",
+    fortune: "good",
+  },
+  {
+    id: 31,
+    name: "Trạch Sơn Hàm",
+    symbol: "☱☶",
+    element: "Hồ/Núi",
+    summary: "Cảm ứng, thu hút lẫn nhau. Tình duyên tốt đẹp, mối quan hệ hài hòa.",
+    fortune: "good",
+  },
+  {
+    id: 32,
+    name: "Lôi Phong Hằng",
+    symbol: "☳☴",
+    element: "Sấm/Gió",
+    summary: "Bền vững, kiên định. Giữ vững lập trường sẽ thành công lâu dài.",
+    fortune: "good",
+  },
+  {
+    id: 33,
+    name: "Thiên Sơn Độn",
+    symbol: "☰☶",
+    element: "Trời/Núi",
+    summary: "Rút lui đúng lúc là khôn ngoan. Biết tiến biết lùi.",
+    fortune: "neutral",
+  },
+  {
+    id: 34,
+    name: "Lôi Thiên Đại Tráng",
+    symbol: "☳☰",
+    element: "Sấm/Trời",
+    summary: "Sức mạnh lớn, hùng tráng. Dùng sức mạnh đúng cách, tránh bạo lực.",
+    fortune: "good",
+  },
+  {
+    id: 35,
+    name: "Hỏa Địa Tấn",
+    symbol: "☲☷",
+    element: "Lửa/Đất",
+    summary: "Tiến bộ, thăng tiến. Sự nghiệp phát triển thuận lợi.",
+    fortune: "excellent",
+  },
+  {
+    id: 36,
+    name: "Địa Hỏa Minh Di",
+    symbol: "☷☲",
+    element: "Đất/Lửa",
+    summary: "Ánh sáng bị che khuất. Ẩn nhẫn chờ thời, giữ trí tuệ bên trong.",
+    fortune: "challenging",
+  },
+  {
+    id: 37,
+    name: "Phong Hỏa Gia Nhân",
+    symbol: "☴☲",
+    element: "Gió/Lửa",
+    summary: "Gia đình hòa thuận, nội bộ ổn định. Chăm lo gia đạo.",
+    fortune: "good",
+  },
+  {
+    id: 38,
+    name: "Hỏa Trạch Khuê",
+    symbol: "☲☱",
+    element: "Lửa/Hồ",
+    summary: "Đối lập, mâu thuẫn. Tìm điểm chung trong sự khác biệt.",
+    fortune: "neutral",
+  },
+  {
+    id: 39,
+    name: "Thủy Sơn Kiển",
+    symbol: "☵☶",
+    element: "Nước/Núi",
+    summary: "Gian nan, trở ngại. Cần sự giúp đỡ, không nên đơn độc.",
+    fortune: "challenging",
+  },
+  {
+    id: 40,
+    name: "Lôi Thủy Giải",
+    symbol: "☳☵",
+    element: "Sấm/Nước",
+    summary: "Giải thoát, tháo gỡ khó khăn. Vấn đề sẽ được giải quyết.",
+    fortune: "good",
+  },
+  {
+    id: 41,
+    name: "Sơn Trạch Tổn",
+    symbol: "☶☱",
+    element: "Núi/Hồ",
+    summary: "Giảm bớt, hy sinh. Bớt cái thừa, bù cái thiếu sẽ cân bằng.",
+    fortune: "neutral",
+  },
+  {
+    id: 42,
+    name: "Phong Lôi Ích",
+    symbol: "☴☳",
+    element: "Gió/Sấm",
+    summary: "Được lợi, gia tăng. Thời điểm tốt để mở rộng và phát triển.",
+    fortune: "excellent",
+  },
+  {
+    id: 43,
+    name: "Trạch Thiên Quải",
+    symbol: "☱☰",
+    element: "Hồ/Trời",
+    summary: "Quyết đoán, cắt đứt. Loại bỏ cái xấu, giữ cái tốt.",
+    fortune: "neutral",
+  },
+  {
+    id: 44,
+    name: "Thiên Phong Cấu",
+    symbol: "☰☴",
+    element: "Trời/Gió",
+    summary: "Gặp gỡ bất ngờ. Cẩn thận với những mối quan hệ mới.",
+    fortune: "neutral",
+  },
+  {
+    id: 45,
+    name: "Trạch Địa Tụy",
+    symbol: "☱☷",
+    element: "Hồ/Đất",
+    summary: "Tụ họp, đoàn tụ. Sức mạnh tập thể, hợp tác thành công.",
+    fortune: "good",
+  },
+  {
+    id: 46,
+    name: "Địa Phong Thăng",
+    symbol: "☷☴",
+    element: "Đất/Gió",
+    summary: "Đi lên, phát triển. Tiến bộ từ từ nhưng chắc chắn.",
+    fortune: "excellent",
+  },
+  {
+    id: 47,
+    name: "Trạch Thủy Khốn",
+    symbol: "☱☵",
+    element: "Hồ/Nước",
+    summary: "Cùng quẫn, khốn đốn. Giữ vững ý chí, khó khăn sẽ qua.",
+    fortune: "challenging",
+  },
+  {
+    id: 48,
+    name: "Thủy Phong Tỉnh",
+    symbol: "☵☴",
+    element: "Nước/Gió",
+    summary: "Giếng nước, nguồn sống. Nuôi dưỡng bản thân và người khác.",
+    fortune: "good",
+  },
+  {
+    id: 49,
+    name: "Trạch Hỏa Cách",
+    symbol: "☱☲",
+    element: "Hồ/Lửa",
+    summary: "Cách mạng, đổi mới. Thời điểm thay đổi lớn đã đến.",
+    fortune: "neutral",
+  },
+  {
+    id: 50,
+    name: "Hỏa Phong Đỉnh",
+    symbol: "☲☴",
+    element: "Lửa/Gió",
+    summary: "Vạc đỉnh, thành tựu. Được tín nhiệm, sự nghiệp vững chắc.",
+    fortune: "excellent",
+  },
+  {
+    id: 51,
+    name: "Thuần Chấn",
+    symbol: "☳☳",
+    element: "Sấm",
+    summary: "Chấn động, bất ngờ. Sợ hãi ban đầu nhưng kết cục tốt đẹp.",
+    fortune: "neutral",
+  },
+  {
+    id: 52,
+    name: "Thuần Cấn",
+    symbol: "☶☶",
+    element: "Núi",
+    summary: "Dừng lại, tĩnh lặng. Biết dừng đúng lúc là trí tuệ.",
+    fortune: "neutral",
+  },
+  {
+    id: 53,
+    name: "Phong Sơn Tiệm",
+    symbol: "☴☶",
+    element: "Gió/Núi",
+    summary: "Tiến dần, từng bước. Kiên nhẫn tiến lên sẽ đạt mục tiêu.",
+    fortune: "good",
+  },
+  {
+    id: 54,
+    name: "Lôi Trạch Quy Muội",
+    symbol: "☳☱",
+    element: "Sấm/Hồ",
+    summary: "Hôn nhân, kết hợp. Cẩn thận trong cam kết, đừng vội vàng.",
+    fortune: "neutral",
+  },
+  {
+    id: 55,
+    name: "Lôi Hỏa Phong",
+    symbol: "☳☲",
+    element: "Sấm/Lửa",
+    summary: "Phong phú, thịnh vượng. Đỉnh cao nhưng cần chuẩn bị cho suy thoái.",
+    fortune: "excellent",
+  },
+  {
+    id: 56,
+    name: "Hỏa Sơn Lữ",
+    symbol: "☲☶",
+    element: "Lửa/Núi",
+    summary: "Lữ khách, phiêu bạt. Cẩn thận khi xa nhà, giữ mình khiêm tốn.",
+    fortune: "neutral",
+  },
+  {
+    id: 57,
+    name: "Thuần Tốn",
+    symbol: "☴☴",
+    element: "Gió",
+    summary: "Thuận theo, len lỏi. Nhẹ nhàng nhưng kiên trì sẽ thấm sâu.",
+    fortune: "good",
+  },
+  {
+    id: 58,
+    name: "Thuần Đoài",
+    symbol: "☱☱",
+    element: "Hồ",
+    summary: "Vui vẻ, hòa nhã. Niềm vui lan tỏa, giao tiếp tốt đẹp.",
+    fortune: "good",
+  },
+  {
+    id: 59,
+    name: "Phong Thủy Hoán",
+    symbol: "☴☵",
+    element: "Gió/Nước",
+    summary: "Phân tán, giải tỏa. Phá vỡ bế tắc, mở ra hướng mới.",
+    fortune: "neutral",
+  },
+  {
+    id: 60,
+    name: "Thủy Trạch Tiết",
+    symbol: "☵☱",
+    element: "Nước/Hồ",
+    summary: "Tiết chế, điều độ. Biết giới hạn của mình sẽ thành công.",
+    fortune: "good",
+  },
+  {
+    id: 61,
+    name: "Phong Trạch Trung Phu",
+    symbol: "☴☱",
+    element: "Gió/Hồ",
+    summary: "Thành tín, trung thực. Lòng tin chân thành cảm hóa mọi người.",
+    fortune: "good",
+  },
+  {
+    id: 62,
+    name: "Lôi Sơn Tiểu Quá",
+    symbol: "☳☶",
+    element: "Sấm/Núi",
+    summary: "Vượt quá chút ít, cẩn thận việc nhỏ. Khiêm tốn trong hành động.",
+    fortune: "neutral",
+  },
+  {
+    id: 63,
+    name: "Thủy Hỏa Ký Tế",
+    symbol: "☵☲",
+    element: "Nước/Lửa",
+    summary: "Đã hoàn thành, viên mãn. Giữ gìn thành quả, cẩn thận lúc cuối.",
+    fortune: "good",
+  },
+  {
+    id: 64,
+    name: "Hỏa Thủy Vị Tế",
+    symbol: "☲☵",
+    element: "Lửa/Nước",
+    summary: "Chưa hoàn thành, còn dang dở. Kiên trì đến cùng, thành công sẽ đến.",
+    fortune: "neutral",
+  },
 ];
 
 const fortuneConfig = {
-  excellent: { bg: "from-gold/20 to-gold/5", border: "border-gold/40", badge: "bg-gold text-white dark:text-background font-bold", label: "Đại Cát 大吉" },
-  good: { bg: "from-emerald-600/20 to-emerald-600/5", border: "border-emerald-600/40", badge: "bg-emerald-600 text-white font-bold", label: "Cát 吉" },
-  neutral: { bg: "from-blue-500/20 to-blue-500/5", border: "border-blue-500/40", badge: "bg-blue-600 text-white font-bold", label: "Bình 平" },
-  challenging: { bg: "from-red-600/20 to-red-600/5", border: "border-red-600/40", badge: "bg-red-600 text-white font-bold", label: "Hung 凶" },
+  excellent: {
+    bg: "from-gold/20 to-gold/5",
+    border: "border-gold/40",
+    badge: "bg-gold text-white dark:text-background font-bold",
+    label: "Đại Cát 大吉",
+  },
+  good: {
+    bg: "from-emerald-600/20 to-emerald-600/5",
+    border: "border-emerald-600/40",
+    badge: "bg-emerald-600 text-white font-bold",
+    label: "Cát 吉",
+  },
+  neutral: {
+    bg: "from-blue-500/20 to-blue-500/5",
+    border: "border-blue-500/40",
+    badge: "bg-blue-600 text-white font-bold",
+    label: "Bình 平",
+  },
+  challenging: {
+    bg: "from-red-600/20 to-red-600/5",
+    border: "border-red-600/40",
+    badge: "bg-red-600 text-white font-bold",
+    label: "Hung 凶",
+  },
 };
 
 // ============================================================
 // BẢNG LOOKUP 64 QUẺ theo Trigram (thượng quái × hạ quái)
 // ============================================================
 const TRIGRAM_MAP: Record<string, number> = {
-  "111": 0, "110": 1, "101": 2, "100": 3,
-  "011": 4, "010": 5, "001": 6, "000": 7,
+  "111": 0,
+  "110": 1,
+  "101": 2,
+  "100": 3,
+  "011": 4,
+  "010": 5,
+  "001": 6,
+  "000": 7,
 };
 
 const HEXAGRAM_TABLE: number[][] = [
-  [  1,   43,   14,   34,    9,    5,   26,   11 ],
-  [ 10,   58,   38,   54,   61,   60,   41,   19 ],
-  [ 13,   49,   30,   55,   37,   63,   22,   36 ],
-  [ 25,   17,   21,   51,   42,    3,   27,   24 ],
-  [ 44,   28,   50,   32,   57,   48,   18,   46 ],
-  [  6,   47,   64,   40,   59,   29,    4,    7 ],
-  [ 33,   31,   56,   62,   53,   39,   52,   15 ],
-  [ 12,   45,   35,   16,   20,    8,   23,    2 ],
+  [1, 43, 14, 34, 9, 5, 26, 11],
+  [10, 58, 38, 54, 61, 60, 41, 19],
+  [13, 49, 30, 55, 37, 63, 22, 36],
+  [25, 17, 21, 51, 42, 3, 27, 24],
+  [44, 28, 50, 32, 57, 48, 18, 46],
+  [6, 47, 64, 40, 59, 29, 4, 7],
+  [33, 31, 56, 62, 53, 39, 52, 15],
+  [12, 45, 35, 16, 20, 8, 23, 2],
 ];
 
 // ============================================================
 // THUẬT TOÁN TUNG XU
 // ============================================================
 const tossCoins = (): number => {
-  const coins = [
-    Math.random() > 0.5 ? 3 : 2,
-    Math.random() > 0.5 ? 3 : 2,
-    Math.random() > 0.5 ? 3 : 2,
-  ];
+  const coins = [Math.random() > 0.5 ? 3 : 2, Math.random() > 0.5 ? 3 : 2, Math.random() > 0.5 ? 3 : 2];
   return coins.reduce((a, b) => a + b, 0);
 };
 
 const lineValueToYinYang = (val: number): 0 | 1 => {
-  return (val === 7 || val === 9) ? 1 : 0;
+  return val === 7 || val === 9 ? 1 : 0;
 };
 
 const lineValueToChanged = (val: number): 0 | 1 => {
-  return (val === 9) ? 0 : (val === 6) ? 1 : lineValueToYinYang(val);
+  return val === 9 ? 0 : val === 6 ? 1 : lineValueToYinYang(val);
 };
 
 const getHexNum = (lines: number[]) => {
@@ -133,36 +605,81 @@ const calculateHexagram = () => {
   const lineValues = Array.from({ length: 6 }, () => tossCoins());
   const mainLines = lineValues.map(lineValueToYinYang);
   const changedLines = lineValues.map(lineValueToChanged);
-  const hasChanging = lineValues.some(v => v === 6 || v === 9);
+  const hasChanging = lineValues.some((v) => v === 6 || v === 9);
   const mainHexNum = getHexNum(mainLines);
   const changedHexNum = hasChanging ? getHexNum(changedLines) : null;
 
   return {
-    lineValues, mainLines, mainHexNum, changedHexNum, hasChanging,
+    lineValues,
+    mainLines,
+    mainHexNum,
+    changedHexNum,
+    hasChanging,
     changingLines: lineValues.map((v, i) => ({ index: i, value: v, isChanging: v === 6 || v === 9 })),
   };
 };
 
 // Simple markdown renderer for AI results
 function renderMarkdown(text: string): React.ReactNode[] {
-  return text.split('\n').map((line, i) => {
-    if (line.startsWith('## ')) return <h2 key={i} className="text-lg font-bold text-gold mt-5 mb-2 border-b border-gold/20 pb-1">{line.replace('## ', '')}</h2>;
-    if (line.startsWith('### ')) return <h3 key={i} className="text-md font-semibold text-gold/80 mt-4 mb-2">{line.replace('### ', '')}</h3>;
-    if (line.startsWith('# ')) return <h1 key={i} className="text-xl font-bold text-gold mt-5 mb-3">{line.replace('# ', '')}</h1>;
-    if (line.startsWith('> ')) return <blockquote key={i} className="border-l-4 border-gold/40 pl-4 italic text-muted-foreground my-3 bg-gold/5 py-2 rounded-r">{line.replace('> ', '')}</blockquote>;
-    if (line.startsWith('- ') || line.startsWith('* ')) return <li key={i} className="text-muted-foreground ml-4 list-disc text-sm">{renderBold(line.replace(/^[-*] /, ''))}</li>;
-    if (/^\d+\. /.test(line)) return <li key={i} className="text-muted-foreground ml-4 list-decimal text-sm">{renderBold(line.replace(/^\d+\. /, ''))}</li>;
-    if (line === '---' || line === '***') return <hr key={i} className="border-gold/20 my-4" />;
-    if (line.trim() === '') return <div key={i} className="h-2" />;
-    return <p key={i} className="text-muted-foreground leading-relaxed text-sm">{renderBold(line)}</p>;
+  return text.split("\n").map((line, i) => {
+    if (line.startsWith("## "))
+      return (
+        <h2 key={i} className="text-lg font-bold text-gold mt-5 mb-2 border-b border-gold/20 pb-1">
+          {line.replace("## ", "")}
+        </h2>
+      );
+    if (line.startsWith("### "))
+      return (
+        <h3 key={i} className="text-md font-semibold text-gold/80 mt-4 mb-2">
+          {line.replace("### ", "")}
+        </h3>
+      );
+    if (line.startsWith("# "))
+      return (
+        <h1 key={i} className="text-xl font-bold text-gold mt-5 mb-3">
+          {line.replace("# ", "")}
+        </h1>
+      );
+    if (line.startsWith("> "))
+      return (
+        <blockquote
+          key={i}
+          className="border-l-4 border-gold/40 pl-4 italic text-muted-foreground my-3 bg-gold/5 py-2 rounded-r"
+        >
+          {line.replace("> ", "")}
+        </blockquote>
+      );
+    if (line.startsWith("- ") || line.startsWith("* "))
+      return (
+        <li key={i} className="text-muted-foreground ml-4 list-disc text-sm">
+          {renderBold(line.replace(/^[-*] /, ""))}
+        </li>
+      );
+    if (/^\d+\. /.test(line))
+      return (
+        <li key={i} className="text-muted-foreground ml-4 list-decimal text-sm">
+          {renderBold(line.replace(/^\d+\. /, ""))}
+        </li>
+      );
+    if (line === "---" || line === "***") return <hr key={i} className="border-gold/20 my-4" />;
+    if (line.trim() === "") return <div key={i} className="h-2" />;
+    return (
+      <p key={i} className="text-muted-foreground leading-relaxed text-sm">
+        {renderBold(line)}
+      </p>
+    );
   });
 }
 
 function renderBold(text: string): React.ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return parts.map((part, i) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={i} className="text-foreground font-semibold">{part.slice(2, -2)}</strong>;
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={i} className="text-foreground font-semibold">
+          {part.slice(2, -2)}
+        </strong>
+      );
     }
     return part;
   });
@@ -170,7 +687,7 @@ function renderBold(text: string): React.ReactNode {
 
 const BoiQue = () => {
   const [question, setQuestion] = useState("");
-  const [result, setResult] = useState<typeof QUE_DATA[0] | null>(null);
+  const [result, setResult] = useState<(typeof QUE_DATA)[0] | null>(null);
   const [hexLines, setHexLines] = useState<string[]>([]);
   const [coins, setCoins] = useState<boolean[]>([]);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -184,6 +701,15 @@ const BoiQue = () => {
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
 
+  // ── CHANGE 2: Streaming hook ──
+  const {
+    isStreaming: isStreamingAI,
+    streamedText,
+    error: streamError,
+    startStreaming,
+    abort: abortStreaming,
+  } = useStreamingAnalysis();
+
   // Package & history state
   const [quePackage, setQuePackage] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
@@ -192,11 +718,15 @@ const BoiQue = () => {
   // Search/lookup state
   const [searchTerm, setSearchTerm] = useState("");
   const [showLookup, setShowLookup] = useState(false);
-  const [selectedQue, setSelectedQue] = useState<typeof QUE_DATA[0] | null>(null);
+  const [selectedQue, setSelectedQue] = useState<(typeof QUE_DATA)[0] | null>(null);
 
   // Audio
   const [soundEnabled, setSoundEnabled] = useState(() => {
-    try { return localStorage.getItem("boique_sound") !== "off"; } catch { return true; }
+    try {
+      return localStorage.getItem("boique_sound") !== "off";
+    } catch {
+      return true;
+    }
   });
   const audioCtxRef = useRef<AudioContext | null>(null);
 
@@ -207,27 +737,31 @@ const BoiQue = () => {
   }, []);
 
   const loadQuePackage = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
     const { data } = await supabase
-      .from('boi_que_packages')
-      .select('*')
-      .eq('user_id', user.id)
-      .gt('uses_remaining', 0)
-      .order('created_at', { ascending: false })
+      .from("boi_que_packages")
+      .select("*")
+      .eq("user_id", user.id)
+      .gt("uses_remaining", 0)
+      .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
     setQuePackage(data);
   };
 
   const loadHistory = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
     const { data } = await supabase
-      .from('boi_que_analyses')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+      .from("boi_que_analyses")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
       .limit(20);
     setHistory(data || []);
   };
@@ -287,19 +821,23 @@ const BoiQue = () => {
   };
 
   const filteredQue = searchTerm.trim()
-    ? QUE_DATA.filter(q =>
-        q.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        q.id.toString() === searchTerm.trim() ||
-        q.element.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        q.symbol.includes(searchTerm)
+    ? QUE_DATA.filter(
+        (q) =>
+          q.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          q.id.toString() === searchTerm.trim() ||
+          q.element.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          q.symbol.includes(searchTerm),
       )
     : QUE_DATA;
 
+  // ── CHANGE 3: Analyze with STREAMING ──
   const handleAnalyze = async (queData: any, lines: string[], changedNum: number | null) => {
     setAiLoading(true);
+    setAiResult(null); // Clear so streaming text shows
+
     try {
-      const { data, error } = await supabase.functions.invoke("analyze-chart", {
-        body: {
+      const fullText = await startStreaming(
+        {
           analysisType: "hexagram",
           question: question.trim(),
           hexagramNumber: queData.id,
@@ -307,16 +845,27 @@ const BoiQue = () => {
           hexagramSymbol: queData.symbol,
           lines,
         },
-      });
+        {
+          onError: (err) => {
+            console.error("[BoiQue] Stream error:", err);
+            toast.error(err || "Lỗi khi luận giải. Thử lại nhé!");
+          },
+        },
+      );
 
-      if (error) throw error;
-      const analysis = data?.analysis || "Không nhận được kết quả.";
+      if (!fullText) {
+        throw new Error("Không nhận được kết quả.");
+      }
+
+      const analysis = fullText;
       setAiResult(analysis);
 
       // Lưu DB + decrement quota
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user && quePackage) {
-        await supabase.from('boi_que_analyses').insert({
+        await supabase.from("boi_que_analyses").insert({
           user_id: user.id,
           package_id: quePackage.id,
           question: question.trim(),
@@ -327,9 +876,10 @@ const BoiQue = () => {
           changed_hex_num: changedNum,
           analysis_result: analysis,
         });
-        await supabase.from('boi_que_packages')
+        await supabase
+          .from("boi_que_packages")
           .update({ uses_remaining: quePackage.uses_remaining - 1 })
-          .eq('id', quePackage.id);
+          .eq("id", quePackage.id);
         loadQuePackage();
         loadHistory();
       }
@@ -362,20 +912,16 @@ const BoiQue = () => {
       setTimeout(() => {
         playCoinFlip();
         navigator.vibrate?.(30);
-        revealLines.push(hexData.mainLines[hao] === 1 ? 'yang' : 'yin');
+        revealLines.push(hexData.mainLines[hao] === 1 ? "yang" : "yin");
         setHexLines([...revealLines]);
 
         if (hao === 5) {
           setTimeout(() => {
-            const queData = QUE_DATA.find(q => q.id === hexData.mainHexNum) || QUE_DATA[0];
+            const queData = QUE_DATA.find((q) => q.id === hexData.mainHexNum) || QUE_DATA[0];
             setResult(queData);
             setChangedHexNum(hexData.changedHexNum);
             setHasChanging(hexData.hasChanging);
-            setChangingLineIndexes(
-              hexData.changingLines
-                .filter(l => l.isChanging)
-                .map(l => l.index)
-            );
+            setChangingLineIndexes(hexData.changingLines.filter((l) => l.isChanging).map((l) => l.index));
             setIsAnimating(false);
             playResultReveal();
             navigator.vibrate?.([20, 40, 20, 40, 50]);
@@ -389,6 +935,7 @@ const BoiQue = () => {
   };
 
   const handleReset = () => {
+    abortStreaming(); // Abort any in-progress stream
     setResult(null);
     setCoins([]);
     setHexLines([]);
@@ -400,8 +947,9 @@ const BoiQue = () => {
   };
 
   const handleShare = () => {
-    if (aiResult) {
-      navigator.clipboard.writeText(aiResult);
+    const displayText = aiResult || streamedText;
+    if (displayText) {
+      navigator.clipboard.writeText(displayText);
     } else if (result) {
       const text = `🎴 Bói Quẻ Dịch\nQuẻ ${result.id} - ${result.name} ${result.symbol}\n${result.summary}`;
       navigator.clipboard.writeText(text);
@@ -410,6 +958,46 @@ const BoiQue = () => {
   };
 
   const style = result ? fortuneConfig[result.fortune as keyof typeof fortuneConfig] : null;
+
+  // ── CHANGE 4: Streaming-aware AI result rendering ──
+  const renderAiSection = () => {
+    // STATE A: Streaming — text đang chảy
+    if ((aiLoading || isStreamingAI) && !aiResult) {
+      return (
+        <div className={cn("rounded-2xl p-5 bg-gradient-to-br from-surface-3 to-surface-2 border border-gold/20")}>
+          <h3 className="font-display text-lg text-gold flex items-center gap-2 mb-4">
+            <Sparkles className="w-5 h-5 animate-pulse" />
+            Đang luận giải quẻ...
+          </h3>
+          {streamedText ? (
+            <div className="space-y-1">
+              {renderMarkdown(streamedText)}
+              <div className="flex items-center gap-2 mt-4 pt-2 border-t border-gold/10">
+                <Loader2 className="h-4 w-4 animate-spin text-gold" />
+                <span className="text-xs text-muted-foreground">Đang viết tiếp...</span>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Sparkles className="w-10 h-10 text-gold animate-spin mx-auto mb-4" />
+              <p className="font-display text-lg text-foreground mb-1">Đang kết nối AI...</p>
+              <p className="text-sm text-muted-foreground">AI đang phân tích quẻ {result?.name} theo câu hỏi của bạn</p>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // STATE B: Completed
+    const displayText = aiResult || streamedText;
+    if (!displayText) return null;
+
+    return (
+      <div className={cn("rounded-2xl p-5 bg-gradient-to-br from-surface-3 to-surface-2 border border-gold/20")}>
+        <div className="space-y-1">{renderMarkdown(displayText)}</div>
+      </div>
+    );
+  };
 
   return (
     <PageLayout title="Bói Quẻ Dịch">
@@ -424,9 +1012,7 @@ const BoiQue = () => {
             {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
           <div className="text-5xl mb-3">🎴</div>
-          <h2 className="font-display text-xl text-foreground mb-2">
-            Bói Quẻ 卦
-          </h2>
+          <h2 className="font-display text-xl text-foreground mb-2">Bói Quẻ 卦</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
             Gieo quẻ Kinh Dịch — Hỏi về một điều bạn muốn biết
           </p>
@@ -454,7 +1040,7 @@ const BoiQue = () => {
                       ? coins[i]
                         ? "bg-gold/30 border-2 border-gold text-gold scale-100"
                         : "bg-muted/50 border-2 border-muted-foreground/30 text-muted-foreground scale-100"
-                      : "bg-surface-3 border-2 border-border text-muted-foreground/30 animate-bounce"
+                      : "bg-surface-3 border-2 border-border text-muted-foreground/30 animate-bounce",
                   )}
                   style={{ animationDelay: `${i * 150}ms` }}
                 >
@@ -465,8 +1051,8 @@ const BoiQue = () => {
           )}
 
           {/* Action buttons - Package gate */}
-          {!result && (
-            !quePackage ? (
+          {!result &&
+            (!quePackage ? (
               <PaymentGate
                 feature="boi_que"
                 title="Gói Bói Quẻ - 39.000đ"
@@ -484,7 +1070,7 @@ const BoiQue = () => {
                   size="lg"
                   className="w-full"
                   onClick={handleGieoQue}
-                  disabled={isAnimating || !question.trim()}
+                  disabled={isAnimating || isStreamingAI || !question.trim()}
                 >
                   {isAnimating ? "Đang gieo quẻ..." : "Gieo Quẻ 🎴"}
                 </Button>
@@ -492,46 +1078,49 @@ const BoiQue = () => {
                   Còn {quePackage.uses_remaining}/{quePackage.uses_total} lần trong gói
                 </p>
               </>
-            )
-          )}
+            ))}
         </div>
 
         {/* Result */}
         {result && style && (
           <div className="space-y-4">
             {/* Quẻ header */}
-            <div className={cn(
-              "rounded-2xl p-6 border bg-gradient-to-br ink-splash",
-              style.bg, style.border
-            )}>
-              <div className="flex justify-center mb-3 ink-drip" style={{ animationDelay: '0.3s' }}>
-                <span className={cn("px-4 py-1 rounded-full text-xs font-bold", style.badge)}>
-                  {style.label}
-                </span>
+            <div className={cn("rounded-2xl p-6 border bg-gradient-to-br ink-splash", style.bg, style.border)}>
+              <div className="flex justify-center mb-3 ink-drip" style={{ animationDelay: "0.3s" }}>
+                <span className={cn("px-4 py-1 rounded-full text-xs font-bold", style.badge)}>{style.label}</span>
               </div>
-              <h3 className="text-center font-display text-2xl text-foreground mb-1 brush-stroke" style={{ animationDelay: '0.5s' }}>
+              <h3
+                className="text-center font-display text-2xl text-foreground mb-1 brush-stroke"
+                style={{ animationDelay: "0.5s" }}
+              >
                 Quẻ {String(result.id).padStart(2, "0")} — {result.name}
               </h3>
-              <p className="text-center text-3xl tracking-widest text-gold mb-4 ink-reveal" style={{ animationDelay: '0.7s' }}>
+              <p
+                className="text-center text-3xl tracking-widest text-gold mb-4 ink-reveal"
+                style={{ animationDelay: "0.7s" }}
+              >
                 {result.symbol}
               </p>
-              <p className="text-sm text-muted-foreground text-center italic ink-drip" style={{ animationDelay: '0.9s' }}>
+              <p
+                className="text-sm text-muted-foreground text-center italic ink-drip"
+                style={{ animationDelay: "0.9s" }}
+              >
                 Ngũ hành: {result.element}
               </p>
 
               {/* 6 hào display */}
               {hexLines.length > 0 && (
-                <div className="flex flex-col-reverse items-center gap-1 my-4 ink-reveal" style={{ animationDelay: '1.0s' }}>
+                <div
+                  className="flex flex-col-reverse items-center gap-1 my-4 ink-reveal"
+                  style={{ animationDelay: "1.0s" }}
+                >
                   {hexLines.map((line, i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground w-8 text-right">
-                        Hào {i + 1}
-                      </span>
-                      <div className={cn(
-                        "flex gap-1",
-                        changingLineIndexes.includes(i) ? "text-gold" : "text-foreground"
-                      )}>
-                        {line === 'yang' ? (
+                      <span className="text-xs text-muted-foreground w-8 text-right">Hào {i + 1}</span>
+                      <div
+                        className={cn("flex gap-1", changingLineIndexes.includes(i) ? "text-gold" : "text-foreground")}
+                      >
+                        {line === "yang" ? (
                           <div className="w-16 h-2 bg-current rounded" />
                         ) : (
                           <div className="flex gap-1">
@@ -540,39 +1129,39 @@ const BoiQue = () => {
                           </div>
                         )}
                       </div>
-                      {changingLineIndexes.includes(i) && (
-                        <span className="text-xs text-gold">← động</span>
-                      )}
+                      {changingLineIndexes.includes(i) && <span className="text-xs text-gold">← động</span>}
                     </div>
                   ))}
                 </div>
               )}
 
               {/* Free summary */}
-              <div className="mt-4 p-4 rounded-xl bg-surface-2/60 ink-reveal" style={{ animationDelay: '1.1s' }}>
-                <p className="text-sm text-foreground leading-relaxed">
-                  {result.summary}
-                </p>
+              <div className="mt-4 p-4 rounded-xl bg-surface-2/60 ink-reveal" style={{ animationDelay: "1.1s" }}>
+                <p className="text-sm text-foreground leading-relaxed">{result.summary}</p>
               </div>
 
               {/* Quẻ biến */}
               {hasChanging && changedHexNum && (
-                <div className="mt-3 p-3 rounded-xl bg-surface-2/60 border border-gold/20 ink-reveal" style={{ animationDelay: '1.2s' }}>
+                <div
+                  className="mt-3 p-3 rounded-xl bg-surface-2/60 border border-gold/20 ink-reveal"
+                  style={{ animationDelay: "1.2s" }}
+                >
                   <p className="text-xs text-muted-foreground text-center">
                     Quẻ biến (之卦) →{" "}
                     <span className="text-gold font-medium">
-                      Quẻ {String(changedHexNum).padStart(2, '0')} — {QUE_DATA.find(q => q.id === changedHexNum)?.name}
+                      Quẻ {String(changedHexNum).padStart(2, "0")} —{" "}
+                      {QUE_DATA.find((q) => q.id === changedHexNum)?.name}
                     </span>
                   </p>
                   <p className="text-xs text-muted-foreground text-center mt-1 italic">
-                    {QUE_DATA.find(q => q.id === changedHexNum)?.summary}
+                    {QUE_DATA.find((q) => q.id === changedHexNum)?.summary}
                   </p>
                 </div>
               )}
             </div>
 
             {/* Action buttons */}
-            <div className="flex gap-3 ink-drip" style={{ animationDelay: '1.3s' }}>
+            <div className="flex gap-3 ink-drip" style={{ animationDelay: "1.3s" }}>
               <Button variant="goldOutline" className="flex-1" onClick={handleShare}>
                 <Share2 className="w-4 h-4 mr-2" />
                 Chia Sẻ
@@ -583,24 +1172,8 @@ const BoiQue = () => {
               </Button>
             </div>
 
-            {/* AI Analysis - auto triggered */}
-            <div className="space-y-4">
-              {aiLoading ? (
-                <div className={cn("rounded-2xl p-8 text-center bg-gradient-to-br from-surface-3 to-surface-2 border border-gold/20")}>
-                  <div className="relative inline-block mb-4">
-                    <Sparkles className="w-10 h-10 text-gold animate-spin" />
-                  </div>
-                  <p className="font-display text-lg text-foreground mb-1">Đang luận giải quẻ...</p>
-                  <p className="text-sm text-muted-foreground">AI đang phân tích quẻ {result.name} theo câu hỏi của bạn</p>
-                </div>
-              ) : aiResult ? (
-                <div className={cn("rounded-2xl p-5 bg-gradient-to-br from-surface-3 to-surface-2 border border-gold/20")}>
-                  <div className="space-y-1">
-                    {renderMarkdown(aiResult)}
-                  </div>
-                </div>
-              ) : null}
-            </div>
+            {/* AI Analysis - streaming-aware */}
+            <div className="space-y-4">{renderAiSection()}</div>
           </div>
         )}
 
@@ -621,7 +1194,7 @@ const BoiQue = () => {
                 <Search className="w-4 h-4 text-gold" />
                 Lịch sử ({history.length} lần)
               </span>
-              <span>{showHistory ? '▲' : '▼'}</span>
+              <span>{showHistory ? "▲" : "▼"}</span>
             </button>
             {showHistory && (
               <div className="mt-2 space-y-2">
@@ -630,31 +1203,32 @@ const BoiQue = () => {
                     key={item.id}
                     onClick={() => {
                       setQuestion(item.question);
-                      setResult(QUE_DATA.find(q => q.id === item.hexagram_num) || null);
+                      setResult(QUE_DATA.find((q) => q.id === item.hexagram_num) || null);
                       setAiResult(item.analysis_result);
                       setHexLines(item.hex_lines || []);
                       setChangedHexNum(item.changed_hex_num);
                       setHasChanging(!!item.changed_hex_num);
                       setChangingLineIndexes([]);
                       setShowHistory(false);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                      window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
                     className="rounded-xl p-3 border border-border bg-surface-3 cursor-pointer hover:border-gold/30 transition-colors"
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs text-muted-foreground">
-                        {new Date(item.created_at).toLocaleDateString('vi-VN', {
-                          day: '2-digit', month: '2-digit', year: 'numeric',
-                          hour: '2-digit', minute: '2-digit',
+                        {new Date(item.created_at).toLocaleDateString("vi-VN", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
                         })}
                       </span>
                       <span className="text-gold text-sm">{item.hexagram_symbol}</span>
                     </div>
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {item.question}
-                    </p>
+                    <p className="text-sm font-medium text-foreground truncate">{item.question}</p>
                     <p className="text-xs text-muted-foreground truncate mt-0.5">
-                      Quẻ {String(item.hexagram_num).padStart(2, '0')} — {item.hexagram_name}
+                      Quẻ {String(item.hexagram_num).padStart(2, "0")} — {item.hexagram_name}
                     </p>
                   </div>
                 ))}
@@ -666,14 +1240,21 @@ const BoiQue = () => {
         {/* Lookup / Tra cứu 64 quẻ */}
         <div className="rounded-2xl bg-gradient-to-br from-surface-3 to-surface-2 border border-border overflow-hidden">
           <button
-            onClick={() => { setShowLookup(!showLookup); setSelectedQue(null); }}
+            onClick={() => {
+              setShowLookup(!showLookup);
+              setSelectedQue(null);
+            }}
             className="w-full flex items-center justify-between p-4 text-left"
           >
             <div className="flex items-center gap-2">
               <Search className="w-4 h-4 text-gold" />
               <span className="font-display text-foreground">Tra Cứu 64 Quẻ Dịch</span>
             </div>
-            {showLookup ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+            {showLookup ? (
+              <ChevronUp className="w-4 h-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            )}
           </button>
 
           {showLookup && (
@@ -683,23 +1264,33 @@ const BoiQue = () => {
                 <Input
                   placeholder="Tìm theo tên, số, ngũ hành..."
                   value={searchTerm}
-                  onChange={(e) => { setSearchTerm(e.target.value); setSelectedQue(null); }}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setSelectedQue(null);
+                  }}
                   className="pl-9 bg-surface-2 border-border text-foreground"
                 />
               </div>
 
               {/* Selected quẻ detail */}
               {selectedQue && (
-                <div className={cn(
-                  "rounded-xl p-4 border bg-gradient-to-br animate-fade-in",
-                  fortuneConfig[selectedQue.fortune as keyof typeof fortuneConfig].bg,
-                  fortuneConfig[selectedQue.fortune as keyof typeof fortuneConfig].border
-                )}>
+                <div
+                  className={cn(
+                    "rounded-xl p-4 border bg-gradient-to-br animate-fade-in",
+                    fortuneConfig[selectedQue.fortune as keyof typeof fortuneConfig].bg,
+                    fortuneConfig[selectedQue.fortune as keyof typeof fortuneConfig].border,
+                  )}
+                >
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-display text-lg text-foreground">
                       {String(selectedQue.id).padStart(2, "0")}. {selectedQue.name}
                     </h4>
-                    <span className={cn("px-2 py-0.5 rounded-full text-[10px] font-bold", fortuneConfig[selectedQue.fortune as keyof typeof fortuneConfig].badge)}>
+                    <span
+                      className={cn(
+                        "px-2 py-0.5 rounded-full text-[10px] font-bold",
+                        fortuneConfig[selectedQue.fortune as keyof typeof fortuneConfig].badge,
+                      )}
+                    >
                       {fortuneConfig[selectedQue.fortune as keyof typeof fortuneConfig].label}
                     </span>
                   </div>
@@ -729,7 +1320,7 @@ const BoiQue = () => {
                           onClick={() => setSelectedQue(q)}
                           className={cn(
                             "w-full text-left rounded-lg p-3 border transition-all hover:scale-[1.01]",
-                            "bg-surface-2/50 border-border hover:border-gold/30"
+                            "bg-surface-2/50 border-border hover:border-gold/30",
                           )}
                         >
                           <div className="flex items-center justify-between">
