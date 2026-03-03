@@ -24,9 +24,7 @@ export interface VietQRPaymentModalProps {
   metadata?: Record<string, any>;
 }
 
-// ══════════════════════════════════════════════════════════════
-// FIX: Package config — defines how to create packages per feature
-// ══════════════════════════════════════════════════════════════
+// Package config
 const PACKAGE_CONFIG: Record<
   string,
   {
@@ -42,16 +40,30 @@ const PACKAGE_CONFIG: Record<
   van_han_year: { table: "van_han_packages", usesTotal: 3, extraFields: { time_frame: "year" } },
 };
 
+// ══════════════════════════════════════════════════════════════
+// FIX 1: Accept BOTH "verified" and "confirmed" as success
+// Admin may use either term when approving payments
+// ══════════════════════════════════════════════════════════════
+const VERIFIED_STATUSES = ["verified", "confirmed"];
+
 const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }: VietQRPaymentModalProps) => {
   const storageKey = `payment_pending_${feature}`;
 
-  // Restore persisted pending state from localStorage
+  // ══════════════════════════════════════════════════════════════
+  // FIX 2: Stabilize onSuccess via ref to prevent useEffect churn
+  // Inline arrow functions create new refs every render →
+  // useEffect cleanup/re-setup → channels TIMED_OUT/CLOSED
+  // ══════════════════════════════════════════════════════════════
+  const onSuccessRef = useRef(onSuccess);
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+  }, [onSuccess]);
+
   const getPersistedState = useCallback((): { step: Step; transferContent: string; userId: string } | null => {
     try {
       const saved = localStorage.getItem(storageKey);
       if (!saved) return null;
       const parsed = JSON.parse(saved);
-      // Validate: must have timestamp within 2 hours
       if (parsed.timestamp && Date.now() - parsed.timestamp < 2 * 60 * 60 * 1000) {
         return {
           step: parsed.step || "pending",
@@ -59,7 +71,6 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
           userId: parsed.userId || "",
         };
       }
-      // Expired — clean up
       localStorage.removeItem(storageKey);
     } catch {}
     return null;
@@ -87,11 +98,6 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
   const amount = PRICING[activeFeature] || 0;
   const label = getFeatureLabel(activeFeature);
 
-  // ══════════════════════════════════════════════════════════════
-  // FIX: Create feature package when payment is verified
-  // This was the missing step — payment got verified but no
-  // package record was created for boi_kieu, boi_que, van_han_*
-  // ══════════════════════════════════════════════════════════════
   const createFeaturePackage = useCallback(
     async (uid: string, paymentId: string) => {
       const config = PACKAGE_CONFIG[feature];
@@ -113,7 +119,6 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
       const { error } = await (supabase.from as any)(config.table).insert(record);
 
       if (error) {
-        // Duplicate insert guard — if package already exists, that's fine
         if (error.code === "23505") {
           console.log("[Modal] Package already exists (duplicate), skipping");
         } else {
@@ -126,7 +131,6 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
     [feature],
   );
 
-  // Persist pending state to localStorage whenever step becomes pending
   const persistPendingState = useCallback(
     (pendingStep: Step, tc: string, uid: string) => {
       if (pendingStep === "pending") {
@@ -146,7 +150,6 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
 
   useEffect(() => {
     if (open && !prevOpenRef.current) {
-      // Only reset when modal just opened (false → true)
       const saved = getPersistedState();
       if (saved && saved.step === "pending") {
         setStep("pending");
@@ -162,7 +165,6 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
       verifiedPayloadRef.current = null;
     }
     if (!open && prevOpenRef.current) {
-      // Modal just closed → cleanup
       cleanupPolling();
     }
     prevOpenRef.current = open;
@@ -210,7 +212,6 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
       return;
     }
 
-    // Insert payment record
     const { error } = await supabase.from("payments").insert({
       user_id: user.id,
       amount: amount,
@@ -228,7 +229,6 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
       return;
     }
 
-    // For luan_giai, also create a pending package
     if (isLuanGiai) {
       const { error: pkgError } = await supabase.from("luan_giai_packages").insert({
         user_id: user.id,
@@ -239,25 +239,37 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
         session_id: transferContent,
         transfer_content: transferContent,
       });
-
-      if (pkgError) {
-        console.error("luan_giai_packages insert error:", pkgError);
-      }
+      if (pkgError) console.error("luan_giai_packages insert error:", pkgError);
     }
 
     setStep("pending");
     persistPendingState("pending", transferContent, user.id);
   };
 
-  // Realtime subscription for payment/chart status
+  // ══════════════════════════════════════════════════════════════
+  // Realtime + Polling for payment verification
+  // FIX 1: Check BOTH "verified" AND "confirmed" status
+  // FIX 2: Use onSuccessRef (stable) instead of onSuccess in deps
+  // FIX 3: Fallback poll by user_id + feature in case of mismatch
+  // ══════════════════════════════════════════════════════════════
   useEffect(() => {
     if (step !== "pending") return;
-    // ── FIX: Must have transferContent to poll accurately ──
     if (!transferContent) return;
 
     let channel: ReturnType<typeof supabase.channel> | null = null;
     let pollInterval: ReturnType<typeof setInterval> | null = null;
     let cancelled = false;
+
+    // Helper: handle successful verification
+    const handleVerified = async (uid: string, paymentId: string) => {
+      if (cancelled) return;
+      console.log("[Modal] ✅ Payment verified! Creating package...");
+      if (pollInterval) clearInterval(pollInterval);
+      await createFeaturePackage(uid, paymentId);
+      localStorage.removeItem(storageKey);
+      setStep("success");
+      onSuccessRef.current?.();
+    };
 
     const setup = async () => {
       const {
@@ -266,11 +278,11 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
       if (!user || cancelled) return;
 
       if (isLuanGiai) {
+        // ── LUAN_GIAI: Listen on luan_giai_packages ──
         console.log("[Modal] Setup luan_giai listener for user:", user.id);
 
-        // LAYER 1: Realtime - listen for luan_giai_packages confirmation
         channel = supabase
-          .channel("luan-giai-access-" + user.id)
+          .channel("luan-giai-access-" + user.id + "-" + Date.now())
           .on(
             "postgres_changes",
             {
@@ -282,10 +294,11 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
             (payload: any) => {
               console.log("[Modal] luan_giai_packages UPDATE:", payload.new?.payment_status);
               if (payload.new?.payment_status === "confirmed") {
-                console.log("[Modal] ✅ luan_giai package confirmed");
+                console.log("[Modal] ✅ luan_giai package confirmed via realtime");
+                if (pollInterval) clearInterval(pollInterval);
                 localStorage.removeItem(storageKey);
                 setStep("success");
-                onSuccess?.();
+                onSuccessRef.current?.();
               }
             },
           )
@@ -293,8 +306,6 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
             console.log("[Modal] Realtime status:", status);
           });
 
-        // LAYER 2: Polling fallback mỗi 5 giây
-        console.log("[Modal] Starting polling for luan_giai_packages");
         pollInterval = setInterval(async () => {
           if (cancelled) return;
           const { data } = await supabase
@@ -312,19 +323,18 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
             if (pollInterval) clearInterval(pollInterval);
             localStorage.removeItem(storageKey);
             setStep("success");
-            onSuccess?.();
+            onSuccessRef.current?.();
           }
         }, 5000);
       } else {
         // ══════════════════════════════════════════════════════════
         // NON-LUAN_GIAI: boi_kieu, boi_que, van_han_*, premium
-        // Listen for payments.status === "verified"
-        // FIX: Also create the feature package when verified
         // ══════════════════════════════════════════════════════════
         console.log("[Modal] Setup payment listener, transfer_content:", transferContent);
 
+        // Use unique channel name with timestamp to avoid stale channels
         channel = supabase
-          .channel("payment-status-" + transferContent)
+          .channel("payment-" + transferContent.replace(/\s/g, "-") + "-" + Date.now())
           .on(
             "postgres_changes",
             {
@@ -334,19 +344,13 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
               filter: `transfer_content=eq.${transferContent}`,
             },
             async (payload: any) => {
-              console.log(
-                "[Modal] Payment updated:",
-                payload.new.status,
-                "for transfer:",
-                payload.new.transfer_content,
-              );
-              if (payload.new.status === "verified") {
-                // ── FIX: Create feature package ──
-                await createFeaturePackage(user.id, payload.new.id);
-                localStorage.removeItem(storageKey);
-                setStep("success");
-                onSuccess?.();
-              } else if (payload.new.status === "rejected") {
+              const newStatus = payload.new?.status;
+              console.log("[Modal] Payment realtime UPDATE — status:", newStatus);
+
+              if (VERIFIED_STATUSES.includes(newStatus)) {
+                console.log("[Modal] ✅ Payment verified/confirmed via realtime");
+                await handleVerified(user.id, payload.new.id);
+              } else if (newStatus === "rejected") {
                 localStorage.removeItem(storageKey);
                 setStep("show_qr");
                 toast({
@@ -361,25 +365,55 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
             console.log("[Modal] Realtime subscription status:", status);
           });
 
-        // ── Polling fallback — also creates package on verified ──
+        // ── Polling fallback ──
         pollInterval = setInterval(async () => {
           if (cancelled) return;
           console.log("[Modal] Polling payments for transfer_content:", transferContent);
-          const { data } = await supabase
+
+          // PRIMARY: Match by transfer_content + any verified status
+          const { data: byTransfer } = await supabase
+            .from("payments")
+            .select("id, status, transfer_content")
+            .eq("transfer_content", transferContent)
+            .in("status", VERIFIED_STATUSES)
+            .maybeSingle();
+
+          if (byTransfer && !cancelled) {
+            console.log("[Modal] ✅ Polling found verified payment (by transfer_content), status:", byTransfer.status);
+            await handleVerified(user.id, byTransfer.id);
+            return;
+          }
+
+          // ══════════════════════════════════════════════════════
+          // FIX 3: FALLBACK — match by user_id + feature
+          // Catches cases where transfer_content has encoding
+          // issues or was modified by admin
+          // ══════════════════════════════════════════════════════
+          const { data: byUser } = await supabase
+            .from("payments")
+            .select("id, status, transfer_content")
+            .eq("user_id", user.id)
+            .eq("feature_unlocked", activeFeature)
+            .in("status", VERIFIED_STATUSES)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (byUser && !cancelled) {
+            console.log("[Modal] ✅ Polling found verified payment (by user_id fallback), status:", byUser.status);
+            await handleVerified(user.id, byUser.id);
+            return;
+          }
+
+          // DEBUG: Log current payment status so we can diagnose
+          const { data: current } = await supabase
             .from("payments")
             .select("id, status")
             .eq("transfer_content", transferContent)
-            .eq("status", "verified")
             .maybeSingle();
 
-          if (data && !cancelled) {
-            console.log("[Modal] ✅ Polling detected verified payment for THIS transfer");
-            if (pollInterval) clearInterval(pollInterval);
-            // ── FIX: Create feature package ──
-            await createFeaturePackage(user.id, data.id);
-            localStorage.removeItem(storageKey);
-            setStep("success");
-            onSuccess?.();
+          if (current) {
+            console.log("[Modal] Current payment status:", current.status, "(waiting for verified/confirmed)");
           }
         }, 5000);
       }
@@ -393,7 +427,8 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
       if (pollInterval) clearInterval(pollInterval);
       if (channel) supabase.removeChannel(channel);
     };
-  }, [step, isLuanGiai, transferContent, onSuccess, toast, createFeaturePackage]);
+    // FIX 2: Removed onSuccess/toast from deps — use refs instead
+  }, [step, isLuanGiai, transferContent, createFeaturePackage, storageKey, activeFeature]);
 
   const handleClose = () => {
     cleanupPolling();
@@ -402,7 +437,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
     }
     onOpenChange(false);
     if (step === "success") {
-      onSuccess?.(analysisResult || undefined);
+      onSuccessRef.current?.(analysisResult || undefined);
     }
   };
 
@@ -517,7 +552,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
     </div>
   );
 
-  // ── Step: Processing (luan_giai - waiting for AI analysis) ──
+  // ── Step: Processing ──
   const renderProcessing = () => (
     <div className="flex flex-col items-center py-6 space-y-5 text-center">
       <div className="relative">
@@ -611,7 +646,6 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
   );
 };
 
-// Simple markdown → HTML renderer
 function renderMarkdownHTML(md: string): string {
   return md
     .replace(/&/g, "&amp;")
