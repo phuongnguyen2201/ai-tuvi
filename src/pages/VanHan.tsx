@@ -868,22 +868,42 @@ const VanHan = () => {
 
         {/* Content - only if chart selected */}
         {selectedChart && (
-          <PaymentGate
-            feature={currentTab.featureKey}
-            title={packageTitle[activeTab]}
-            price="39.000đ"
-            description={packageDesc[activeTab]}
-            onUnlocked={() => loadPackage(activeTab)}
-          >
-            <div className="space-y-4">
-              {vanHanPackage && (
-                <div className="text-xs text-primary/70 text-center">
-                  Còn {vanHanPackage.uses_remaining}/{vanHanPackage.uses_total} lần phân tích
+          <>
+            {/* ══════════════════════════════════════════════════════════ */}
+            {/* FIX: If we have a cached result or are streaming,        */}
+            {/* show it DIRECTLY — don't let PaymentGate block viewing.  */}
+            {/* Only gate when user needs to trigger a NEW analysis.     */}
+            {/* ══════════════════════════════════════════════════════════ */}
+            {currentResult || isAnalyzing || isStreamingAI || streamedText ? (
+              /* Has result or streaming → show directly, no gate */
+              <div className="space-y-4">
+                {vanHanPackage && (
+                  <div className="text-xs text-primary/70 text-center">
+                    Còn {vanHanPackage.uses_remaining}/{vanHanPackage.uses_total} lần phân tích
+                  </div>
+                )}
+                {renderAiResult()}
+              </div>
+            ) : (
+              /* No result → PaymentGate wraps the analyze button */
+              <PaymentGate
+                feature={currentTab.featureKey}
+                title={packageTitle[activeTab]}
+                price="39.000đ"
+                description={packageDesc[activeTab]}
+                onUnlocked={() => loadPackage(activeTab)}
+              >
+                <div className="space-y-4">
+                  {vanHanPackage && (
+                    <div className="text-xs text-primary/70 text-center">
+                      Còn {vanHanPackage.uses_remaining}/{vanHanPackage.uses_total} lần phân tích
+                    </div>
+                  )}
+                  {renderAiResult()}
                 </div>
-              )}
-              {renderAiResult()}
-            </div>
-          </PaymentGate>
+              </PaymentGate>
+            )}
+          </>
         )}
       </div>
     </PageLayout>
