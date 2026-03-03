@@ -81,9 +81,10 @@ function solarToLunar(solarDate: Date): { lunarYear: number; lunarMonth: number;
     let lunarDay = solarDate.getDate();
 
     for (const p of parts) {
-      if (p.type === "relatedYear") lunarYear = parseInt(p.value);
-      if (p.type === "month") lunarMonth = parseInt(p.value.replace(/[^\d]/g, ""));
-      if (p.type === "day") lunarDay = parseInt(p.value.replace(/[^\d]/g, ""));
+      const t = p.type as string;
+      if (t === "relatedYear") lunarYear = parseInt(p.value);
+      if (t === "month") lunarMonth = parseInt(p.value.replace(/[^\d]/g, ""));
+      if (t === "day") lunarDay = parseInt(p.value.replace(/[^\d]/g, ""));
     }
 
     return { lunarYear, lunarMonth, lunarDay };
