@@ -58,31 +58,125 @@ function getWeekInfo(offset: number) {
   };
 }
 
+// ══════════════════════════════════════════════════════════════
+// LUNAR CALENDAR UTILITIES FOR TỬ VI
+// 流月 (Lưu Nguyệt) uses lunar months, 流年 (Lưu Niên) uses lunar years
+// Week (流週) is NOT a traditional Tử Vi concept → stays solar
+// ══════════════════════════════════════════════════════════════
+
+const THIEN_CAN = ["Giáp", "Ất", "Bính", "Đinh", "Mậu", "Kỷ", "Canh", "Tân", "Nhâm", "Quý"];
+const DIA_CHI = ["Tý", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mùi", "Thân", "Dậu", "Tuất", "Hợi"];
+
+/** Convert solar date → lunar month/year using built-in Intl API (Chinese calendar) */
+function solarToLunar(solarDate: Date): { lunarYear: number; lunarMonth: number; lunarDay: number } {
+  try {
+    const parts = new Intl.DateTimeFormat("en-u-ca-chinese", {
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+    }).formatToParts(solarDate);
+
+    let lunarYear = solarDate.getFullYear();
+    let lunarMonth = solarDate.getMonth() + 1;
+    let lunarDay = solarDate.getDate();
+
+    for (const p of parts) {
+      if (p.type === "relatedYear") lunarYear = parseInt(p.value);
+      if (p.type === "month") lunarMonth = parseInt(p.value.replace(/[^\d]/g, ""));
+      if (p.type === "day") lunarDay = parseInt(p.value.replace(/[^\d]/g, ""));
+    }
+
+    return { lunarYear, lunarMonth, lunarDay };
+  } catch {
+    // Fallback for very old browsers: approximate (solar ≈ lunar -1 month)
+    return {
+      lunarYear: solarDate.getFullYear(),
+      lunarMonth: solarDate.getMonth() + 1,
+      lunarDay: solarDate.getDate(),
+    };
+  }
+}
+
+/** 天干地支 (Can Chi) of a lunar year — e.g. 2026 → "Bính Ngọ" */
+function getYearCanChi(lunarYear: number): string {
+  const stemIdx = (lunarYear - 4) % 10;
+  const branchIdx = (lunarYear - 4) % 12;
+  return `${THIEN_CAN[stemIdx]}${DIA_CHI[branchIdx]}`;
+}
+
+/**
+ * 五虎遁 (Ngũ Hổ Độn): Can Chi of a lunar month
+ * Month 1 = Dần(寅), Month 2 = Mão(卯), ..., Month 12 = Sửu(丑)
+ * Thiên Can of month 1 depends on year's Thiên Can
+ */
+function getMonthCanChi(lunarYear: number, lunarMonth: number): string {
+  const yearStemIdx = (lunarYear - 4) % 10;
+  // Ngũ Hổ Độn formula: month1Stem = (yearStem % 5) * 2 + 2
+  // Giáp/Kỷ→Bính(2), Ất/Canh→Mậu(4), Bính/Tân→Canh(6), Đinh/Nhâm→Nhâm(8), Mậu/Quý→Giáp(0)
+  const month1Stem = ((yearStemIdx % 5) * 2 + 2) % 10;
+  const monthStemIdx = (month1Stem + lunarMonth - 1) % 10;
+  // Month 1 = Dần(2), Month 2 = Mão(3), ..., Month 11 = Tý(0), Month 12 = Sửu(1)
+  const monthBranchIdx = (lunarMonth + 1) % 12;
+  return `${THIEN_CAN[monthStemIdx]}${DIA_CHI[monthBranchIdx]}`;
+}
+
 function getMonthInfo(offset: number) {
-  const now = new Date();
-  const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+  const now = solarToLunar(new Date());
+  let m = now.lunarMonth + offset;
+  let y = now.lunarYear;
+  while (m > 12) {
+    m -= 12;
+    y++;
+  }
+  while (m < 1) {
+    m += 12;
+    y--;
+  }
+
+  const canChi = getMonthCanChi(y, m);
   return {
-    label: `Tháng ${d.getMonth() + 1}/${d.getFullYear()}`,
-    period: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+    label: `Tháng ${m} ÂL — ${canChi} (${y})`,
+    period: `L${y}-${String(m).padStart(2, "0")}`,
   };
 }
 
 function getYearInfo(offset: number) {
-  const year = new Date().getFullYear() + offset;
-  return { label: `Năm ${year}`, period: `${year}` };
+  const now = solarToLunar(new Date());
+  const y = now.lunarYear + offset;
+  const canChi = getYearCanChi(y);
+  return {
+    label: `Năm ${canChi} (${y})`,
+    period: `L${y}`,
+  };
 }
 
-// Format period string for display
+// Format period string for display in history panel
 function formatPeriodLabel(timeFrame: string, period: string): string {
   if (timeFrame === "week") {
     const match = period.match(/^(\d{4})-W(\d{2})$/);
     if (match) return `Tuần ${parseInt(match[2])}/${match[1]}`;
   }
   if (timeFrame === "month") {
+    // New lunar format: L2026-02
+    const lunarMatch = period.match(/^L(\d{4})-(\d{2})$/);
+    if (lunarMatch) {
+      const yr = parseInt(lunarMatch[1]);
+      const mo = parseInt(lunarMatch[2]);
+      return `T${mo} ÂL (${getMonthCanChi(yr, mo)})`;
+    }
+    // Old solar format fallback: 2026-03
     const match = period.match(/^(\d{4})-(\d{2})$/);
     if (match) return `Tháng ${parseInt(match[2])}/${match[1]}`;
   }
-  if (timeFrame === "year") return `Năm ${period}`;
+  if (timeFrame === "year") {
+    // New lunar format: L2026
+    const lunarMatch = period.match(/^L(\d{4})$/);
+    if (lunarMatch) {
+      const yr = parseInt(lunarMatch[1]);
+      return `${getYearCanChi(yr)} (${yr})`;
+    }
+    return `Năm ${period}`;
+  }
   return period;
 }
 
@@ -379,6 +473,7 @@ const VanHan = () => {
           analysisType: "van_han",
           timeFrame: activeTab,
           period: timeInfo.period,
+          periodLabel: timeInfo.label, // "Tháng 2 ÂL — Canh Dần (2026)" or "Năm Bính Ngọ (2026)"
           chartData: selectedChart.birth_data,
           fullChartData,
         },
