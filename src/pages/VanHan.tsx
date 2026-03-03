@@ -95,6 +95,7 @@ const VanHan = () => {
   const [analysisHistory, setAnalysisHistory] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [viewingHistoryId, setViewingHistoryId] = useState<string | null>(null);
 
   // ── CHANGE 2: Streaming hook ──
   const {
@@ -204,6 +205,9 @@ const VanHan = () => {
   }, [selectedChart, activeTab, timeOffset]);
 
   const autoLoadCached = async () => {
+    // Clear history viewing state — user navigated via time/tab controls
+    setViewingHistoryId(null);
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -250,6 +254,9 @@ const VanHan = () => {
     if (item.analysis_result) {
       setCurrentResult(item.analysis_result);
     }
+
+    // Track which history item is being viewed
+    setViewingHistoryId(item.id);
 
     setShowHistory(false);
 
@@ -655,8 +662,11 @@ const VanHan = () => {
             ) : (
               filtered.map((item) => {
                 const bd = item.birth_data;
-                const isCurrentSelection =
-                  item.chart_hash === selectedChart?.chart_hash && item.period === timeInfo.period;
+                // FIX: Use viewingHistoryId for history clicks,
+                // fall back to chart_hash + period match for normal navigation
+                const isCurrentSelection = viewingHistoryId
+                  ? item.id === viewingHistoryId
+                  : item.chart_hash === selectedChart?.chart_hash && item.period === timeInfo.period && !!currentResult;
 
                 return (
                   <button
