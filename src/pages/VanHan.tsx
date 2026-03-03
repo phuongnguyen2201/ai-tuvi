@@ -22,6 +22,7 @@ import {
 // ── CHANGE 1: Import streaming hook ──
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
+import { getISOWeek, startOfISOWeek, endOfISOWeek, addWeeks } from "date-fns";
 
 // ── Types ──
 type TimeFrame = "week" | "month" | "year";
@@ -40,13 +41,16 @@ const TABS: TabConfig[] = [
 ];
 
 // ── Helpers ──
+// ══════════════════════════════════════════════════════════════
+// FIX: Use ISO 8601 week numbering via date-fns
+// Old formula was off-by-one for weeks where Jan 1 != Monday
+// Example: March 2, 2026 is ISO week 10, old formula gave 9
+// ══════════════════════════════════════════════════════════════
 function getWeekInfo(offset: number) {
-  const now = new Date();
-  const start = new Date(now);
-  start.setDate(start.getDate() - start.getDay() + 1 + offset * 7);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 6);
-  const weekNum = Math.ceil(((start.getTime() - new Date(start.getFullYear(), 0, 1).getTime()) / 86400000 + 1) / 7);
+  const currentWeekStart = startOfISOWeek(new Date());
+  const start = addWeeks(currentWeekStart, offset);
+  const end = endOfISOWeek(start);
+  const weekNum = getISOWeek(start);
   const fmt = (d: Date) => `${d.getDate()}/${d.getMonth() + 1}`;
   return {
     label: `Tuần ${weekNum} (${fmt(start)} - ${fmt(end)}/${end.getFullYear()})`,
