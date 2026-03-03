@@ -7,9 +7,21 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { astro } from "iztro";
 import { toast } from "sonner";
-import { Sparkles, ChevronRight, ChevronLeft, Loader2, Share2, History, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Sparkles,
+  ChevronRight,
+  ChevronLeft,
+  Loader2,
+  Share2,
+  History,
+  ChevronDown,
+  ChevronUp,
+  CreditCard,
+  X,
+} from "lucide-react";
 // ── CHANGE 1: Import streaming hook ──
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
+import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 
 // ── Types ──
 type TimeFrame = "week" | "month" | "year";
@@ -84,6 +96,8 @@ const VanHan = () => {
 
   // Package
   const [vanHanPackage, setVanHanPackage] = useState<any>(null);
+  const [isPackageExhausted, setIsPackageExhausted] = useState(false); // had package but 0 remaining
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   // Analysis
   const [currentResult, setCurrentResult] = useState<string | null>(null);
@@ -134,13 +148,14 @@ const VanHan = () => {
     setChartsLoading(false);
   };
 
-  // Load package for current timeframe
+  // Load package for current timeframe + detect exhaustion
   const loadPackage = async (timeFrame: string) => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
 
+    // Check for active package (uses > 0)
     const { data } = await supabase
       .from("van_han_packages")
       .select("*")
@@ -152,6 +167,19 @@ const VanHan = () => {
       .maybeSingle();
 
     setVanHanPackage(data);
+
+    // If no active package, check if they ever had one (exhausted)
+    if (!data) {
+      const { count } = await supabase
+        .from("van_han_packages")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("time_frame", timeFrame);
+
+      setIsPackageExhausted((count ?? 0) > 0);
+    } else {
+      setIsPackageExhausted(false);
+    }
   };
 
   useEffect(() => {
@@ -563,8 +591,25 @@ const VanHan = () => {
       );
     }
 
-    // ── STATE B: NO RESULT — show active analyze button ──
+    // ── STATE B: NO RESULT — show analyze button or exhausted message ──
     if (!currentResult && !streamedText) {
+      // Sub-state: package exhausted — show payment prompt inline
+      if (!vanHanPackage && isPackageExhausted) {
+        return (
+          <div id="van-han-result" className="text-center py-6 space-y-3">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20">
+              <CreditCard className="w-4 h-4 text-amber-400" />
+              <span className="text-sm font-medium text-amber-300">Hết lượt phân tích</span>
+            </div>
+            <p className="text-sm text-muted-foreground">Mua thêm gói để luận giải {timeInfo.label}</p>
+            <Button variant="gold" size="lg" onClick={() => setShowPaymentModal(true)}>
+              <CreditCard className="w-5 h-5 mr-2" />
+              Mua gói luận giải
+            </Button>
+          </div>
+        );
+      }
+
       return (
         <div id="van-han-result" className="text-center py-6">
           <Button variant="gold" size="lg" onClick={handleAnalyze} disabled={!vanHanPackage}>
@@ -876,6 +921,42 @@ const VanHan = () => {
         {/* Chart Picker */}
         {renderChartPicker()}
 
+        {/* ══════════════════════════════════════════════════════════ */}
+        {/* Exhausted banner — prominent, when package used up        */}
+        {/* ══════════════════════════════════════════════════════════ */}
+        {selectedChart && !vanHanPackage && isPackageExhausted && (
+          <div className="rounded-2xl p-4 bg-gradient-to-r from-amber-950/60 to-orange-950/40 border border-amber-500/30">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="shrink-0 w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                  <CreditCard className="w-5 h-5 text-amber-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-amber-300 text-sm">Đã hết lượt luận giải</p>
+                  <p className="text-xs text-amber-200/60">
+                    Thanh toán để luận giải tiếp · Lịch sử luận giải vẫn xem được
+                  </p>
+                </div>
+              </div>
+              <Button variant="gold" size="sm" onClick={() => setShowPaymentModal(true)} className="shrink-0">
+                <CreditCard className="w-4 h-4 mr-1.5" />
+                Mua thêm
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* VietQR Payment Modal with Cancel support */}
+        <VietQRPaymentModal
+          open={showPaymentModal}
+          onOpenChange={setShowPaymentModal}
+          feature={currentTab.featureKey}
+          onSuccess={() => {
+            setShowPaymentModal(false);
+            loadPackage(activeTab);
+          }}
+        />
+
         {/* Content - only if chart selected */}
         {selectedChart && (
           <>
@@ -884,8 +965,8 @@ const VanHan = () => {
             {/* show it DIRECTLY — don't let PaymentGate block viewing.  */}
             {/* Only gate when user needs to trigger a NEW analysis.     */}
             {/* ══════════════════════════════════════════════════════════ */}
-            {currentResult || isAnalyzing || isStreamingAI || streamedText ? (
-              /* Has result or streaming → show directly, no gate */
+            {currentResult || isAnalyzing || isStreamingAI || streamedText || isPackageExhausted ? (
+              /* Has result, streaming, or exhausted (inline CTA handles payment) → show directly */
               <div className="space-y-4">
                 {vanHanPackage && (
                   <div className="text-xs text-primary/70 text-center">
