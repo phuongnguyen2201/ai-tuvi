@@ -1,4 +1,6 @@
 // src/pages/TuViIztroPage.tsx - Page lập lá số dùng iztro library (Streaming AI)
+// CHANGE A: Form dirty tracking — grey out "Lập Lá Số" after submit, re-enable on form edit
+// CHANGE B: History section — view past charts and AI analyses
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAddress } from "@thirdweb-dev/react";
@@ -15,7 +17,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Loader2, CheckCircle, XCircle, ExternalLink, Sparkles, Lock } from "lucide-react";
+import {
+  CalendarIcon,
+  Loader2,
+  CheckCircle,
+  XCircle,
+  ExternalLink,
+  Sparkles,
+  Lock,
+  History,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -116,11 +129,39 @@ export default function TuViIztroPage() {
   const [gender, setGender] = useState<"Nam" | "Nữ">("Nam");
   const [calendarType, setCalendarType] = useState<"solar" | "lunar">("solar");
 
+  // ══════════════════════════════════════════════════════════════
+  // CHANGE A: Track last-submitted form values to detect dirty state
+  // When form is submitted → save snapshot → button becomes grey
+  // When user edits any field → mismatch detected → button re-enables
+  // ══════════════════════════════════════════════════════════════
+  const [lastSubmitted, setLastSubmitted] = useState<{
+    personName: string;
+    birthDate: string;
+    birthHour: string;
+    gender: string;
+    calendarType: string;
+  } | null>(null);
+
+  const isFormDirty =
+    !lastSubmitted ||
+    personName !== lastSubmitted.personName ||
+    format(birthDate, "yyyy-MM-dd") !== lastSubmitted.birthDate ||
+    birthHour !== lastSubmitted.birthHour ||
+    gender !== lastSubmitted.gender ||
+    calendarType !== lastSubmitted.calendarType;
+
   // Chart analysis state
   const [cachedAnalysis, setCachedAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+
+  // ══════════════════════════════════════════════════════════════
+  // CHANGE B: History state — collapsible list of past charts
+  // ══════════════════════════════════════════════════════════════
+  const [chartHistory, setChartHistory] = useState<any[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   // Mint callback state
   const [searchParams, setSearchParams] = useSearchParams();
@@ -144,6 +185,86 @@ export default function TuViIztroPage() {
 
   // Synchronous guard ref to prevent double-call race condition
   const isAnalyzingRef = useRef(false);
+
+  // ══════════════════════════════════════════════════════════════
+  // CHANGE B: Load history on mount (when user is logged in)
+  // ══════════════════════════════════════════════════════════════
+  useEffect(() => {
+    if (user) loadChartHistory();
+  }, [user]);
+
+  const loadChartHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const {
+        data: { user: currentUser },
+      } = await supabase.auth.getUser();
+      if (!currentUser) return;
+
+      const { data } = await (supabase.from("chart_analyses") as any)
+        .select("id, chart_hash, birth_data, analysis_result, created_at")
+        .eq("user_id", currentUser.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      setChartHistory(data || []);
+    } catch (err) {
+      console.error("[History] Load error:", err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  // CHANGE B: Click a history item → restore chart + analysis
+  const handleLoadFromHistory = (item: any) => {
+    const bd = item.birth_data;
+    if (!bd) return;
+
+    // Fill form fields
+    if (bd.personName) setPersonName(bd.personName);
+    if (bd.birthDate) {
+      const parsed = new Date(bd.birthDate);
+      if (!isNaN(parsed.getTime())) setBirthDate(parsed);
+    }
+    if (bd.birthHour) setBirthHour(bd.birthHour);
+    if (bd.gender === "Nam" || bd.gender === "Nữ") setGender(bd.gender);
+    if (bd.calendarType) setCalendarType(bd.calendarType as "solar" | "lunar");
+
+    // Recreate chart from birth data
+    try {
+      const parsed = new Date(bd.birthDate);
+      const input: BirthInput = {
+        year: parsed.getFullYear(),
+        month: parsed.getMonth() + 1,
+        day: parsed.getDate(),
+        hour: parseInt(bd.birthHour || "1"),
+        gender: bd.gender || "Nam",
+        isLunarDate: bd.calendarType === "lunar",
+      };
+      const result = createTuViChart(input);
+      setChart(result);
+    } catch (e) {
+      console.error("[History] Failed to recreate chart:", e);
+      return;
+    }
+
+    // Show cached analysis if available
+    const hasValidAnalysis = item.analysis_result && item.analysis_result.length > 100;
+    setCachedAnalysis(hasValidAnalysis ? item.analysis_result : null);
+    setAnalysisError(false);
+
+    // CHANGE A: Mark form as "submitted" so button greys out
+    setLastSubmitted({
+      personName: bd.personName || "",
+      birthDate: bd.birthDate || "",
+      birthHour: bd.birthHour || "1",
+      gender: bd.gender || "Nam",
+      calendarType: bd.calendarType || "solar",
+    });
+
+    setShowHistory(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   useEffect(() => {
     const sessionId = searchParams.get("session_id");
@@ -295,6 +416,9 @@ export default function TuViIztroPage() {
       await refreshAccess();
 
       setCachedAnalysis(fullText);
+
+      // CHANGE B: Reload history so the new analysis appears
+      loadChartHistory();
     } catch (err: any) {
       if (!analysisError) {
         console.error("[loadAnalysis] Error:", err);
@@ -356,6 +480,15 @@ export default function TuViIztroPage() {
       const result = createTuViChart(input);
       setChart(result);
 
+      // ── CHANGE A: Save snapshot of submitted values ──
+      setLastSubmitted({
+        personName,
+        birthDate: format(birthDate, "yyyy-MM-dd"),
+        birthHour,
+        gender,
+        calendarType,
+      });
+
       // Check if we have a cached analysis for this chart
       if (user) {
         const hash = generateChartHash(birthDate, birthHour, gender, calendarType);
@@ -375,6 +508,86 @@ export default function TuViIztroPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  // CHANGE B: Render collapsible history panel
+  // ══════════════════════════════════════════════════════════════
+  const renderHistory = () => {
+    if (!user || chartHistory.length === 0) return null;
+
+    return (
+      <div className="rounded-2xl bg-slate-900/80 border border-amber-600/30 overflow-hidden">
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="w-full flex items-center justify-between p-4 text-left hover:bg-slate-800/50 transition-colors"
+        >
+          <span className="flex items-center gap-2 text-amber-300 font-semibold">
+            <History className="w-4 h-4" />
+            Lá số & luận giải đã lập ({chartHistory.length})
+          </span>
+          {showHistory ? (
+            <ChevronUp className="w-4 h-4 text-gray-400" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-gray-400" />
+          )}
+        </button>
+
+        {showHistory && (
+          <div className="px-4 pb-4 space-y-2 max-h-[50vh] overflow-y-auto">
+            {historyLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-5 h-5 animate-spin text-amber-400" />
+              </div>
+            ) : (
+              chartHistory.map((item) => {
+                const bd = item.birth_data;
+                const hasAnalysis = item.analysis_result && item.analysis_result.length > 100;
+                const hourLabel =
+                  LUNAR_HOURS.find((h) => h.value === bd?.birthHour)?.label?.split(" ")[0] || bd?.birthHour;
+
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleLoadFromHistory(item)}
+                    className={cn(
+                      "w-full text-left rounded-xl p-3 border transition-all",
+                      "bg-slate-800/50 border-slate-700 hover:border-amber-500/50 hover:bg-slate-800",
+                    )}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="font-medium text-sm text-white truncate mr-2">{bd?.personName || "Không tên"}</p>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {hasAnalysis ? (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-medium">
+                            ✨ Đã luận giải
+                          </span>
+                        ) : (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 font-medium">
+                            Chưa luận giải
+                          </span>
+                        )}
+                        <span className="text-xs text-gray-500">
+                          {new Date(item.created_at).toLocaleDateString("vi-VN", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      {bd?.birthDate} · Giờ {hourLabel} · {bd?.gender} ·{" "}
+                      {bd?.calendarType === "lunar" ? "Âm lịch" : "Dương lịch"}
+                    </p>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -472,6 +685,11 @@ export default function TuViIztroPage() {
 
         {/* NFT Gallery - always visible when wallet connected */}
         <NFTGallery key={address || "disconnected"} />
+
+        {/* ════════════════════════════════════════════════════════ */}
+        {/* CHANGE B: History panel — above the form               */}
+        {/* ════════════════════════════════════════════════════════ */}
+        {renderHistory()}
 
         {/* Form nhập liệu */}
         <Card className="bg-slate-900/80 border-amber-600/30">
@@ -596,12 +814,22 @@ export default function TuViIztroPage() {
 
               {error && <p className="text-red-400 text-sm bg-red-900/20 p-2 rounded">{error}</p>}
 
+              {/* ── CHANGE A: Button disabled when form hasn't changed ── */}
               <Button
                 type="submit"
-                className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold"
-                disabled={isLoading}
+                className={cn(
+                  "w-full font-bold transition-all",
+                  isFormDirty
+                    ? "bg-amber-600 hover:bg-amber-500 text-white"
+                    : "bg-slate-700 text-slate-400 cursor-not-allowed",
+                )}
+                disabled={isLoading || !isFormDirty}
               >
-                {isLoading ? "Đang tính toán..." : "🔮 Lập Lá Số"}
+                {isLoading
+                  ? "Đang tính toán..."
+                  : !isFormDirty
+                    ? "✓ Đã lập lá số — Sửa thông tin để lập mới"
+                    : "🔮 Lập Lá Số"}
               </Button>
             </form>
           </CardContent>
