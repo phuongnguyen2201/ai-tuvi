@@ -70,26 +70,24 @@ const DIA_CHI = ["Tý", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mù
 /** Convert solar date → lunar month/year using built-in Intl API (Chinese calendar) */
 function solarToLunar(solarDate: Date): { lunarYear: number; lunarMonth: number; lunarDay: number } {
   try {
-    const parts = new Intl.DateTimeFormat("en-u-ca-chinese", {
+    const formatted = new Intl.DateTimeFormat("en-u-ca-chinese", {
       year: "numeric",
       month: "numeric",
       day: "numeric",
     }).formatToParts(solarDate);
 
-    let lunarYear = solarDate.getFullYear();
-    let lunarMonth = solarDate.getMonth() + 1;
-    let lunarDay = solarDate.getDate();
+    // Build a map keyed by part type string to avoid TS strict type issues
+    const partMap: Record<string, string> = {};
+    formatted.forEach((p) => {
+      partMap[String(p.type)] = p.value;
+    });
 
-    for (const p of parts) {
-      const t = p.type as string;
-      if (t === "relatedYear") lunarYear = parseInt(p.value);
-      if (t === "month") lunarMonth = parseInt(p.value.replace(/[^\d]/g, ""));
-      if (t === "day") lunarDay = parseInt(p.value.replace(/[^\d]/g, ""));
-    }
+    const lunarYear = partMap["relatedYear"] ? parseInt(partMap["relatedYear"]) : solarDate.getFullYear();
+    const lunarMonth = partMap["month"] ? parseInt(partMap["month"].replace(/[^\d]/g, "")) : solarDate.getMonth() + 1;
+    const lunarDay = partMap["day"] ? parseInt(partMap["day"].replace(/[^\d]/g, "")) : solarDate.getDate();
 
     return { lunarYear, lunarMonth, lunarDay };
   } catch {
-    // Fallback for very old browsers: approximate (solar ≈ lunar -1 month)
     return {
       lunarYear: solarDate.getFullYear(),
       lunarMonth: solarDate.getMonth() + 1,
@@ -209,6 +207,8 @@ const VanHan = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [viewingHistoryId, setViewingHistoryId] = useState<string | null>(null);
+  // Track which tab initiated the current stream — prevents stale text showing on tab switch
+  const [streamingForTab, setStreamingForTab] = useState<string | null>(null);
 
   // ── CHANGE 2: Streaming hook ──
   const {
@@ -285,9 +285,10 @@ const VanHan = () => {
     if (selectedChart) loadPackage(activeTab);
   }, [activeTab, selectedChart]);
 
-  // Reset offset when switching tabs
+  // Reset offset and streaming state when switching tabs
   useEffect(() => {
     setTimeOffset(0);
+    setStreamingForTab(null);
   }, [activeTab]);
 
   // ══════════════════════════════════════════════════════════════
@@ -366,6 +367,10 @@ const VanHan = () => {
         : getYearInfo(timeOffset);
 
   const maxOffset = activeTab === "year" ? 1 : 2;
+
+  // FIX: Only show streamedText if it belongs to the current tab
+  // Prevents stale year analysis from showing when switching to week/month
+  const activeStreamedText = streamingForTab === activeTab ? streamedText : "";
 
   // ══════════════════════════════════════════════════════════════
   // CHANGE A: Handle clicking a history item
@@ -467,6 +472,7 @@ const VanHan = () => {
     // Call Claude with STREAMING
     setIsAnalyzing(true);
     setCurrentResult(null);
+    setStreamingForTab(activeTab);
 
     try {
       const fullText = await startStreaming(
@@ -670,9 +676,9 @@ const VanHan = () => {
             Đang luận giải...
             <span className="text-xs font-normal text-muted-foreground ml-2">(streaming real-time)</span>
           </h3>
-          {streamedText ? (
+          {activeStreamedText ? (
             <div className="space-y-1">
-              {renderMarkdown(streamedText)}
+              {renderMarkdown(activeStreamedText)}
               <div className="flex items-center gap-2 mt-4 pt-2 border-t border-primary/10">
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 <span className="text-xs text-muted-foreground">Đang viết tiếp...</span>
@@ -692,7 +698,7 @@ const VanHan = () => {
     }
 
     // ── STATE B: NO RESULT — show analyze button or exhausted message ──
-    if (!currentResult && !streamedText) {
+    if (!currentResult && !activeStreamedText) {
       // Sub-state: package exhausted — show payment prompt inline
       if (!vanHanPackage && isPackageExhausted) {
         return (
@@ -722,7 +728,7 @@ const VanHan = () => {
     }
 
     // ── STATE C: COMPLETED — show full result + greyed button ──
-    const displayText = currentResult || streamedText;
+    const displayText = currentResult || activeStreamedText;
     return (
       <div
         id="van-han-result"
@@ -1065,7 +1071,7 @@ const VanHan = () => {
             {/* show it DIRECTLY — don't let PaymentGate block viewing.  */}
             {/* Only gate when user needs to trigger a NEW analysis.     */}
             {/* ══════════════════════════════════════════════════════════ */}
-            {currentResult || isAnalyzing || isStreamingAI || streamedText || isPackageExhausted ? (
+            {currentResult || isAnalyzing || isStreamingAI || activeStreamedText || isPackageExhausted ? (
               /* Has result, streaming, or exhausted (inline CTA handles payment) → show directly */
               <div className="space-y-4">
                 {vanHanPackage && (
