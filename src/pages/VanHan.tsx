@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { astro } from "iztro";
 import { toast } from "sonner";
-import { Sparkles, ChevronRight, ChevronLeft, Loader2, Share2 } from "lucide-react";
+import { Sparkles, ChevronRight, ChevronLeft, Loader2, Share2, History, ChevronDown, ChevronUp } from "lucide-react";
 // ── CHANGE 1: Import streaming hook ──
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 
@@ -56,6 +56,20 @@ function getYearInfo(offset: number) {
   return { label: `Năm ${year}`, period: `${year}` };
 }
 
+// Format period string for display
+function formatPeriodLabel(timeFrame: string, period: string): string {
+  if (timeFrame === "week") {
+    const match = period.match(/^(\d{4})-W(\d{2})$/);
+    if (match) return `Tuần ${parseInt(match[2])}/${match[1]}`;
+  }
+  if (timeFrame === "month") {
+    const match = period.match(/^(\d{4})-(\d{2})$/);
+    if (match) return `Tháng ${parseInt(match[2])}/${match[1]}`;
+  }
+  if (timeFrame === "year") return `Năm ${period}`;
+  return period;
+}
+
 // ── Component ──
 const VanHan = () => {
   const navigate = useNavigate();
@@ -74,6 +88,13 @@ const VanHan = () => {
   // Analysis
   const [currentResult, setCurrentResult] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // ══════════════════════════════════════════════════════════════
+  // CHANGE A: History state — past analyses grouped by tab
+  // ══════════════════════════════════════════════════════════════
+  const [analysisHistory, setAnalysisHistory] = useState<any[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   // ── CHANGE 2: Streaming hook ──
   const {
@@ -141,6 +162,41 @@ const VanHan = () => {
     setTimeOffset(0);
   }, [activeTab]);
 
+  // ══════════════════════════════════════════════════════════════
+  // CHANGE A: Load analysis history when tab or chart changes
+  // ══════════════════════════════════════════════════════════════
+  useEffect(() => {
+    loadAnalysisHistory();
+  }, [activeTab, selectedChart]);
+
+  const loadAnalysisHistory = async () => {
+    setHistoryLoading(true);
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setHistoryLoading(false);
+        return;
+      }
+
+      const { data } = await supabase
+        .from("van_han_analyses")
+        .select("id, chart_hash, time_frame, period, birth_data, analysis_result, created_at")
+        .eq("user_id", user.id)
+        .eq("time_frame", activeTab)
+        .not("analysis_result", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(30);
+
+      setAnalysisHistory(data || []);
+    } catch (err) {
+      console.error("[History] Load error:", err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
   // Auto load cached result when chart/tab/period changes
   useEffect(() => {
     if (!selectedChart) return;
@@ -179,6 +235,29 @@ const VanHan = () => {
         : getYearInfo(timeOffset);
 
   const maxOffset = activeTab === "year" ? 1 : 2;
+
+  // ══════════════════════════════════════════════════════════════
+  // CHANGE A: Handle clicking a history item
+  // ══════════════════════════════════════════════════════════════
+  const handleLoadFromHistory = (item: any) => {
+    // Find matching chart by chart_hash
+    const matchingChart = charts.find((c) => c.chart_hash === item.chart_hash);
+    if (matchingChart && matchingChart.id !== selectedChart?.id) {
+      setSelectedChart(matchingChart);
+    }
+
+    // Show the cached result directly
+    if (item.analysis_result) {
+      setCurrentResult(item.analysis_result);
+    }
+
+    setShowHistory(false);
+
+    // Scroll to result
+    setTimeout(() => {
+      document.getElementById("van-han-result")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  };
 
   // ── CHANGE 3: Analyze with STREAMING ──
   const handleAnalyze = async () => {
@@ -253,7 +332,7 @@ const VanHan = () => {
 
     // Call Claude with STREAMING
     setIsAnalyzing(true);
-    setCurrentResult(null); // Clear so streaming text shows
+    setCurrentResult(null);
 
     try {
       const fullText = await startStreaming(
@@ -295,6 +374,9 @@ const VanHan = () => {
 
       setCurrentResult(fullText);
       loadPackage(activeTab);
+
+      // CHANGE A: Reload history so new analysis appears
+      loadAnalysisHistory();
     } catch (err: any) {
       console.error("AI analysis error:", err);
       toast.error("Lỗi khi phân tích. Vui lòng thử lại.");
@@ -306,7 +388,6 @@ const VanHan = () => {
   const handleRetryAnalyze = async () => {
     if (!selectedChart) return;
 
-    // Abort any in-progress stream
     abortStreaming();
 
     const {
@@ -314,7 +395,6 @@ const VanHan = () => {
     } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Delete old cached result
     await supabase
       .from("van_han_analyses")
       .delete()
@@ -323,8 +403,8 @@ const VanHan = () => {
       .eq("time_frame", activeTab)
       .eq("period", timeInfo.period);
 
-    // Clear current display so "Luận Giải AI" button reappears
     setCurrentResult(null);
+    loadAnalysisHistory();
   };
 
   const cleanMarkdown = (text: string): string => {
@@ -367,9 +447,7 @@ const VanHan = () => {
           url: "https://ai-tuvi.lovable.app",
         });
         return;
-      } catch (e) {
-        // User cancel → fallback copy
-      }
+      } catch (e) {}
     }
 
     await navigator.clipboard.writeText(shareText);
@@ -443,11 +521,15 @@ const VanHan = () => {
   };
 
   // ── CHANGE 4: Render AI result with streaming states ──
+  // CHANGE B: Grey out button when cached result already exists
   const renderAiResult = () => {
-    // ── STATE A: STREAMING — text đang chảy real-time ──
+    // ── STATE A: STREAMING ──
     if ((isAnalyzing || isStreamingAI) && !currentResult) {
       return (
-        <div className={cn("rounded-2xl p-5 bg-gradient-to-br from-surface-3 to-surface-2 border border-primary/20")}>
+        <div
+          id="van-han-result"
+          className={cn("rounded-2xl p-5 bg-gradient-to-br from-surface-3 to-surface-2 border border-primary/20")}
+        >
           <h3 className="font-display text-lg text-primary flex items-center gap-2 mb-4">
             <Sparkles className="w-5 h-5 animate-pulse" />
             Đang luận giải...
@@ -474,10 +556,10 @@ const VanHan = () => {
       );
     }
 
-    // ── STATE B: NO RESULT — show analyze button ──
+    // ── STATE B: NO RESULT — show active analyze button ──
     if (!currentResult && !streamedText) {
       return (
-        <div className="text-center py-6">
+        <div id="van-han-result" className="text-center py-6">
           <Button variant="gold" size="lg" onClick={handleAnalyze} disabled={!vanHanPackage}>
             <Sparkles className="w-5 h-5 mr-2" />
             Luận Giải AI {timeInfo.label}
@@ -487,10 +569,13 @@ const VanHan = () => {
       );
     }
 
-    // ── STATE C: COMPLETED — show full result ──
+    // ── STATE C: COMPLETED — show full result + greyed button ──
     const displayText = currentResult || streamedText;
     return (
-      <div className={cn("rounded-2xl p-5 bg-gradient-to-br from-secondary/5 to-surface-2 border border-secondary/20")}>
+      <div
+        id="van-han-result"
+        className={cn("rounded-2xl p-5 bg-gradient-to-br from-secondary/5 to-surface-2 border border-secondary/20")}
+      >
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-display text-lg text-secondary flex items-center gap-2">
             <Sparkles className="w-5 h-5" />
@@ -498,7 +583,20 @@ const VanHan = () => {
           </h3>
         </div>
         <div className="space-y-1">{renderMarkdown(displayText)}</div>
-        <div className="flex gap-2 mt-5">
+
+        {/* ── CHANGE B: Grey out button — already analyzed ── */}
+        <div className="mt-5 pt-4 border-t border-secondary/20">
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled
+            className="w-full text-xs text-muted-foreground cursor-not-allowed opacity-50"
+          >
+            ✓ Đã luận giải {timeInfo.label} — Chọn thời gian hoặc lá số khác
+          </Button>
+        </div>
+
+        <div className="flex gap-2 mt-3">
           <Button variant="ghost" size="sm" onClick={() => handleShare("quote")} className="flex-1 text-xs">
             <Share2 className="w-3.5 h-3.5 mr-1" />
             Chia sẻ châm ngôn
@@ -517,6 +615,90 @@ const VanHan = () => {
           >
             🔄 Luận giải lại ({vanHanPackage.uses_remaining} lần còn lại)
           </Button>
+        )}
+      </div>
+    );
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  // CHANGE A: Render history panel — collapsible
+  // ══════════════════════════════════════════════════════════════
+  const renderHistoryPanel = () => {
+    const filtered = analysisHistory.filter((a) => a.analysis_result && a.analysis_result.length > 50);
+    if (filtered.length === 0) return null;
+
+    const tabLabel = activeTab === "week" ? "tuần" : activeTab === "month" ? "tháng" : "năm";
+
+    return (
+      <div className="rounded-2xl bg-surface-3 border border-border overflow-hidden">
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="w-full flex items-center justify-between p-4 text-left hover:bg-surface-4 transition-colors"
+        >
+          <span className="flex items-center gap-2 text-primary font-semibold text-sm">
+            <History className="w-4 h-4" />
+            Luận giải theo {tabLabel} đã thực hiện ({filtered.length})
+          </span>
+          {showHistory ? (
+            <ChevronUp className="w-4 h-4 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+          )}
+        </button>
+
+        {showHistory && (
+          <div className="px-4 pb-4 space-y-2 max-h-[40vh] overflow-y-auto">
+            {historyLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              </div>
+            ) : (
+              filtered.map((item) => {
+                const bd = item.birth_data;
+                const isCurrentSelection =
+                  item.chart_hash === selectedChart?.chart_hash && item.period === timeInfo.period;
+
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleLoadFromHistory(item)}
+                    className={cn(
+                      "w-full text-left rounded-xl p-3 border transition-all",
+                      isCurrentSelection
+                        ? "border-primary/50 bg-primary/10"
+                        : "border-border bg-surface-4 hover:border-primary/30 hover:bg-surface-3",
+                    )}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="font-medium text-sm text-foreground truncate mr-2">
+                        {bd?.personName || "Không tên"}
+                      </p>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-medium">
+                          {formatPeriodLabel(item.time_frame, item.period)}
+                        </span>
+                        {isCurrentSelection && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary/20 text-secondary font-medium">
+                            Đang xem
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {bd?.birthDate} · {bd?.gender} ·{" "}
+                      {new Date(item.created_at).toLocaleDateString("vi-VN", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </button>
+                );
+              })
+            )}
+          </div>
         )}
       </div>
     );
@@ -552,7 +734,6 @@ const VanHan = () => {
 
     return (
       <div className="space-y-3">
-        {/* Selected chart display */}
         <div
           className={cn(
             "rounded-2xl p-4 flex items-center justify-between",
@@ -574,7 +755,6 @@ const VanHan = () => {
           )}
         </div>
 
-        {/* Chart picker modal */}
         {showChartPicker && (
           <div className="rounded-2xl p-4 bg-surface-3 border border-border">
             <h3 className="text-sm font-medium mb-3 text-foreground">Chọn lá số</h3>
@@ -656,6 +836,11 @@ const VanHan = () => {
           ))}
         </div>
 
+        {/* ════════════════════════════════════════════════════════ */}
+        {/* CHANGE A: History panel — below tabs                    */}
+        {/* ════════════════════════════════════════════════════════ */}
+        {renderHistoryPanel()}
+
         {/* Time Navigation */}
         <div className="flex items-center justify-between px-2">
           <button
@@ -691,14 +876,11 @@ const VanHan = () => {
             onUnlocked={() => loadPackage(activeTab)}
           >
             <div className="space-y-4">
-              {/* Uses remaining */}
               {vanHanPackage && (
                 <div className="text-xs text-primary/70 text-center">
                   Còn {vanHanPackage.uses_remaining}/{vanHanPackage.uses_total} lần phân tích
                 </div>
               )}
-
-              {/* AI Analysis */}
               {renderAiResult()}
             </div>
           </PaymentGate>
