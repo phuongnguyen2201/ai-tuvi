@@ -483,11 +483,11 @@ const BoiKieu = () => {
                 <h3 className="text-lg font-bold text-foreground">Mở khóa luận giải đầy đủ</h3>
 
                 <p className="text-sm text-muted-foreground">
-                  Bạn đang xem bản rút gọn. Thanh toán để xem toàn bộ luận giải chi tiết và được thêm 10 lần bói Kiều.
+                  Bạn đang xem bản rút gọn. Thanh toán để xem toàn bộ luận giải chi tiết và được thêm 3 lần bói Kiều.
                 </p>
 
                 <p className="text-2xl font-bold text-primary">39.000đ</p>
-                <p className="text-xs text-muted-foreground -mt-2">Xem full luận giải này + 10 lần bói Kiều mới</p>
+                <p className="text-xs text-muted-foreground -mt-2">Xem full luận giải này + 3 lần bói Kiều mới</p>
 
                 <Button
                   variant="gold"
@@ -712,7 +712,7 @@ const BoiKieu = () => {
             feature="boi_kieu"
             title="Bói Kiều"
             price="39.000đ"
-            description="Gói 10 lần luận giải bằng thơ Kiều — 39.000đ"
+            description="Gói 3 lần luận giải bằng thơ Kiều — 39.000đ"
             onUnlocked={() => loadKieuPackage()}
           >
             {mainContent}
