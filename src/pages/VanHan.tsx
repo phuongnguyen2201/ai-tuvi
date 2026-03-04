@@ -223,6 +223,7 @@ const VanHan = () => {
   const [vanHanPackage, setVanHanPackage] = useState<any>(null);
   const [isPackageExhausted, setIsPackageExhausted] = useState(false); // had package but 0 remaining
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [checkedPendingPayment, setCheckedPendingPayment] = useState(false);
 
   // Analysis
   const [currentResult, setCurrentResult] = useState<string | null>(null);
@@ -354,10 +355,49 @@ const VanHan = () => {
     if (selectedChart) loadPackage(activeTab);
   }, [activeTab, selectedChart]);
 
+  // ══════════════════════════════════════════════════════════════
+  // AUTO-OPEN: If user has pending payment for current tab's
+  // feature → auto-open standalone payment modal (QR immediately)
+  // This handles the case where PaymentGate is NOT rendered
+  // (e.g. user already has a blur preview from free trial)
+  // ══════════════════════════════════════════════════════════════
+  useEffect(() => {
+    if (checkedPendingPayment || showPaymentModal || vanHanPackage) return;
+    const featureKey = TABS.find((t) => t.key === activeTab)?.featureKey;
+    if (!featureKey) return;
+
+    const check = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setCheckedPendingPayment(true);
+        return;
+      }
+
+      const { data: pending } = await supabase
+        .from("payments")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("feature_unlocked", featureKey)
+        .eq("status", "pending")
+        .limit(1)
+        .maybeSingle();
+
+      if (pending) {
+        console.log("[VanHan] Found pending payment for", featureKey, "→ auto-opening modal");
+        setShowPaymentModal(true);
+      }
+      setCheckedPendingPayment(true);
+    };
+    check();
+  }, [activeTab, checkedPendingPayment, showPaymentModal, vanHanPackage]);
+
   // Reset offset and streaming state when switching tabs
   useEffect(() => {
     setTimeOffset(0);
     setStreamingForTab(null);
+    setCheckedPendingPayment(false);
   }, [activeTab]);
 
   // ══════════════════════════════════════════════════════════════
@@ -1211,7 +1251,10 @@ const VanHan = () => {
         {/* VietQR Payment Modal with Cancel support */}
         <VietQRPaymentModal
           open={showPaymentModal}
-          onOpenChange={setShowPaymentModal}
+          onOpenChange={(open) => {
+            setShowPaymentModal(open);
+            if (!open) setCheckedPendingPayment(false);
+          }}
           feature={currentTab.featureKey}
           onSuccess={() => {
             setShowPaymentModal(false);
