@@ -78,6 +78,7 @@ const BoiKieu = () => {
   const [kieuPackage, setKieuPackage] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [viewingHistoryId, setViewingHistoryId] = useState<string | null>(null);
   const [verses, setVerses] = useState<any[]>([]);
 
   // ── FREEMIUM: DB-based free trial tracking ──
@@ -194,6 +195,7 @@ const BoiKieu = () => {
     setIsShaking(true);
     setResult(null);
     setVerse(null);
+    setViewingHistoryId(null);
 
     setTimeout(async () => {
       const randomVerse = verses[Math.floor(Math.random() * verses.length)];
@@ -547,6 +549,93 @@ const BoiKieu = () => {
   // ══════════════════════════════════════════════════════════════
   const mainContent = (
     <div className="space-y-5">
+      {/* History — at top */}
+      {history.length > 0 && (
+        <div>
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border bg-surface-3 text-sm"
+          >
+            <span className="flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-gold" />
+              Lịch sử luận giải ({history.length} lần)
+            </span>
+            <span>{showHistory ? "▲" : "▼"}</span>
+          </button>
+
+          {showHistory && (
+            <div className="mt-2 space-y-2">
+              {history.map((item) => {
+                const isViewing = viewingHistoryId === item.id;
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => {
+                      setVerse({
+                        verse: item.verse,
+                        fortune: item.fortune,
+                        id: item.verse_id,
+                      });
+                      setQuestion(item.question);
+                      setResult(item.analysis_result);
+                      setViewingHistoryId(item.id);
+                      setShowHistory(false);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className={cn(
+                      "rounded-xl p-3 border cursor-pointer transition-colors",
+                      isViewing
+                        ? "border-secondary/50 bg-secondary/10"
+                        : "border-border bg-surface-3 hover:border-gold/30",
+                    )}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(item.created_at).toLocaleDateString("vi-VN", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={cn(
+                            "text-xs px-2 py-0.5 rounded-full",
+                            item.fortune === "excellent" && "bg-gold/20 text-gold",
+                            item.fortune === "good" && "bg-green-500/20 text-green-400",
+                            item.fortune === "neutral" && "bg-purple-500/20 text-purple-400",
+                            item.fortune === "challenging" && "bg-destructive/20 text-destructive",
+                          )}
+                        >
+                          {item.fortune === "excellent"
+                            ? "Đại Cát"
+                            : item.fortune === "good"
+                              ? "Cát"
+                              : item.fortune === "neutral"
+                                ? "Bình"
+                                : "Hung"}
+                        </span>
+                        {isViewing && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary/20 text-secondary font-medium">
+                            Đang xem
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-sm font-medium text-foreground truncate">{item.question}</p>
+                    <p className="text-xs text-muted-foreground italic truncate mt-0.5">
+                      "{item.verse.split("\n")[0]}..."
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Question input */}
       <div>
         <textarea
@@ -601,82 +690,12 @@ const BoiKieu = () => {
       {/* AI Result — streaming + freemium aware */}
       {renderAiResult()}
 
+
       {/* Hint */}
       {!verse && !isShaking && !isAnalyzing && !isStreamingAI && canGieoQue && (
         <p className="text-center text-sm text-muted-foreground">
           Tập trung vào câu hỏi trong tâm, rồi nhấn "Gieo Quẻ"
         </p>
-      )}
-
-      {/* History */}
-      {history.length > 0 && (
-        <div className="mt-6">
-          <button
-            onClick={() => setShowHistory(!showHistory)}
-            className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border bg-surface-3 text-sm"
-          >
-            <span className="flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-gold" />
-              Lịch sử luận giải ({history.length} lần)
-            </span>
-            <span>{showHistory ? "▲" : "▼"}</span>
-          </button>
-
-          {showHistory && (
-            <div className="mt-2 space-y-2">
-              {history.map((item) => (
-                <div
-                  key={item.id}
-                  onClick={() => {
-                    setVerse({
-                      verse: item.verse,
-                      fortune: item.fortune,
-                      id: item.verse_id,
-                    });
-                    setQuestion(item.question);
-                    setResult(item.analysis_result);
-                    setShowHistory(false);
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className="rounded-xl p-3 border border-border bg-surface-3 cursor-pointer hover:border-gold/30 transition-colors"
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(item.created_at).toLocaleDateString("vi-VN", {
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                    <span
-                      className={cn(
-                        "text-xs px-2 py-0.5 rounded-full",
-                        item.fortune === "excellent" && "bg-gold/20 text-gold",
-                        item.fortune === "good" && "bg-green-500/20 text-green-400",
-                        item.fortune === "neutral" && "bg-purple-500/20 text-purple-400",
-                        item.fortune === "challenging" && "bg-destructive/20 text-destructive",
-                      )}
-                    >
-                      {item.fortune === "excellent"
-                        ? "Đại Cát"
-                        : item.fortune === "good"
-                          ? "Cát"
-                          : item.fortune === "neutral"
-                            ? "Bình"
-                            : "Hung"}
-                    </span>
-                  </div>
-                  <p className="text-sm font-medium text-foreground truncate">{item.question}</p>
-                  <p className="text-xs text-muted-foreground italic truncate mt-0.5">
-                    "{item.verse.split("\n")[0]}..."
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       )}
     </div>
   );

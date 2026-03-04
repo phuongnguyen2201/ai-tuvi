@@ -184,6 +184,7 @@ export default function TuViIztroPage() {
   const [chartHistory, setChartHistory] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [viewingHistoryId, setViewingHistoryId] = useState<string | null>(null);
 
   // ══════════════════════════════════════════════════════════════
   // CHANGE C: Free trial tracking
@@ -351,6 +352,7 @@ export default function TuViIztroPage() {
       calendarType: bd.calendarType || "solar",
     });
 
+    setViewingHistoryId(item.id);
     setShowHistory(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -629,6 +631,7 @@ export default function TuViIztroPage() {
                 const hasAnalysis = item.analysis_result && item.analysis_result.length > 100;
                 const hourLabel =
                   LUNAR_HOURS.find((h) => h.value === bd?.birthHour)?.label?.split(" ")[0] || bd?.birthHour;
+                const isViewing = viewingHistoryId === item.id;
 
                 return (
                   <button
@@ -636,7 +639,9 @@ export default function TuViIztroPage() {
                     onClick={() => handleLoadFromHistory(item)}
                     className={cn(
                       "w-full text-left rounded-xl p-3 border transition-all",
-                      "bg-slate-800/50 border-slate-700 hover:border-amber-500/50 hover:bg-slate-800",
+                      isViewing
+                        ? "border-secondary/50 bg-secondary/10"
+                        : "bg-slate-800/50 border-slate-700 hover:border-amber-500/50 hover:bg-slate-800",
                     )}
                   >
                     <div className="flex items-center justify-between mb-1">
@@ -649,6 +654,11 @@ export default function TuViIztroPage() {
                         ) : (
                           <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 font-medium">
                             Chưa luận giải
+                          </span>
+                        )}
+                        {isViewing && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary/20 text-secondary font-medium">
+                            Đang xem
                           </span>
                         )}
                         <span className="text-xs text-gray-500">
