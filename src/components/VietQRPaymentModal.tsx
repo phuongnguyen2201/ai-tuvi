@@ -5,10 +5,10 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { generateVietQRUrl, generateTransferContent, getFeatureLabel, PRICING, type FeatureKey } from "@/utils/vietqr";
-import { Copy, Check, Loader2, ExternalLink, Sparkles } from "lucide-react";
+import { Copy, Check, Loader2, ExternalLink, Sparkles, ShieldAlert } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-type Step = "select_plan" | "show_qr" | "pending" | "processing" | "success";
+type Step = "select_plan" | "show_qr" | "pending" | "processing" | "success" | "blocked";
 
 const BANK_DISPLAY = {
   bankName: "VPBank",
@@ -41,19 +41,17 @@ const PACKAGE_CONFIG: Record<
 };
 
 // ══════════════════════════════════════════════════════════════
-// FIX 1: Accept BOTH "verified" and "confirmed" as success
-// Admin may use either term when approving payments
+// ANTI-SPAM: Max rejected payments per feature before blocking
 // ══════════════════════════════════════════════════════════════
+const MAX_REJECTIONS = 3;
+
+// FIX 1: Accept BOTH "verified" and "confirmed" as success
 const VERIFIED_STATUSES = ["verified", "confirmed"];
 
 const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }: VietQRPaymentModalProps) => {
   const storageKey = `payment_pending_${feature}`;
 
-  // ══════════════════════════════════════════════════════════════
-  // FIX 2: Stabilize onSuccess via ref to prevent useEffect churn
-  // Inline arrow functions create new refs every render →
-  // useEffect cleanup/re-setup → channels TIMED_OUT/CLOSED
-  // ══════════════════════════════════════════════════════════════
+  // FIX 2: Stabilize onSuccess via ref
   const onSuccessRef = useRef(onSuccess);
   useEffect(() => {
     onSuccessRef.current = onSuccess;
@@ -91,6 +89,13 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
   const verifiedPayloadRef = useRef<any>(null);
   const { toast } = useToast();
   const prevOpenRef = useRef(false);
+
+  // ══════════════════════════════════════════════════════════════
+  // ANTI-SPAM: Track whether current flow is reusing existing pending
+  // When true, "Tôi đã chuyển khoản" skips DB insert
+  // ══════════════════════════════════════════════════════════════
+  const [existingPendingId, setExistingPendingId] = useState<string | null>(null);
+  const [initialLoading, setInitialLoading] = useState(false);
 
   const isPremium = feature === "premium";
   const isLuanGiai = feature === "luan_giai";
@@ -148,21 +153,99 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
     [storageKey],
   );
 
+  // ══════════════════════════════════════════════════════════════
+  // ANTI-SPAM: Check for existing pending payment + reject count
+  // Runs when modal opens — DB is source of truth
+  // ══════════════════════════════════════════════════════════════
+  const checkExistingPayment = useCallback(async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    setUserId(user.id);
+
+    // 1) Check reject count for this feature
+    const { count: rejectCount } = await supabase
+      .from("payments")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("feature_unlocked", activeFeature)
+      .eq("status", "rejected");
+
+    if ((rejectCount ?? 0) >= MAX_REJECTIONS) {
+      console.log("[Modal] User blocked — rejected", rejectCount, "times for", activeFeature);
+      return { action: "blocked" as const };
+    }
+
+    // 2) Check for existing pending payment for this feature
+    const { data: pendingPayment } = await supabase
+      .from("payments")
+      .select("id, transfer_content")
+      .eq("user_id", user.id)
+      .eq("feature_unlocked", activeFeature)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (pendingPayment) {
+      console.log("[Modal] Found existing pending payment:", pendingPayment.id);
+      return {
+        action: "reuse" as const,
+        paymentId: pendingPayment.id,
+        transferContent: pendingPayment.transfer_content,
+      };
+    }
+
+    // 3) No pending, no block — allow new payment
+    return { action: "new" as const };
+  }, [activeFeature]);
+
   useEffect(() => {
     if (open && !prevOpenRef.current) {
-      const saved = getPersistedState();
-      if (saved && saved.step === "pending") {
-        setStep("pending");
-        setTransferContent(saved.transferContent);
-        setUserId(saved.userId);
-      } else {
-        setStep(isPremium ? "select_plan" : "show_qr");
-        loadUserId();
-      }
       setCopied(false);
       setAnalysisResult(null);
       setFakeProgress(0);
       verifiedPayloadRef.current = null;
+      setExistingPendingId(null);
+
+      // ── ANTI-SPAM: Check DB before showing QR ──
+      setInitialLoading(true);
+      checkExistingPayment().then((result) => {
+        setInitialLoading(false);
+
+        if (!result) {
+          // Not logged in or error
+          setStep(isPremium ? "select_plan" : "show_qr");
+          return;
+        }
+
+        if (result.action === "blocked") {
+          setStep("blocked");
+          return;
+        }
+
+        if (result.action === "reuse") {
+          // Existing pending → show QR with same transfer content
+          setExistingPendingId(result.paymentId!);
+          setTransferContent(result.transferContent!);
+          setStep("show_qr");
+          console.log("[Modal] Re-showing QR for existing pending payment");
+          return;
+        }
+
+        // New payment flow
+        const saved = getPersistedState();
+        if (saved && saved.step === "pending") {
+          setStep("pending");
+          setTransferContent(saved.transferContent);
+          setUserId(saved.userId);
+        } else {
+          setStep(isPremium ? "select_plan" : "show_qr");
+          loadUserId();
+        }
+      });
     }
     if (!open && prevOpenRef.current) {
       cleanupPolling();
@@ -203,6 +286,9 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // ══════════════════════════════════════════════════════════════
+  // ANTI-SPAM: "Tôi đã chuyển khoản" — skip insert if reusing
+  // ══════════════════════════════════════════════════════════════
   const handleConfirmTransfer = async () => {
     const {
       data: { user },
@@ -212,6 +298,19 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
       return;
     }
 
+    // ── If reusing existing pending → just go to pending step, NO new insert ──
+    if (existingPendingId) {
+      console.log(
+        "[Modal] Reusing existing pending payment:",
+        existingPendingId,
+        "— no new insert, no new notification",
+      );
+      setStep("pending");
+      persistPendingState("pending", transferContent, user.id);
+      return;
+    }
+
+    // ── New payment → insert as before ──
     const { error } = await supabase.from("payments").insert({
       user_id: user.id,
       amount: amount,
@@ -248,9 +347,6 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
 
   // ══════════════════════════════════════════════════════════════
   // Realtime + Polling for payment verification
-  // FIX 1: Check BOTH "verified" AND "confirmed" status
-  // FIX 2: Use onSuccessRef (stable) instead of onSuccess in deps
-  // FIX 3: Fallback poll by user_id + feature in case of mismatch
   // ══════════════════════════════════════════════════════════════
   useEffect(() => {
     if (step !== "pending") return;
@@ -260,13 +356,13 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
     let pollInterval: ReturnType<typeof setInterval> | null = null;
     let cancelled = false;
 
-    // Helper: handle successful verification
     const handleVerified = async (uid: string, paymentId: string) => {
       if (cancelled) return;
       console.log("[Modal] ✅ Payment verified! Creating package...");
       if (pollInterval) clearInterval(pollInterval);
       await createFeaturePackage(uid, paymentId);
       localStorage.removeItem(storageKey);
+      setExistingPendingId(null);
       setStep("success");
       onSuccessRef.current?.();
     };
@@ -278,7 +374,6 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
       if (!user || cancelled) return;
 
       if (isLuanGiai) {
-        // ── LUAN_GIAI: Listen on luan_giai_packages ──
         console.log("[Modal] Setup luan_giai listener for user:", user.id);
 
         channel = supabase
@@ -297,6 +392,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
                 console.log("[Modal] ✅ luan_giai package confirmed via realtime");
                 if (pollInterval) clearInterval(pollInterval);
                 localStorage.removeItem(storageKey);
+                setExistingPendingId(null);
                 setStep("success");
                 onSuccessRef.current?.();
               }
@@ -322,17 +418,14 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
             console.log("[Modal] ✅ Polling detected confirmed luan_giai package");
             if (pollInterval) clearInterval(pollInterval);
             localStorage.removeItem(storageKey);
+            setExistingPendingId(null);
             setStep("success");
             onSuccessRef.current?.();
           }
         }, 5000);
       } else {
-        // ══════════════════════════════════════════════════════════
-        // NON-LUAN_GIAI: boi_kieu, boi_que, van_han_*, premium
-        // ══════════════════════════════════════════════════════════
         console.log("[Modal] Setup payment listener, transfer_content:", transferContent);
 
-        // Use unique channel name with timestamp to avoid stale channels
         channel = supabase
           .channel("payment-" + transferContent.replace(/\s/g, "-") + "-" + Date.now())
           .on(
@@ -352,6 +445,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
                 await handleVerified(user.id, payload.new.id);
               } else if (newStatus === "rejected") {
                 localStorage.removeItem(storageKey);
+                setExistingPendingId(null);
                 setStep("show_qr");
                 toast({
                   title: "Giao dịch bị từ chối",
@@ -365,12 +459,10 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
             console.log("[Modal] Realtime subscription status:", status);
           });
 
-        // ── Polling fallback ──
         pollInterval = setInterval(async () => {
           if (cancelled) return;
           console.log("[Modal] Polling payments for transfer_content:", transferContent);
 
-          // PRIMARY: Match by transfer_content + any verified status
           const { data: byTransfer } = await supabase
             .from("payments")
             .select("id, status, transfer_content")
@@ -384,11 +476,6 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
             return;
           }
 
-          // ══════════════════════════════════════════════════════
-          // FIX 3: FALLBACK — match by user_id + feature
-          // Catches cases where transfer_content has encoding
-          // issues or was modified by admin
-          // ══════════════════════════════════════════════════════
           const { data: byUser } = await supabase
             .from("payments")
             .select("id, status, transfer_content")
@@ -405,15 +492,24 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
             return;
           }
 
-          // DEBUG: Log current payment status so we can diagnose
-          const { data: current } = await supabase
+          // ── ANTI-SPAM: Also detect rejection via polling ──
+          const { data: rejected } = await supabase
             .from("payments")
             .select("id, status")
             .eq("transfer_content", transferContent)
+            .eq("status", "rejected")
             .maybeSingle();
 
-          if (current) {
-            console.log("[Modal] Current payment status:", current.status, "(waiting for verified/confirmed)");
+          if (rejected && !cancelled) {
+            console.log("[Modal] Polling detected rejection");
+            localStorage.removeItem(storageKey);
+            setExistingPendingId(null);
+            setStep("show_qr");
+            toast({
+              title: "Giao dịch bị từ chối",
+              description: "Vui lòng kiểm tra lại thông tin chuyển khoản",
+              variant: "destructive",
+            });
           }
         }, 5000);
       }
@@ -427,7 +523,6 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
       if (pollInterval) clearInterval(pollInterval);
       if (channel) supabase.removeChannel(channel);
     };
-    // FIX 2: Removed onSuccess/toast from deps — use refs instead
   }, [step, isLuanGiai, transferContent, createFeaturePackage, storageKey, activeFeature]);
 
   const handleClose = () => {
@@ -484,6 +579,14 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
   const renderShowQR = () => (
     <div className="space-y-4">
       <p className="text-center text-sm font-medium text-foreground">Quét QR để thanh toán</p>
+
+      {/* ── ANTI-SPAM: Notice when re-showing existing pending ── */}
+      {existingPendingId && (
+        <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-center">
+          <p className="text-xs text-amber-300">Bạn đã có giao dịch đang chờ. Quét QR bên dưới để chuyển khoản.</p>
+        </div>
+      )}
+
       <div className="flex justify-center">
         <div className="rounded-xl overflow-hidden border border-border bg-white p-2">
           <img src={qrUrl} alt="VietQR Payment" className="w-52 h-52 object-contain" loading="eager" />
@@ -607,12 +710,48 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
     </div>
   );
 
+  // ══════════════════════════════════════════════════════════════
+  // ANTI-SPAM: Step Blocked — too many rejected payments
+  // ══════════════════════════════════════════════════════════════
+  const renderBlocked = () => (
+    <div className="flex flex-col items-center py-6 space-y-4 text-center">
+      <ShieldAlert className="w-12 h-12 text-destructive" />
+      <div>
+        <p className="font-semibold text-foreground text-lg">Thanh toán tạm khoá</p>
+        <p className="text-sm text-muted-foreground mt-2">
+          Tài khoản của bạn đã có nhiều giao dịch bị từ chối cho tính năng này. Vui lòng liên hệ hỗ trợ để được giúp đỡ.
+        </p>
+      </div>
+      <Button
+        variant="goldOutline"
+        size="default"
+        className="mt-4"
+        onClick={() => window.open("https://zalo.me/0702127233", "_blank")}
+      >
+        <ExternalLink className="w-4 h-4 mr-1" />
+        Liên hệ Zalo hỗ trợ
+      </Button>
+      <Button variant="ghost" size="sm" onClick={handleClose} className="text-xs text-muted-foreground">
+        Đóng
+      </Button>
+    </div>
+  );
+
+  // ── Step: Initial Loading ──
+  const renderInitialLoading = () => (
+    <div className="flex flex-col items-center py-8 space-y-3">
+      <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      <p className="text-sm text-muted-foreground">Đang kiểm tra...</p>
+    </div>
+  );
+
   const stepContent: Record<Step, () => JSX.Element> = {
     select_plan: renderSelectPlan,
     show_qr: renderShowQR,
     pending: renderPending,
     processing: renderProcessing,
     success: renderSuccess,
+    blocked: renderBlocked,
   };
 
   const stepTitle: Record<Step, string> = {
@@ -621,14 +760,16 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
     pending: "Thanh toán",
     processing: "Đang xử lý",
     success: analysisResult ? "🎊 Luận giải" : "🎊 Thành công",
+    blocked: "⚠️ Tạm khoá",
   };
 
   const stepDesc: Record<Step, string> = {
     select_plan: "Chọn gói phù hợp",
-    show_qr: label,
+    show_qr: existingPendingId ? "Giao dịch đang chờ — quét QR để chuyển khoản" : label,
     pending: "Vui lòng chờ xác nhận",
     processing: "AI đang phân tích lá số",
     success: analysisResult ? "Kết quả phân tích chi tiết" : "Cảm ơn bạn đã ủng hộ!",
+    blocked: "Vui lòng liên hệ hỗ trợ",
   };
 
   return (
@@ -640,7 +781,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
           <DialogTitle className="text-center font-display">{stepTitle[step]}</DialogTitle>
           <DialogDescription className="text-center">{stepDesc[step]}</DialogDescription>
         </DialogHeader>
-        {stepContent[step]()}
+        {initialLoading ? renderInitialLoading() : stepContent[step]()}
       </DialogContent>
     </Dialog>
   );
