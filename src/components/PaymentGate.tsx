@@ -31,12 +31,12 @@ const DEFAULT_CONFIGS: Record<string, { title: string; price: string; descriptio
   van_han_week: {
     title: "Luận giải tuần",
     price: "39.000đ",
-    description: "Gói 9 lần phân tích - 39.000đ",
+    description: "Gói 3 lần phân tích - 39.000đ",
   },
   van_han_month: {
     title: "Luận giải tháng",
     price: "39.000đ",
-    description: "Gói 6 lần phân tích - 39.000đ",
+    description: "Gói 3 lần phân tích - 39.000đ",
   },
   van_han_year: {
     title: "Luận giải năm",
@@ -46,12 +46,12 @@ const DEFAULT_CONFIGS: Record<string, { title: string; price: string; descriptio
   boi_que: {
     title: "Gói Bói Quẻ",
     price: "39.000đ",
-    description: "10 lần gieo quẻ + luận giải AI chi tiết",
+    description: "3 lần gieo quẻ + luận giải AI chi tiết",
   },
   boi_kieu: {
     title: "Bói Kiều",
     price: "39.000đ",
-    description: "Gói 10 lần luận giải - 39.000đ",
+    description: "Gói 3 lần luận giải - 39.000đ",
   },
   premium: {
     title: "Gói Premium trọn đời",
