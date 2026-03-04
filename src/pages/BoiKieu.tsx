@@ -4,11 +4,15 @@ import PaymentGate from "@/components/PaymentGate";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles, RefreshCw, BookOpen, Share2, History, Loader2 } from "lucide-react";
+import { Sparkles, RefreshCw, BookOpen, Share2, Loader2, Lock } from "lucide-react";
 import { toast } from "sonner";
-// ── CHANGE 1: Import streaming hook ──
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
+import { useAuth } from "@/contexts/AuthContext";
+import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 
+// ══════════════════════════════════════════════════════════════
+// Fortune style map
+// ══════════════════════════════════════════════════════════════
 const fortuneStyles: Record<string, { bg: string; border: string; badge: string; badgeText: string }> = {
   excellent: {
     bg: "from-gold/20 to-gold/5",
@@ -36,10 +40,36 @@ const fortuneStyles: Record<string, { bg: string; border: string; badge: string;
   },
 };
 
-const FREE_USES = 3;
-const STORAGE_KEY = "boikieu_count";
+// ══════════════════════════════════════════════════════════════
+// FREEMIUM: Truncate text to ~N words, preserving whole lines
+// ══════════════════════════════════════════════════════════════
+const FREE_PREVIEW_WORD_LIMIT = 500;
 
+function truncateToWords(text: string, maxWords: number): { preview: string; isTruncated: boolean } {
+  const lines = text.split("\n");
+  let wordCount = 0;
+  const previewLines: string[] = [];
+
+  for (const line of lines) {
+    const lineWords = line.trim().split(/\s+/).filter(Boolean).length;
+    if (wordCount + lineWords > maxWords && previewLines.length > 0) {
+      break;
+    }
+    previewLines.push(line);
+    wordCount += lineWords;
+    if (wordCount >= maxWords) break;
+  }
+
+  const preview = previewLines.join("\n");
+  const isTruncated = preview.length < text.length;
+  return { preview, isTruncated };
+}
+
+// ══════════════════════════════════════════════════════════════
+// Component
+// ══════════════════════════════════════════════════════════════
 const BoiKieu = () => {
+  const { user } = useAuth();
   const [question, setQuestion] = useState("");
   const [verse, setVerse] = useState<any>(null);
   const [isShaking, setIsShaking] = useState(false);
@@ -49,9 +79,12 @@ const BoiKieu = () => {
   const [history, setHistory] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [verses, setVerses] = useState<any[]>([]);
-  const [useCount, setUseCount] = useState(() => parseInt(localStorage.getItem(STORAGE_KEY) || "0", 10));
 
-  // ── CHANGE 2: Streaming hook ──
+  // ── FREEMIUM: DB-based free trial tracking ──
+  const [freeTrialCount, setFreeTrialCount] = useState<number | null>(null);
+  const [showPayment, setShowPayment] = useState(false);
+
+  // ── Streaming hook ──
   const {
     isStreaming: isStreamingAI,
     streamedText,
@@ -60,30 +93,63 @@ const BoiKieu = () => {
     abort: abortStreaming,
   } = useStreamingAnalysis();
 
-  const needsPayment = useCount >= FREE_USES && !kieuPackage;
+  // ══════════════════════════════════════════════════════════════
+  // FREEMIUM: Derived state
+  // ══════════════════════════════════════════════════════════════
+  const canUseFreeTrial = freeTrialCount === 0 && !kieuPackage;
+  const displayText = result || streamedText;
+  const isFreePreview = !!displayText && !kieuPackage;
 
-  // Load verses, package, history on mount
+  // Can user gieo quẻ? Either has package OR free trial available
+  const canGieoQue = !!kieuPackage || canUseFreeTrial;
+
+  // ══════════════════════════════════════════════════════════════
+  // Load data on mount
+  // ══════════════════════════════════════════════════════════════
   useEffect(() => {
     supabase
       .from("kieu_verses")
       .select("*")
-      .then(({ data }) => {
-        setVerses(data || []);
-      });
-    loadKieuPackage();
-    loadHistory();
-  }, []);
+      .then(({ data }) => setVerses(data || []));
+
+    if (user) {
+      loadKieuPackage();
+      loadHistory();
+      loadFreeTrialCount();
+    }
+  }, [user]);
+
+  const loadFreeTrialCount = async () => {
+    try {
+      const {
+        data: { user: currentUser },
+      } = await supabase.auth.getUser();
+      if (!currentUser) {
+        setFreeTrialCount(0);
+        return;
+      }
+
+      const { count } = await supabase
+        .from("kieu_analyses")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", currentUser.id);
+
+      setFreeTrialCount(count ?? 0);
+    } catch {
+      setFreeTrialCount(0);
+    }
+  };
 
   const loadKieuPackage = async () => {
     const {
-      data: { user },
+      data: { user: currentUser },
     } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!currentUser) return;
 
     const { data } = await supabase
       .from("kieu_packages")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", currentUser.id)
       .gt("uses_remaining", 0)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -94,21 +160,23 @@ const BoiKieu = () => {
 
   const loadHistory = async () => {
     const {
-      data: { user },
+      data: { user: currentUser },
     } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!currentUser) return;
 
     const { data } = await supabase
       .from("kieu_analyses")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", currentUser.id)
       .order("created_at", { ascending: false })
       .limit(20);
 
     setHistory(data || []);
   };
 
+  // ══════════════════════════════════════════════════════════════
   // Gieo quẻ
+  // ══════════════════════════════════════════════════════════════
   const handleGieoQue = async () => {
     if (!question.trim()) {
       toast.error("Vui lòng nhập câu hỏi");
@@ -116,6 +184,10 @@ const BoiKieu = () => {
     }
     if (verses.length === 0) {
       toast.error("Chưa tải được câu Kiều, thử lại sau");
+      return;
+    }
+    if (!canGieoQue) {
+      setShowPayment(true);
       return;
     }
 
@@ -128,22 +200,17 @@ const BoiKieu = () => {
       setVerse(randomVerse);
       setIsShaking(false);
 
-      // Tăng free count
-      if (!kieuPackage) {
-        const newCount = useCount + 1;
-        setUseCount(newCount);
-        localStorage.setItem(STORAGE_KEY, String(newCount));
-      }
-
       // Gọi Claude with STREAMING
       await handleAnalyze(randomVerse);
     }, 1500);
   };
 
-  // ── CHANGE 3: Analyze with STREAMING ──
+  // ══════════════════════════════════════════════════════════════
+  // Analyze with STREAMING — saves to DB for both free & paid
+  // ══════════════════════════════════════════════════════════════
   const handleAnalyze = async (selectedVerse: any) => {
     setIsAnalyzing(true);
-    setResult(null); // Clear so streaming text shows
+    setResult(null);
 
     try {
       const fullText = await startStreaming(
@@ -165,28 +232,37 @@ const BoiKieu = () => {
         throw new Error("Không nhận được kết quả.");
       }
 
-      const analysisResult = fullText;
-      setResult(analysisResult);
+      setResult(fullText);
 
-      // Lưu DB nếu có package
+      // ── Save to DB for ALL users (free trial + paid) ──
       const {
-        data: { user },
+        data: { user: currentUser },
       } = await supabase.auth.getUser();
-      if (user && kieuPackage) {
-        await supabase.from("kieu_analyses").insert({
-          user_id: user.id,
-          package_id: kieuPackage.id,
-          verse_id: selectedVerse.id,
-          verse: selectedVerse.verse,
-          fortune: selectedVerse.fortune,
-          question,
-          analysis_result: analysisResult,
-        });
+      if (currentUser) {
+        try {
+          await supabase.from("kieu_analyses").insert({
+            user_id: currentUser.id,
+            package_id: kieuPackage?.id || null,
+            verse_id: selectedVerse.id,
+            verse: selectedVerse.verse,
+            fortune: selectedVerse.fortune,
+            question,
+            analysis_result: fullText,
+          });
+        } catch (saveErr) {
+          console.warn("[BoiKieu] Save error (package_id may be required):", saveErr);
+        }
 
-        await supabase
-          .from("kieu_packages")
-          .update({ uses_remaining: kieuPackage.uses_remaining - 1 })
-          .eq("id", kieuPackage.id);
+        // Only decrement if has paid package
+        if (kieuPackage) {
+          await supabase
+            .from("kieu_packages")
+            .update({ uses_remaining: kieuPackage.uses_remaining - 1 })
+            .eq("id", kieuPackage.id);
+        }
+
+        // Update free trial count so button won't show again
+        setFreeTrialCount((prev) => (prev ?? 0) + 1);
 
         loadKieuPackage();
         loadHistory();
@@ -199,7 +275,17 @@ const BoiKieu = () => {
     }
   };
 
+  // ══════════════════════════════════════════════════════════════
+  // Payment
+  // ══════════════════════════════════════════════════════════════
+  const handlePaymentSuccess = () => {
+    setShowPayment(false);
+    loadKieuPackage(); // kieuPackage loaded → isFreePreview becomes false → full result
+  };
+
+  // ══════════════════════════════════════════════════════════════
   // Share
+  // ══════════════════════════════════════════════════════════════
   const handleShare = async (type: "verse" | "full") => {
     if (!verse) return;
 
@@ -207,7 +293,6 @@ const BoiKieu = () => {
     if (type === "verse") {
       shareText = `📜 Bói Kiều\n\n❓ ${question}\n\n"${verse.verse}"\n\n🔮 Xem tại: ai-tuvi.lovable.app`;
     } else {
-      const displayText = result || streamedText;
       if (!displayText) return;
       const cleaned = displayText
         .replace(/^#{1,3} /gm, "")
@@ -231,7 +316,9 @@ const BoiKieu = () => {
     toast.success(type === "verse" ? "📋 Đã sao chép câu Kiều!" : "📋 Đã sao chép luận giải!");
   };
 
+  // ══════════════════════════════════════════════════════════════
   // Markdown renderer
+  // ══════════════════════════════════════════════════════════════
   const renderMarkdown = (text: string) => {
     return text.split("\n").map((line, i) => {
       if (line.startsWith("## "))
@@ -300,7 +387,6 @@ const BoiKieu = () => {
   const renderVerse = (verseText: string) => {
     const normalized = verseText.replace(/\\n/g, "\n");
     const parts = normalized.split("\n");
-
     return (
       <div className="text-center font-display italic py-2">
         <div className="text-base leading-relaxed text-foreground">"{parts[0]}</div>
@@ -311,13 +397,20 @@ const BoiKieu = () => {
 
   const style = verse ? fortuneStyles[verse.fortune] : null;
 
+  // ══════════════════════════════════════════════════════════════
+  // Uses label
+  // ══════════════════════════════════════════════════════════════
   const usesLabel = kieuPackage
     ? `Còn ${kieuPackage.uses_remaining}/${kieuPackage.uses_total} lần trong gói`
-    : `Còn ${FREE_USES - useCount}/${FREE_USES} lần miễn phí`;
+    : canUseFreeTrial
+      ? "✨ 1 lần miễn phí"
+      : "Hết lượt miễn phí";
 
-  // ── CHANGE 4: Streaming-aware AI result rendering ──
+  // ══════════════════════════════════════════════════════════════
+  // AI Result rendering — 3 states
+  // ══════════════════════════════════════════════════════════════
   const renderAiResult = () => {
-    // STATE A: Streaming — text đang chảy
+    // ── STATE A: STREAMING ──
     if ((isAnalyzing || isStreamingAI) && !result) {
       return (
         <div className={cn("rounded-2xl p-5 bg-gradient-to-br from-surface-3 to-surface-2 border border-primary/20")}>
@@ -344,10 +437,90 @@ const BoiKieu = () => {
       );
     }
 
-    // STATE B: Completed
-    const displayText = result || streamedText;
+    // No text to display
     if (!displayText) return null;
 
+    // ── STATE B: FREE PREVIEW — has result but no paid package ──
+    if (isFreePreview) {
+      const { preview } = truncateToWords(displayText, FREE_PREVIEW_WORD_LIMIT);
+
+      return (
+        <div
+          className={cn(
+            "rounded-2xl p-5 bg-gradient-to-br from-secondary/5 to-surface-2 border border-secondary/20 overflow-hidden",
+          )}
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-5 h-5 text-secondary" />
+            <h3 className="font-display text-lg text-secondary">Luận Giải AI</h3>
+            <span className="text-xs font-normal text-muted-foreground ml-1">— Bản xem trước</span>
+          </div>
+
+          {/* Visible preview portion */}
+          <div className="space-y-1">{renderMarkdown(preview)}</div>
+
+          {/* Gradient fade → blurred teaser → payment CTA */}
+          <div className="relative mt-0">
+            {/* Fade gradient overlay */}
+            <div className="h-32 bg-gradient-to-b from-transparent via-card/80 to-card relative z-10" />
+
+            {/* Blurred teaser of hidden content */}
+            <div
+              className="blur-sm select-none pointer-events-none -mt-4 max-h-40 overflow-hidden opacity-60"
+              aria-hidden="true"
+            >
+              {renderMarkdown(displayText.slice(preview.length, preview.length + 600))}
+            </div>
+
+            {/* Payment CTA overlay */}
+            <div className="relative z-20 -mt-32 pt-8 pb-2 bg-gradient-to-b from-card/90 to-card">
+              <div className="text-center space-y-4 max-w-sm mx-auto">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
+                  <Lock className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-xs font-medium text-primary">Nội dung bị giới hạn</span>
+                </div>
+
+                <h3 className="text-lg font-bold text-foreground">Mở khóa luận giải đầy đủ</h3>
+
+                <p className="text-sm text-muted-foreground">
+                  Bạn đang xem bản rút gọn. Thanh toán để xem toàn bộ luận giải chi tiết và được thêm 10 lần bói Kiều.
+                </p>
+
+                <p className="text-2xl font-bold text-primary">39.000đ</p>
+                <p className="text-xs text-muted-foreground -mt-2">Xem full luận giải này + 10 lần bói Kiều mới</p>
+
+                <Button
+                  variant="gold"
+                  size="lg"
+                  className="w-full"
+                  onClick={() => {
+                    if (!user) {
+                      window.location.href = "/auth?redirect=" + encodeURIComponent(window.location.pathname);
+                      return;
+                    }
+                    setShowPayment(true);
+                  }}
+                >
+                  <Lock className="w-4 h-4 mr-2" />
+                  Mua gói Bói Kiều
+                </Button>
+                <p className="text-xs text-muted-foreground">Thanh toán nhanh qua ngân hàng</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Share verse only (full is locked) */}
+          <div className="flex gap-2 mt-5">
+            <Button variant="ghost" size="sm" onClick={() => handleShare("verse")} className="flex-1 text-xs">
+              <Share2 className="w-3.5 h-3.5 mr-1" />
+              Chia sẻ câu Kiều
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    // ── STATE C: FULL RESULT — paid user ──
     return (
       <div className={cn("rounded-2xl p-5 bg-gradient-to-br from-secondary/5 to-surface-2 border border-secondary/20")}>
         <div className="flex items-center gap-2 mb-4">
@@ -369,6 +542,9 @@ const BoiKieu = () => {
     );
   };
 
+  // ══════════════════════════════════════════════════════════════
+  // Main content (question + gieo quẻ + verse + AI result)
+  // ══════════════════════════════════════════════════════════════
   const mainContent = (
     <div className="space-y-5">
       {/* Question input */}
@@ -385,7 +561,7 @@ const BoiKieu = () => {
       <div className="flex flex-col items-center gap-3 py-4">
         <button
           onClick={handleGieoQue}
-          disabled={isShaking || isAnalyzing || isStreamingAI}
+          disabled={isShaking || isAnalyzing || isStreamingAI || !canGieoQue}
           className={cn(
             "relative w-32 h-32 rounded-full",
             "bg-gradient-to-br from-primary to-primary/70",
@@ -422,11 +598,11 @@ const BoiKieu = () => {
         </div>
       )}
 
-      {/* AI Result — streaming-aware */}
+      {/* AI Result — streaming + freemium aware */}
       {renderAiResult()}
 
       {/* Hint */}
-      {!verse && !isShaking && !isAnalyzing && !isStreamingAI && (
+      {!verse && !isShaking && !isAnalyzing && !isStreamingAI && canGieoQue && (
         <p className="text-center text-sm text-muted-foreground">
           Tập trung vào câu hỏi trong tâm, rồi nhấn "Gieo Quẻ"
         </p>
@@ -505,6 +681,9 @@ const BoiKieu = () => {
     </div>
   );
 
+  // ══════════════════════════════════════════════════════════════
+  // RENDER
+  // ══════════════════════════════════════════════════════════════
   return (
     <PageLayout title="Bói Kiều">
       <div className="space-y-6">
@@ -520,20 +699,33 @@ const BoiKieu = () => {
           </p>
         </div>
 
-        {/* Main content with payment gate when needed */}
-        {needsPayment ? (
+        {/* ══════════════════════════════════════════════════════ */}
+        {/* FREEMIUM LOGIC:                                       */}
+        {/* - canGieoQue || has result → show mainContent          */}
+        {/*   (preview handles blur inline if free)                */}
+        {/* - exhausted + no result → PaymentGate blocks all       */}
+        {/* ══════════════════════════════════════════════════════ */}
+        {canGieoQue || displayText ? (
+          mainContent
+        ) : (
           <PaymentGate
             feature="boi_kieu"
             title="Bói Kiều"
             price="39.000đ"
-            description="Gói 10 lần luận giải - 39.000đ"
+            description="Gói 10 lần luận giải bằng thơ Kiều — 39.000đ"
             onUnlocked={() => loadKieuPackage()}
           >
             {mainContent}
           </PaymentGate>
-        ) : (
-          mainContent
         )}
+
+        {/* VietQR Payment Modal */}
+        <VietQRPaymentModal
+          open={showPayment}
+          onOpenChange={setShowPayment}
+          feature="boi_kieu"
+          onSuccess={handlePaymentSuccess}
+        />
       </div>
 
       <style>{`
