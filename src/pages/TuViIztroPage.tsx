@@ -178,6 +178,7 @@ export default function TuViIztroPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+  const [checkedPendingPayment, setCheckedPendingPayment] = useState(false);
 
   // CHANGE B: History state
   const [chartHistory, setChartHistory] = useState<any[]>([]);
@@ -229,6 +230,40 @@ export default function TuViIztroPage() {
       loadChartHistory();
     }
   }, [user]);
+
+  // ══════════════════════════════════════════════════════════════
+  // AUTO-OPEN: If user has pending payment for luan_giai + chart
+  // is displayed → auto-open payment modal with existing QR
+  // ══════════════════════════════════════════════════════════════
+  useEffect(() => {
+    if (checkedPendingPayment || showPayment || !chart || hasAccess || accessLoading) return;
+
+    const checkPending = async () => {
+      const {
+        data: { user: currentUser },
+      } = await supabase.auth.getUser();
+      if (!currentUser) {
+        setCheckedPendingPayment(true);
+        return;
+      }
+
+      const { data: pending } = await supabase
+        .from("payments")
+        .select("id")
+        .eq("user_id", currentUser.id)
+        .eq("feature_unlocked", "luan_giai")
+        .eq("status", "pending")
+        .limit(1)
+        .maybeSingle();
+
+      if (pending) {
+        console.log("[TuViIztroPage] Found pending luan_giai payment → auto-opening modal");
+        setShowPayment(true);
+      }
+      setCheckedPendingPayment(true);
+    };
+    checkPending();
+  }, [chart, checkedPendingPayment, showPayment, hasAccess, accessLoading]);
 
   const loadFreeTrialCount = async () => {
     try {
@@ -767,7 +802,10 @@ export default function TuViIztroPage() {
 
           <VietQRPaymentModal
             open={showPayment}
-            onOpenChange={setShowPayment}
+            onOpenChange={(open) => {
+              setShowPayment(open);
+              if (!open) setCheckedPendingPayment(false);
+            }}
             feature="luan_giai"
             onSuccess={handlePaymentSuccess}
           />
@@ -861,7 +899,10 @@ export default function TuViIztroPage() {
         </div>
         <VietQRPaymentModal
           open={showPayment}
-          onOpenChange={setShowPayment}
+          onOpenChange={(open) => {
+            setShowPayment(open);
+            if (!open) setCheckedPendingPayment(false);
+          }}
           feature="luan_giai"
           onSuccess={handlePaymentSuccess}
         />
