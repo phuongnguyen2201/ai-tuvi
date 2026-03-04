@@ -64,6 +64,7 @@ const PaymentGate = ({ feature, children, onUnlocked, title, price, description,
   const { hasAccess, isLoading, refresh } = useFeatureAccess(feature);
   const [showPayment, setShowPayment] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [checkedPending, setCheckedPending] = useState(false);
   const navigate = useNavigate();
 
   const defaultConfig = DEFAULT_CONFIGS[feature] || { title: "Mở khóa tính năng", price: "", description: "" };
@@ -83,8 +84,7 @@ const PaymentGate = ({ feature, children, onUnlocked, title, price, description,
     if (hasAccess) onUnlocked?.();
   }, [hasAccess]);
 
-  // ── FIX: Re-check access when window regains focus ──
-  // (Covers: user switches to admin panel, admin confirms, user switches back)
+  // ── Re-check access when window regains focus ──
   useEffect(() => {
     const handleFocus = () => {
       refresh();
@@ -93,7 +93,43 @@ const PaymentGate = ({ feature, children, onUnlocked, title, price, description,
     return () => window.removeEventListener("focus", handleFocus);
   }, [refresh]);
 
-  // ── FIX: Memoize onSuccess to prevent VietQRPaymentModal useEffect re-runs ──
+  // ══════════════════════════════════════════════════════════════
+  // AUTO-OPEN: If user has no access + has pending payment for
+  // this feature → auto-open payment modal (show QR immediately)
+  // Runs once after access check completes
+  // ══════════════════════════════════════════════════════════════
+  useEffect(() => {
+    if (isLoading || hasAccess || checkedPending) return;
+
+    const checkPending = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setCheckedPending(true);
+        return;
+      }
+
+      const { data: pendingPayment } = await supabase
+        .from("payments")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("feature_unlocked", feature)
+        .eq("status", "pending")
+        .limit(1)
+        .maybeSingle();
+
+      if (pendingPayment) {
+        console.log("[PaymentGate] Found pending payment for", feature, "→ auto-opening modal");
+        setShowPayment(true);
+      }
+      setCheckedPending(true);
+    };
+
+    checkPending();
+  }, [isLoading, hasAccess, feature, checkedPending]);
+
+  // ── Memoize onSuccess ──
   const handlePaymentSuccess = useCallback(async () => {
     console.log("[PaymentGate] onSuccess called, refreshing...");
     setShowPayment(false);
@@ -101,10 +137,6 @@ const PaymentGate = ({ feature, children, onUnlocked, title, price, description,
     console.log("[PaymentGate] refresh done, hasAccess will update via state");
     onUnlocked?.();
   }, [refresh, onUnlocked]);
-
-  // ── FIX: Always render modal, never let it unmount due to isLoading/hasAccess changes ──
-  // Previously, the modal was only inside the "locked" branch, so it would unmount
-  // whenever isLoading flipped to true (causing the 5s reset bug).
 
   const renderLockedOverlay = () => (
     <div className="relative">
@@ -150,8 +182,7 @@ const PaymentGate = ({ feature, children, onUnlocked, title, price, description,
         renderLockedOverlay()
       )}
 
-      {/* ── FIX: Modal is ALWAYS rendered here, outside conditional branches ── */}
-      {/* This prevents unmount/remount when isLoading or hasAccess changes */}
+      {/* Modal is ALWAYS rendered here, outside conditional branches */}
       <VietQRPaymentModal
         open={showPayment}
         onOpenChange={setShowPayment}
