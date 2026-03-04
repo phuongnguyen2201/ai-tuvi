@@ -18,9 +18,11 @@ import {
   ChevronUp,
   CreditCard,
   X,
+  Lock,
 } from "lucide-react";
 // ── CHANGE 1: Import streaming hook ──
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
+import { useAuth } from "@/contexts/AuthContext";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import { getISOWeek, startOfISOWeek, endOfISOWeek, addWeeks } from "date-fns";
 
@@ -179,8 +181,34 @@ function formatPeriodLabel(timeFrame: string, period: string): string {
   return period;
 }
 
+// ══════════════════════════════════════════════════════════════
+// FREEMIUM: Truncate text to ~N words, preserving whole lines
+// ══════════════════════════════════════════════════════════════
+const FREE_PREVIEW_WORD_LIMIT = 500;
+
+function truncateToWords(text: string, maxWords: number): { preview: string; isTruncated: boolean } {
+  const lines = text.split("\n");
+  let wordCount = 0;
+  const previewLines: string[] = [];
+
+  for (const line of lines) {
+    const lineWords = line.trim().split(/\s+/).filter(Boolean).length;
+    if (wordCount + lineWords > maxWords && previewLines.length > 0) {
+      break;
+    }
+    previewLines.push(line);
+    wordCount += lineWords;
+    if (wordCount >= maxWords) break;
+  }
+
+  const preview = previewLines.join("\n");
+  const isTruncated = preview.length < text.length;
+  return { preview, isTruncated };
+}
+
 // ── Component ──
 const VanHan = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TimeFrame>("year");
   const [timeOffset, setTimeOffset] = useState(0);
@@ -199,6 +227,9 @@ const VanHan = () => {
   // Analysis
   const [currentResult, setCurrentResult] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // ── FREEMIUM: DB-based free trial tracking ──
+  const [freeTrialCount, setFreeTrialCount] = useState<number | null>(null);
 
   // ══════════════════════════════════════════════════════════════
   // CHANGE A: History state — past analyses grouped by tab
@@ -219,10 +250,48 @@ const VanHan = () => {
     abort: abortStreaming,
   } = useStreamingAnalysis();
 
+  // ══════════════════════════════════════════════════════════════
+  // FREEMIUM: Derived state
+  // ══════════════════════════════════════════════════════════════
+  const canUseFreeTrial = freeTrialCount === 0 && !vanHanPackage;
+  // FIX: Only show streamedText if it belongs to the current tab
+  const activeStreamedText = streamingForTab === activeTab ? streamedText : "";
+  const displayText = currentResult || activeStreamedText;
+  const isFreePreview = !!displayText && !vanHanPackage;
+  const canAnalyze = !!vanHanPackage || canUseFreeTrial;
+
   // Load user charts from chart_analyses
   useEffect(() => {
     loadUserCharts();
   }, []);
+
+  // Load free trial count when user available
+  useEffect(() => {
+    if (user) {
+      loadFreeTrialCount();
+    }
+  }, [user]);
+
+  const loadFreeTrialCount = async () => {
+    try {
+      const {
+        data: { user: currentUser },
+      } = await supabase.auth.getUser();
+      if (!currentUser) {
+        setFreeTrialCount(0);
+        return;
+      }
+
+      const { count } = await supabase
+        .from("van_han_analyses")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", currentUser.id);
+
+      setFreeTrialCount(count ?? 0);
+    } catch {
+      setFreeTrialCount(0);
+    }
+  };
 
   const loadUserCharts = async () => {
     setChartsLoading(true);
@@ -326,6 +395,17 @@ const VanHan = () => {
     }
   };
 
+  const currentTab = TABS.find((t) => t.key === activeTab)!;
+
+  const timeInfo =
+    activeTab === "week"
+      ? getWeekInfo(timeOffset)
+      : activeTab === "month"
+        ? getMonthInfo(timeOffset)
+        : getYearInfo(timeOffset);
+
+  const maxOffset = activeTab === "year" ? 1 : 2;
+
   // Auto load cached result when chart/tab/period changes
   useEffect(() => {
     if (!selectedChart) return;
@@ -357,21 +437,6 @@ const VanHan = () => {
     }
   };
 
-  const currentTab = TABS.find((t) => t.key === activeTab)!;
-
-  const timeInfo =
-    activeTab === "week"
-      ? getWeekInfo(timeOffset)
-      : activeTab === "month"
-        ? getMonthInfo(timeOffset)
-        : getYearInfo(timeOffset);
-
-  const maxOffset = activeTab === "year" ? 1 : 2;
-
-  // FIX: Only show streamedText if it belongs to the current tab
-  // Prevents stale year analysis from showing when switching to week/month
-  const activeStreamedText = streamingForTab === activeTab ? streamedText : "";
-
   // ══════════════════════════════════════════════════════════════
   // CHANGE A: Handle clicking a history item
   // ══════════════════════════════════════════════════════════════
@@ -398,9 +463,11 @@ const VanHan = () => {
     }, 100);
   };
 
-  // ── CHANGE 3: Analyze with STREAMING ──
+  // ── CHANGE 3: Analyze with STREAMING — supports both free trial & paid ──
   const handleAnalyze = async () => {
-    if (!selectedChart || !vanHanPackage) return;
+    if (!selectedChart) return;
+    // ── FREEMIUM: Allow if has package OR free trial ──
+    if (!vanHanPackage && !canUseFreeTrial) return;
 
     const {
       data: { user },
@@ -496,22 +563,31 @@ const VanHan = () => {
         throw new Error("Không nhận được kết quả phân tích.");
       }
 
-      // Save to DB
-      await supabase.from("van_han_analyses").insert({
-        user_id: user.id,
-        package_id: vanHanPackage.id,
-        chart_hash: selectedChart.chart_hash,
-        time_frame: activeTab,
-        period: timeInfo.period,
-        birth_data: selectedChart.birth_data,
-        analysis_result: fullText,
-      });
+      // ── Save to DB for ALL users (free trial + paid) ──
+      try {
+        await supabase.from("van_han_analyses").insert({
+          user_id: user.id,
+          package_id: vanHanPackage?.id || null,
+          chart_hash: selectedChart.chart_hash,
+          time_frame: activeTab,
+          period: timeInfo.period,
+          birth_data: selectedChart.birth_data,
+          analysis_result: fullText,
+        });
+      } catch (saveErr) {
+        console.warn("[VanHan] Save error (package_id may be required):", saveErr);
+      }
 
-      // Decrement uses
-      await supabase
-        .from("van_han_packages")
-        .update({ uses_remaining: vanHanPackage.uses_remaining - 1 })
-        .eq("id", vanHanPackage.id);
+      // Only decrement if has paid package
+      if (vanHanPackage) {
+        await supabase
+          .from("van_han_packages")
+          .update({ uses_remaining: vanHanPackage.uses_remaining - 1 })
+          .eq("id", vanHanPackage.id);
+      }
+
+      // Update free trial count
+      setFreeTrialCount((prev) => (prev ?? 0) + 1);
 
       setCurrentResult(fullText);
       loadPackage(activeTab);
@@ -661,8 +737,7 @@ const VanHan = () => {
     });
   };
 
-  // ── CHANGE 4: Render AI result with streaming states ──
-  // CHANGE B: Grey out button when cached result already exists
+  // ── CHANGE 4: Render AI result with streaming + freemium states ──
   const renderAiResult = () => {
     // ── STATE A: STREAMING ──
     if ((isAnalyzing || isStreamingAI) && !currentResult) {
@@ -699,7 +774,7 @@ const VanHan = () => {
 
     // ── STATE B: NO RESULT — show analyze button or exhausted message ──
     if (!currentResult && !activeStreamedText) {
-      // Sub-state: package exhausted — show payment prompt inline
+      // Sub-state: package exhausted + no free trial left
       if (!vanHanPackage && isPackageExhausted) {
         return (
           <div id="van-han-result" className="text-center py-6 space-y-3">
@@ -718,17 +793,98 @@ const VanHan = () => {
 
       return (
         <div id="van-han-result" className="text-center py-6">
-          <Button variant="gold" size="lg" onClick={handleAnalyze} disabled={!vanHanPackage}>
+          <Button variant="gold" size="lg" onClick={handleAnalyze} disabled={!canAnalyze}>
             <Sparkles className="w-5 h-5 mr-2" />
-            Luận Giải AI {timeInfo.label}
+            {canUseFreeTrial ? "✨ Thử miễn phí" : `Luận Giải AI ${timeInfo.label}`}
           </Button>
-          <p className="text-xs text-muted-foreground mt-2">Phân tích chuyên sâu bằng AI dựa trên lá số của bạn</p>
+          <p className="text-xs text-muted-foreground mt-2">
+            {canUseFreeTrial
+              ? "1 lần miễn phí — xem bản rút gọn luận giải AI"
+              : "Phân tích chuyên sâu bằng AI dựa trên lá số của bạn"}
+          </p>
         </div>
       );
     }
 
-    // ── STATE C: COMPLETED — show full result + greyed button ──
-    const displayText = currentResult || activeStreamedText;
+    // ── STATE C: FREE PREVIEW — has result but no paid package ──
+    if (isFreePreview) {
+      const textToShow = currentResult || activeStreamedText;
+      if (!textToShow) return null;
+
+      const { preview } = truncateToWords(textToShow, FREE_PREVIEW_WORD_LIMIT);
+      const tabLabel = activeTab === "week" ? "tuần" : activeTab === "month" ? "tháng" : "năm";
+
+      return (
+        <div
+          id="van-han-result"
+          className={cn(
+            "rounded-2xl p-5 bg-gradient-to-br from-secondary/5 to-surface-2 border border-secondary/20 overflow-hidden",
+          )}
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-5 h-5 text-secondary" />
+            <h3 className="font-display text-lg text-secondary">Luận Giải AI - {timeInfo.label}</h3>
+            <span className="text-xs font-normal text-muted-foreground ml-1">— Bản xem trước</span>
+          </div>
+
+          {/* Visible preview portion */}
+          <div className="space-y-1">{renderMarkdown(preview)}</div>
+
+          {/* Gradient fade → blurred teaser → payment CTA */}
+          <div className="relative mt-0">
+            <div className="h-32 bg-gradient-to-b from-transparent via-card/80 to-card relative z-10" />
+
+            <div
+              className="blur-sm select-none pointer-events-none -mt-4 max-h-40 overflow-hidden opacity-60"
+              aria-hidden="true"
+            >
+              {renderMarkdown(textToShow.slice(preview.length, preview.length + 600))}
+            </div>
+
+            <div className="relative z-20 -mt-32 pt-8 pb-2 bg-gradient-to-b from-card/90 to-card">
+              <div className="text-center space-y-4 max-w-sm mx-auto">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
+                  <Lock className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-xs font-medium text-primary">Nội dung bị giới hạn</span>
+                </div>
+
+                <h3 className="text-lg font-bold text-foreground">Mở khóa luận giải đầy đủ</h3>
+
+                <p className="text-sm text-muted-foreground">
+                  Bạn đang xem bản rút gọn. Thanh toán để xem toàn bộ luận giải chi tiết và được thêm 3 lần phân tích
+                  vận hạn theo {tabLabel}.
+                </p>
+
+                <p className="text-2xl font-bold text-primary">39.000đ</p>
+                <p className="text-xs text-muted-foreground -mt-2">
+                  Xem full luận giải này + 3 lần phân tích {tabLabel} mới
+                </p>
+
+                <Button
+                  variant="gold"
+                  size="lg"
+                  className="w-full"
+                  onClick={() => {
+                    if (!user) {
+                      window.location.href = "/auth?redirect=" + encodeURIComponent(window.location.pathname);
+                      return;
+                    }
+                    setShowPaymentModal(true);
+                  }}
+                >
+                  <Lock className="w-4 h-4 mr-2" />
+                  Mua gói Vận Hạn {tabLabel.charAt(0).toUpperCase() + tabLabel.slice(1)}
+                </Button>
+                <p className="text-xs text-muted-foreground">Thanh toán nhanh qua ngân hàng</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ── STATE D: COMPLETED — show full result + greyed button (paid user) ──
+    const fullDisplayText = currentResult || activeStreamedText;
     return (
       <div
         id="van-han-result"
@@ -740,9 +896,9 @@ const VanHan = () => {
             Luận Giải AI - {timeInfo.label}
           </h3>
         </div>
-        <div className="space-y-1">{renderMarkdown(displayText)}</div>
+        <div className="space-y-1">{renderMarkdown(fullDisplayText)}</div>
 
-        {/* ── CHANGE B: Grey out button — already analyzed ── */}
+        {/* ── Grey out button — already analyzed ── */}
         <div className="mt-5 pt-4 border-t border-secondary/20">
           <Button
             variant="ghost"
@@ -959,8 +1115,8 @@ const VanHan = () => {
   };
 
   const packageDesc: Record<TimeFrame, string> = {
-    week: "Thanh toán 1 lần, luận giải 9 lần vận hạn theo tuần",
-    month: "Thanh toán 1 lần, luận giải 6 lần vận hạn theo tháng",
+    week: "Thanh toán 1 lần, luận giải 3 lần vận hạn theo tuần",
+    month: "Thanh toán 1 lần, luận giải 3 lần vận hạn theo tháng",
     year: "Thanh toán 1 lần, luận giải 3 lần vận hạn theo năm",
   };
 
@@ -1067,22 +1223,25 @@ const VanHan = () => {
         {selectedChart && (
           <>
             {/* ══════════════════════════════════════════════════════════ */}
-            {/* FIX: If we have a cached result or are streaming,        */}
-            {/* show it DIRECTLY — don't let PaymentGate block viewing.  */}
-            {/* Only gate when user needs to trigger a NEW analysis.     */}
+            {/* FREEMIUM: If we have a result, are streaming, exhausted,  */}
+            {/* or can use free trial → show directly (preview handles    */}
+            {/* blur inline). Only gate when no access at all.            */}
             {/* ══════════════════════════════════════════════════════════ */}
-            {currentResult || isAnalyzing || isStreamingAI || activeStreamedText || isPackageExhausted ? (
-              /* Has result, streaming, or exhausted (inline CTA handles payment) → show directly */
+            {currentResult || isAnalyzing || isStreamingAI || activeStreamedText || isPackageExhausted || canAnalyze ? (
+              /* Has result, streaming, exhausted, or can analyze → show directly */
               <div className="space-y-4">
                 {vanHanPackage && (
                   <div className="text-xs text-primary/70 text-center">
                     Còn {vanHanPackage.uses_remaining}/{vanHanPackage.uses_total} lần phân tích
                   </div>
                 )}
+                {!vanHanPackage && canUseFreeTrial && !currentResult && !isAnalyzing && !isStreamingAI && (
+                  <div className="text-xs text-primary/70 text-center">✨ 1 lần miễn phí</div>
+                )}
                 {renderAiResult()}
               </div>
             ) : (
-              /* No result → PaymentGate wraps the analyze button */
+              /* No result + no access → PaymentGate wraps the analyze button */
               <PaymentGate
                 feature={currentTab.featureKey}
                 title={packageTitle[activeTab]}
