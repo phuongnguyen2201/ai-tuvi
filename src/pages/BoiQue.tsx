@@ -757,6 +757,7 @@ const BoiQue = () => {
   const [quePackage, setQuePackage] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [viewingHistoryId, setViewingHistoryId] = useState<string | null>(null);
 
   // Search/lookup state
   const [searchTerm, setSearchTerm] = useState("");
@@ -997,6 +998,7 @@ const BoiQue = () => {
     setIsAnimating(true);
     setResult(null);
     setAiResult(null);
+    setViewingHistoryId(null);
     setHexLines([]);
     setCoins([]);
     setChangedHexNum(null);
@@ -1204,6 +1206,76 @@ const BoiQue = () => {
           </p>
         </div>
 
+        {/* Lịch sử — at top */}
+        {history.length > 0 && (
+          <div>
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border bg-surface-3 text-sm"
+            >
+              <span className="flex items-center gap-2">
+                <Search className="w-4 h-4 text-gold" />
+                Lịch sử ({history.length} lần)
+              </span>
+              <span>{showHistory ? "▲" : "▼"}</span>
+            </button>
+            {showHistory && (
+              <div className="mt-2 space-y-2">
+                {history.map((item) => {
+                  const isViewing = viewingHistoryId === item.id;
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => {
+                        setQuestion(item.question);
+                        setResult(QUE_DATA.find((q) => q.id === item.hexagram_num) || null);
+                        setAiResult(item.analysis_result);
+                        setHexLines(item.hex_lines || []);
+                        setChangedHexNum(item.changed_hex_num);
+                        setHasChanging(!!item.changed_hex_num);
+                        setChangingLineIndexes([]);
+                        setViewingHistoryId(item.id);
+                        setShowHistory(false);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      className={cn(
+                        "rounded-xl p-3 border cursor-pointer transition-colors",
+                        isViewing
+                          ? "border-secondary/50 bg-secondary/10"
+                          : "border-border bg-surface-3 hover:border-gold/30",
+                      )}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(item.created_at).toLocaleDateString("vi-VN", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-gold text-sm">{item.hexagram_symbol}</span>
+                          {isViewing && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary/20 text-secondary font-medium">
+                              Đang xem
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-sm font-medium text-foreground truncate">{item.question}</p>
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">
+                        Quẻ {String(item.hexagram_num).padStart(2, "0")} — {item.hexagram_name}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Question Input */}
         <div className="space-y-3">
           <Textarea
@@ -1371,59 +1443,6 @@ const BoiQue = () => {
           </p>
         )}
 
-        {/* Lịch sử */}
-        {history.length > 0 && (
-          <div className="mt-6">
-            <button
-              onClick={() => setShowHistory(!showHistory)}
-              className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border bg-surface-3 text-sm"
-            >
-              <span className="flex items-center gap-2">
-                <Search className="w-4 h-4 text-gold" />
-                Lịch sử ({history.length} lần)
-              </span>
-              <span>{showHistory ? "▲" : "▼"}</span>
-            </button>
-            {showHistory && (
-              <div className="mt-2 space-y-2">
-                {history.map((item) => (
-                  <div
-                    key={item.id}
-                    onClick={() => {
-                      setQuestion(item.question);
-                      setResult(QUE_DATA.find((q) => q.id === item.hexagram_num) || null);
-                      setAiResult(item.analysis_result);
-                      setHexLines(item.hex_lines || []);
-                      setChangedHexNum(item.changed_hex_num);
-                      setHasChanging(!!item.changed_hex_num);
-                      setChangingLineIndexes([]);
-                      setShowHistory(false);
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
-                    className="rounded-xl p-3 border border-border bg-surface-3 cursor-pointer hover:border-gold/30 transition-colors"
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(item.created_at).toLocaleDateString("vi-VN", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                      <span className="text-gold text-sm">{item.hexagram_symbol}</span>
-                    </div>
-                    <p className="text-sm font-medium text-foreground truncate">{item.question}</p>
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">
-                      Quẻ {String(item.hexagram_num).padStart(2, "0")} — {item.hexagram_name}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Lookup / Tra cứu 64 quẻ */}
         <div className="rounded-2xl bg-gradient-to-br from-surface-3 to-surface-2 border border-border overflow-hidden">
