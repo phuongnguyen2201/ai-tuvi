@@ -583,7 +583,9 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
       {/* ── ANTI-SPAM: Notice when re-showing existing pending ── */}
       {existingPendingId && (
         <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-center">
-          <p className="text-xs text-amber-300">Bạn đã có giao dịch đang chờ. Quét QR bên dưới để chuyển khoản.</p>
+          <p className="text-xs text-amber-300">
+            Bạn đã có giao dịch đang chờ xác nhận. Quét QR bên dưới để chuyển khoản nếu bạn chưa thanh toán.
+          </p>
         </div>
       )}
 

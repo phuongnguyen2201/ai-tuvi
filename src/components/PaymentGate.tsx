@@ -138,6 +138,19 @@ const PaymentGate = ({ feature, children, onUnlocked, title, price, description,
     onUnlocked?.();
   }, [refresh, onUnlocked]);
 
+  // ══════════════════════════════════════════════════════════════
+  // RE-CHECK: When modal closes, reset checkedPending so auto-open
+  // re-triggers if user still has a pending payment.
+  // Without this, closing the modal shows "Mở khoá với QR" instead
+  // of auto-reopening with the existing QR.
+  // ══════════════════════════════════════════════════════════════
+  const handleModalClose = useCallback((open: boolean) => {
+    setShowPayment(open);
+    if (!open) {
+      setCheckedPending(false);
+    }
+  }, []);
+
   const renderLockedOverlay = () => (
     <div className="relative">
       <div className="blur-sm pointer-events-none select-none" aria-hidden="true">
@@ -185,7 +198,7 @@ const PaymentGate = ({ feature, children, onUnlocked, title, price, description,
       {/* Modal is ALWAYS rendered here, outside conditional branches */}
       <VietQRPaymentModal
         open={showPayment}
-        onOpenChange={setShowPayment}
+        onOpenChange={handleModalClose}
         feature={feature}
         metadata={metadata}
         onSuccess={handlePaymentSuccess}
