@@ -33,10 +33,10 @@ const PACKAGE_CONFIG: Record<
     extraFields?: Record<string, any>;
   }
 > = {
-  boi_kieu: { table: "kieu_packages", usesTotal: 10 },
-  boi_que: { table: "boi_que_packages", usesTotal: 10 },
-  van_han_week: { table: "van_han_packages", usesTotal: 9, extraFields: { time_frame: "week" } },
-  van_han_month: { table: "van_han_packages", usesTotal: 6, extraFields: { time_frame: "month" } },
+  boi_kieu: { table: "kieu_packages", usesTotal: 3 },
+  boi_que: { table: "boi_que_packages", usesTotal: 3 },
+  van_han_week: { table: "van_han_packages", usesTotal: 3, extraFields: { time_frame: "week" } },
+  van_han_month: { table: "van_han_packages", usesTotal: 3, extraFields: { time_frame: "month" } },
   van_han_year: { table: "van_han_packages", usesTotal: 3, extraFields: { time_frame: "year" } },
 };
 
