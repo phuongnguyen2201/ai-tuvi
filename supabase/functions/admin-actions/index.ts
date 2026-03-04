@@ -23,7 +23,10 @@ serve(async (req) => {
     const anonClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user }, error: authErr } = await anonClient.auth.getUser();
+    const {
+      data: { user },
+      error: authErr,
+    } = await anonClient.auth.getUser();
     if (authErr || !user || !ADMIN_EMAILS.includes(user.email ?? "")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 403,
@@ -41,18 +44,25 @@ serve(async (req) => {
 
       const [pendingRes, revenueRes, usersRes] = await Promise.all([
         adminClient.from("payments").select("id", { count: "exact", head: true }).eq("status", "pending"),
-        adminClient.from("payments").select("amount").eq("status", "verified").gte("created_at", startOfMonth.toISOString()),
+        adminClient
+          .from("payments")
+          .select("amount")
+          .eq("status", "verified")
+          .gte("created_at", startOfMonth.toISOString()),
         adminClient.from("user_features").select("user_id"),
       ]);
 
       const revenue = (revenueRes.data ?? []).reduce((s: number, r: any) => s + (r.amount ?? 0), 0);
       const uniqueUsers = new Set((usersRes.data ?? []).map((r: any) => r.user_id));
 
-      return new Response(JSON.stringify({
-        pendingCount: pendingRes.count ?? 0,
-        monthRevenue: revenue,
-        activeUsers: uniqueUsers.size,
-      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(
+        JSON.stringify({
+          pendingCount: pendingRes.count ?? 0,
+          monthRevenue: revenue,
+          activeUsers: uniqueUsers.size,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     if (action === "get_pending") {
@@ -65,8 +75,13 @@ serve(async (req) => {
       const userIds = [...new Set((data ?? []).map((p: any) => p.user_id).filter(Boolean))];
       let profileMap: Record<string, any> = {};
       if (userIds.length > 0) {
-        const { data: profiles } = await adminClient.from("profiles").select("id, display_name, email").in("id", userIds);
-        (profiles ?? []).forEach((p: any) => { profileMap[p.id] = p; });
+        const { data: profiles } = await adminClient
+          .from("profiles")
+          .select("id, display_name, email")
+          .in("id", userIds);
+        (profiles ?? []).forEach((p: any) => {
+          profileMap[p.id] = p;
+        });
       }
 
       const result = (data ?? []).map((p: any) => ({
@@ -89,8 +104,13 @@ serve(async (req) => {
       const userIds = [...new Set((data ?? []).map((p: any) => p.user_id).filter(Boolean))];
       let profileMap: Record<string, any> = {};
       if (userIds.length > 0) {
-        const { data: profiles } = await adminClient.from("profiles").select("id, display_name, email").in("id", userIds);
-        (profiles ?? []).forEach((p: any) => { profileMap[p.id] = p; });
+        const { data: profiles } = await adminClient
+          .from("profiles")
+          .select("id, display_name, email")
+          .in("id", userIds);
+        (profiles ?? []).forEach((p: any) => {
+          profileMap[p.id] = p;
+        });
       }
 
       const result = (data ?? []).map((p: any) => ({
@@ -102,9 +122,13 @@ serve(async (req) => {
       return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // ══════════════════════════════════════════════════════════════
+    // VERIFY — Admin confirms a payment → create feature packages
+    // ══════════════════════════════════════════════════════════════
     if (action === "verify") {
       const { paymentId, userId, feature, expiresAt, paymentRef } = params;
 
+      // 1) Mark payment as verified
       const { error: updateErr } = await adminClient
         .from("payments")
         .update({ status: "verified", verified_at: new Date().toISOString() })
@@ -117,8 +141,11 @@ serve(async (req) => {
         });
       }
 
+      // 2) Create feature-specific package/record
       if (feature === "luan_giai") {
-        // Find pending luan_giai_packages for this user and confirm it
+        // ──────────────────────────────────────────────────────────
+        // LUẬN GIẢI: luan_giai_packages (existing logic)
+        // ──────────────────────────────────────────────────────────
         const { data: pendingPkgs } = await adminClient
           .from("luan_giai_packages")
           .select("id")
@@ -132,33 +159,122 @@ serve(async (req) => {
             .from("luan_giai_packages")
             .update({ payment_status: "confirmed", confirmed_at: new Date().toISOString() })
             .eq("id", pendingPkgs[0].id);
+          console.log("[verify] ✅ luan_giai_packages confirmed:", pendingPkgs[0].id);
         } else {
-          // No pending package found, create a confirmed one directly
-          await adminClient.from("luan_giai_packages").insert({
+          const { data: insertedPkg } = await adminClient
+            .from("luan_giai_packages")
+            .insert({
+              user_id: userId,
+              total_uses: 3,
+              remaining_uses: 3,
+              amount: 39000,
+              payment_status: "confirmed",
+              confirmed_at: new Date().toISOString(),
+            })
+            .select("id")
+            .single();
+          console.log("[verify] ✅ luan_giai_packages created:", insertedPkg?.id);
+        }
+      } else if (["van_han_week", "van_han_month", "van_han_year"].includes(feature)) {
+        // ──────────────────────────────────────────────────────────
+        // VẬN HẠN: van_han_packages (3 uses each)
+        // ──────────────────────────────────────────────────────────
+        const usesMap: Record<string, number> = { van_han_week: 3, van_han_month: 3, van_han_year: 3 };
+        const timeFrameMap: Record<string, string> = {
+          van_han_week: "week",
+          van_han_month: "month",
+          van_han_year: "year",
+        };
+        const { data: insertedPkg, error: pkgErr } = await adminClient
+          .from("van_han_packages")
+          .insert({
             user_id: userId,
-            total_uses: 3,
-            remaining_uses: 3,
-            amount: 39000,
-            payment_status: "confirmed",
-            confirmed_at: new Date().toISOString(),
-          });
+            payment_id: paymentId,
+            time_frame: timeFrameMap[feature],
+            uses_total: usesMap[feature],
+            uses_remaining: usesMap[feature],
+          })
+          .select("id")
+          .single();
+        if (pkgErr) {
+          console.error("[verify] van_han_packages insert error:", pkgErr);
+        } else {
+          console.log(
+            "[verify] ✅ van_han_packages created:",
+            insertedPkg?.id,
+            "time_frame:",
+            timeFrameMap[feature],
+            "uses:",
+            usesMap[feature],
+          );
+        }
+      } else if (feature === "boi_kieu") {
+        // ──────────────────────────────────────────────────────────
+        // BÓI KIỀU: kieu_packages (3 uses)
+        // ──────────────────────────────────────────────────────────
+        const uses = 3;
+        const { data: insertedPkg, error: kieuPkgErr } = await adminClient
+          .from("kieu_packages")
+          .insert({
+            user_id: userId,
+            payment_id: paymentId,
+            uses_total: uses,
+            uses_remaining: uses,
+          })
+          .select("id")
+          .single();
+        if (kieuPkgErr) {
+          console.error("[verify] kieu_packages insert error:", kieuPkgErr);
+        } else {
+          console.log("[verify] ✅ kieu_packages created:", insertedPkg?.id, "uses:", uses);
+        }
+      } else if (feature === "boi_que") {
+        // ──────────────────────────────────────────────────────────
+        // BÓI QUẺ: boi_que_packages (3 uses)
+        // ──────────────────────────────────────────────────────────
+        const uses = 3;
+        const { data: insertedPkg, error: quePkgErr } = await adminClient
+          .from("boi_que_packages")
+          .insert({
+            user_id: userId,
+            payment_id: paymentId,
+            uses_total: uses,
+            uses_remaining: uses,
+          })
+          .select("id")
+          .single();
+        if (quePkgErr) {
+          console.error("[verify] boi_que_packages insert error:", quePkgErr);
+        } else {
+          console.log("[verify] ✅ boi_que_packages created:", insertedPkg?.id, "uses:", uses);
         }
       } else {
-        // For non-luan_giai features, add to user_features as before
-        await adminClient.from("user_features").insert({
+        // ──────────────────────────────────────────────────────────
+        // OTHER FEATURES: user_features (fallback, existing logic)
+        // ──────────────────────────────────────────────────────────
+        const { error: featErr } = await adminClient.from("user_features").insert({
           user_id: userId,
           feature,
           expires_at: expiresAt,
           payment_ref: paymentRef,
         });
+        if (featErr) {
+          console.error("[verify] user_features insert error:", featErr);
+        } else {
+          console.log("[verify] ✅ user_features created for feature:", feature);
+        }
       }
 
-      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     if (action === "reject") {
       await adminClient.from("payments").update({ status: "rejected" }).eq("id", params.paymentId);
-      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // ==================== LUAN GIAI PACKAGES MANAGEMENT ====================
@@ -173,8 +289,13 @@ serve(async (req) => {
       const userIds = [...new Set((data ?? []).map((p: any) => p.user_id).filter(Boolean))];
       let profileMap: Record<string, any> = {};
       if (userIds.length > 0) {
-        const { data: profiles } = await adminClient.from("profiles").select("id, display_name, email").in("id", userIds);
-        (profiles ?? []).forEach((p: any) => { profileMap[p.id] = p; });
+        const { data: profiles } = await adminClient
+          .from("profiles")
+          .select("id, display_name, email")
+          .in("id", userIds);
+        (profiles ?? []).forEach((p: any) => {
+          profileMap[p.id] = p;
+        });
       }
 
       const result = (data ?? []).map((p: any) => ({
@@ -199,7 +320,9 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     if (action === "add_luan_giai_uses") {
@@ -231,7 +354,9 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     if (action === "grant_luan_giai") {
@@ -267,7 +392,9 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      return new Response(JSON.stringify({ success: true, user: targetUser }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: true, user: targetUser }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     if (action === "search_users") {
@@ -278,7 +405,9 @@ serve(async (req) => {
         .ilike("email", `%${query}%`)
         .limit(10);
 
-      return new Response(JSON.stringify(data ?? []), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify(data ?? []), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     return new Response(JSON.stringify({ error: "Unknown action" }), {
