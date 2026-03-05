@@ -287,7 +287,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
   };
 
   // ══════════════════════════════════════════════════════════════
-  // ANTI-SPAM: "Tôi đã chuyển khoản" — skip insert if reusing
+  // ANTI-SPAM: "Kiểm tra thanh toán" — skip insert if reusing
   // ══════════════════════════════════════════════════════════════
   const handleConfirmTransfer = async () => {
     const {
@@ -346,10 +346,11 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
   };
 
   // ══════════════════════════════════════════════════════════════
-  // Realtime + Polling for payment verification
+  // SEC-005: Realtime + Polling — now also runs during show_qr
   // ══════════════════════════════════════════════════════════════
   useEffect(() => {
-    if (step !== "pending") return;
+    // ── FIX 1: Listen during BOTH show_qr and pending ──
+    if (step !== "pending" && step !== "show_qr") return;
     if (!transferContent) return;
 
     let channel: ReturnType<typeof supabase.channel> | null = null;
@@ -625,13 +626,14 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
           </div>
         </div>
       </div>
+      {/* ── FIX 3: Updated instructions + button text ── */}
       <div className="space-y-2 text-xs text-muted-foreground">
         <p>1️⃣ Mở app ngân hàng, quét QR</p>
         <p>2️⃣ Kiểm tra đúng nội dung chuyển khoản</p>
-        <p>3️⃣ Nhấn "Tôi đã chuyển khoản"</p>
+        <p>3️⃣ Thanh toán sẽ được xác nhận tự động sau vài giây</p>
       </div>
       <Button variant="gold" size="lg" className="w-full" onClick={handleConfirmTransfer}>
-        Tôi đã chuyển khoản ✓
+        Kiểm tra thanh toán 🔄
       </Button>
     </div>
   );
@@ -642,8 +644,9 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
       <Loader2 className="w-12 h-12 text-primary animate-spin" />
       <div>
         <p className="font-semibold text-foreground text-lg">Đang chờ xác nhận thanh toán...</p>
-        <p className="text-sm text-muted-foreground mt-1">Tự động cập nhật khi admin xác nhận</p>
-        <p className="text-xs text-muted-foreground mt-1">Thường trong vòng 5-30 phút (8:00 - 22:00)</p>
+        {/* ── FIX 2: Updated text for auto-verify ── */}
+        <p className="text-sm text-muted-foreground mt-1">Hệ thống sẽ tự động xác nhận sau khi nhận được tiền</p>
+        <p className="text-xs text-muted-foreground mt-1">Thường trong vòng 10-30 giây</p>
       </div>
       <Button
         variant="goldOutline"
