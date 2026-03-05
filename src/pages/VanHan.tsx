@@ -444,7 +444,7 @@ const VanHan = () => {
         ? getMonthInfo(timeOffset)
         : getYearInfo(timeOffset);
 
-  const maxOffset = activeTab === "year" ? 1 : 2;
+  const maxForward = activeTab === "week" ? 52 : activeTab === "month" ? 12 : 5;
 
   // Auto load cached result when chart/tab/period changes
   useEffect(() => {
@@ -1201,8 +1201,8 @@ const VanHan = () => {
         {/* Time Navigation */}
         <div className="flex items-center justify-between px-2">
           <button
-            onClick={() => setTimeOffset((o) => Math.max(o - 1, -maxOffset))}
-            disabled={timeOffset <= -maxOffset}
+            onClick={() => setTimeOffset((o) => Math.max(o - 1, 0))}
+            disabled={timeOffset <= 0}
             className="w-9 h-9 rounded-full bg-surface-3 border border-border flex items-center justify-center hover:border-primary/30 transition-all disabled:opacity-30"
           >
             <ChevronLeft className="w-5 h-5 text-muted-foreground" />
@@ -1212,8 +1212,8 @@ const VanHan = () => {
             {timeOffset === 0 && <p className="text-xs text-primary">Hiện tại</p>}
           </div>
           <button
-            onClick={() => setTimeOffset((o) => Math.min(o + 1, maxOffset))}
-            disabled={timeOffset >= maxOffset}
+            onClick={() => setTimeOffset((o) => Math.min(o + 1, maxForward))}
+            disabled={timeOffset >= maxForward}
             className="w-9 h-9 rounded-full bg-surface-3 border border-border flex items-center justify-center hover:border-primary/30 transition-all disabled:opacity-30"
           >
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
