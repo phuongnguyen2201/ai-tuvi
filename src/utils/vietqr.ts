@@ -54,11 +54,11 @@ export function getFeatureLabel(feature: FeatureKey): string {
   const labels: Record<FeatureKey, string> = {
     luan_giai: "Gói Luận Giải (3 lần) - 39.000đ",
     van_han: "Dự đoán vận hạn năm",
-    van_han_week: "Luận giải vận hạn tuần này",
-    van_han_month: "Luận giải vận hạn tháng này",
-    van_han_year: "Luận giải vận hạn năm 2026",
-    boi_que: "Bói Quẻ (10 lần) - 39.000đ",
-    boi_kieu: "Bói Kiều (10 lần) - 39.000đ",
+    van_han_week: "Luận giải vận hạn tuần (3 lần) - 39.000đ",
+    van_han_month: "Luận giải vận hạn tháng (3 lần) - 39.000đ",
+    van_han_year: "Luận giải vận hạn năm (3 lần) - 39.000đ",
+    boi_que: "Bói Quẻ (3 lần) - 39.000đ",
+    boi_kieu: "Bói Kiều (3 lần) - 39.000đ",
     premium_monthly: "Premium 1 tháng",
     premium_yearly: "Premium 1 năm",
   };
