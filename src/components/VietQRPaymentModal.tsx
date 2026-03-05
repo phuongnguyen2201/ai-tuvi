@@ -92,7 +92,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
 
   // ══════════════════════════════════════════════════════════════
   // ANTI-SPAM: Track whether current flow is reusing existing pending
-  // When true, "Tôi đã chuyển khoản" skips DB insert
+  // When true, "Kiểm tra thanh toán" skips DB insert
   // ══════════════════════════════════════════════════════════════
   const [existingPendingId, setExistingPendingId] = useState<string | null>(null);
   const [initialLoading, setInitialLoading] = useState(false);
@@ -268,13 +268,55 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
     }
   }, []);
 
+  // ══════════════════════════════════════════════════════════════
+  // SEC-005 FIX: Auto-create pending payment when QR is shown
+  // So SePay webhook can find it immediately after bank transfer
+  // ══════════════════════════════════════════════════════════════
   const loadUserId = async () => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (user) {
       setUserId(user.id);
-      setTransferContent(generateTransferContent(user.id, activeFeature));
+      const tc = generateTransferContent(user.id, activeFeature);
+      setTransferContent(tc);
+
+      // ── Auto-create pending payment in DB ──
+      const { error } = await supabase.from("payments").insert({
+        user_id: user.id,
+        amount: amount,
+        plan: activeFeature,
+        payment_type: "vietqr",
+        feature_unlocked: activeFeature,
+        status: "pending",
+        transfer_content: tc,
+        notes: metadata ? JSON.stringify(metadata) : null,
+      });
+
+      if (error) {
+        if (error.code === "23505") {
+          console.log("[Modal] Payment already exists, reusing");
+        } else {
+          console.error("[Modal] Auto-create payment error:", error);
+        }
+      } else {
+        console.log("[Modal] ✅ Pending payment auto-created:", tc);
+      }
+
+      if (isLuanGiai) {
+        const { error: pkgError } = await supabase.from("luan_giai_packages").insert({
+          user_id: user.id,
+          total_uses: 3,
+          remaining_uses: 3,
+          amount: amount,
+          payment_status: "pending",
+          session_id: tc,
+          transfer_content: tc,
+        });
+        if (pkgError && pkgError.code !== "23505") {
+          console.error("[Modal] luan_giai_packages insert error:", pkgError);
+        }
+      }
     }
   };
 
@@ -287,7 +329,8 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
   };
 
   // ══════════════════════════════════════════════════════════════
-  // ANTI-SPAM: "Kiểm tra thanh toán" — skip insert if reusing
+  // SEC-005 FIX: Simplified — payment already created in loadUserId
+  // Button now just switches to pending step as a fallback check
   // ══════════════════════════════════════════════════════════════
   const handleConfirmTransfer = async () => {
     const {
@@ -298,49 +341,8 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
       return;
     }
 
-    // ── If reusing existing pending → just go to pending step, NO new insert ──
-    if (existingPendingId) {
-      console.log(
-        "[Modal] Reusing existing pending payment:",
-        existingPendingId,
-        "— no new insert, no new notification",
-      );
-      setStep("pending");
-      persistPendingState("pending", transferContent, user.id);
-      return;
-    }
-
-    // ── New payment → insert as before ──
-    const { error } = await supabase.from("payments").insert({
-      user_id: user.id,
-      amount: amount,
-      plan: activeFeature,
-      payment_type: "vietqr",
-      feature_unlocked: activeFeature,
-      status: "pending",
-      transfer_content: transferContent,
-      notes: metadata ? JSON.stringify(metadata) : null,
-    });
-
-    if (error) {
-      console.error("Payment insert error:", error);
-      toast({ title: "Lỗi", description: error.message });
-      return;
-    }
-
-    if (isLuanGiai) {
-      const { error: pkgError } = await supabase.from("luan_giai_packages").insert({
-        user_id: user.id,
-        total_uses: 3,
-        remaining_uses: 3,
-        amount: amount,
-        payment_status: "pending",
-        session_id: transferContent,
-        transfer_content: transferContent,
-      });
-      if (pkgError) console.error("luan_giai_packages insert error:", pkgError);
-    }
-
+    // Payment already exists in DB (created in loadUserId or reused from checkExistingPayment)
+    // Just switch to pending step
     setStep("pending");
     persistPendingState("pending", transferContent, user.id);
   };
