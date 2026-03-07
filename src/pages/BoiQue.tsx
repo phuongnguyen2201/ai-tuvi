@@ -766,6 +766,7 @@ const BoiQue = () => {
 
   // ── FREEMIUM: DB-based free trial tracking ──
   const [freeTrialCount, setFreeTrialCount] = useState<number | null>(null);
+  const [everPurchased, setEverPurchased] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
 
   // Audio
@@ -783,7 +784,8 @@ const BoiQue = () => {
   // ══════════════════════════════════════════════════════════════
   const canUseFreeTrial = freeTrialCount === 0 && !quePackage;
   const displayText = aiResult || streamedText;
-  const isFreePreview = !!displayText && !quePackage;
+  const isFreePreview = !!displayText && !quePackage && !everPurchased;
+
   const canGieoQue = !!quePackage || canUseFreeTrial;
 
   // ══════════════════════════════════════════════════════════════
@@ -813,6 +815,11 @@ const BoiQue = () => {
         .eq("user_id", currentUser.id);
 
       setFreeTrialCount(count ?? 0);
+      const { count: pkgCount } = await supabase
+        .from("boi_que_packages")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", currentUser.id);
+      setEverPurchased((pkgCount ?? 0) > 0);
     } catch {
       setFreeTrialCount(0);
     }
@@ -1442,7 +1449,6 @@ const BoiQue = () => {
             Tập trung vào câu hỏi, thành tâm rồi nhấn "Gieo Quẻ"
           </p>
         )}
-
 
         {/* Lookup / Tra cứu 64 quẻ */}
         <div className="rounded-2xl bg-gradient-to-br from-surface-3 to-surface-2 border border-border overflow-hidden">
