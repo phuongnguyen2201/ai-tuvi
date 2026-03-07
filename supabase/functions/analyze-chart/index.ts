@@ -364,22 +364,90 @@ ${luanGiaiContext}
 
 Trước khi viết bài luận giải, hãy suy nghĩ kỹ theo các bước sau (KHÔNG xuất ra — chỉ xuất bài luận giải cuối cùng):
 
-**A. ĐỌC LÁ SỐ TĨNH (Tam Hợp):**
-- A1: Trục Mệnh—Thân: sao gì, sáng tối, Cục-Mệnh sinh/khắc, Nạp Âm?
-- A2: Tam Phương Tứ Chính các cung trọng yếu: cát/hung hội tụ?
-- A3: Cách Cục đặc trưng: Tử Phủ Đồng Cung, Cơ Nguyệt Đồng Lương, Nhật Nguyệt Tịnh Minh...?
-- A4: Quang độ 14 Chính Tinh: bao nhiêu sao sáng/tối, rơi cung nào?
+**GIAI ĐOẠN A: ĐỌC LÁ SỐ TĨNH (Static Chart — Phương pháp TAM HỢP)**
 
-**B. ĐỌC LÁ SỐ ĐỘNG (Phi Tinh):**
-- B1: Sinh Niên Tứ Hóa: Lộc/Quyền/Khoa/Kỵ phi cung nào? Lộc-Kỵ xung chiếu?
-- B2: Phi Hóa xuyên cung: Can Mệnh/Quan/Tài/Phu phi Tứ Hóa đi đâu?
-- B3: Trùng Điệp Hóa: Song Lộc, Điệp Kỵ, Lộc-Kỵ đồng cung, Tự Hóa?
-- B4: Lai Nhân-Quả: chuỗi Kỵ (A→B→C)?
+**Bước A1: Đánh giá Trục Mệnh — Thân**
+- Cung Mệnh an tại đâu? Chính tinh trong Mệnh là gì? Sáng (Miếu/Vượng/Đắc Địa) hay Tối (Bình/Hãm)?
+- Cung Thân an tại cung nào? (Nếu Thân đồng cung Mệnh → đời tập trung vào một hướng; nếu Thân ở cung khác → có sự phân tán/bổ sung)
+- Mệnh Chủ và Thân Chủ là sao gì? An tại cung nào? Sáng hay Tối?
+- Quan hệ Cục — Mệnh: sinh nhập (tốt) hay khắc xuất (xấu)?
+- Nạp Âm thuộc hành gì? Tương sinh hay tương khắc với Cục?
 
-**C. TỔNG HỢP:**
-- C1: So sánh Tam Hợp vs Phi Tinh từng lĩnh vực
-- C2: 3 Điểm Sáng + 3 Điểm Lưu ý + hóa giải
-- C3: Bản đồ Đời theo Đại Hạn
+**Bước A2: Đánh giá Tam Phương Tứ Chính (Triple-Harmony & Four-Cardinal)**
+Với MỖI cung quan trọng (Mệnh, Tài Bạch, Quan Lộc, Thiên Di — là tam phương chính; sau đó Phu Thê, Phúc Đức, Phụ Mẫu...), xác định:
+- Tam Hợp Cung (3 cung cách nhau 120°): Cung gốc + 2 cung hội chiếu. Những sao nào từ tam hợp cung chiếu vào?
+- Đối Cung (cung đối diện 180°): Sao nào từ đối cung xung chiếu?
+- Giáp Cung (2 cung kề bên): Sao nào giáp? Có hình thành cách cục đặc biệt không? (ví dụ: Giáp Lộc, Giáp Quý, Giáp Khoa...)
+- Tổng lực CÁT tinh hội tụ vs HUNG tinh hội tụ tại cung đó.
+
+**Bước A3: Nhận diện Cách Cục (Star Formations)**
+Kiểm tra sự hiện diện của các cách cục đặc trưng trong lá số:
+- **Cách Cục Cát** (ví dụ): Tử Phủ Đồng Cung, Cơ Nguyệt Đồng Lương, Nhật Nguyệt Tịnh Minh, Tọa Quý Hướng Quý, Văn Tinh Ám Củng, Lộc Mã Giao Trì, Tả Hữu Đồng Cung, Khôi Việt Giáp Mệnh, Lộc Hợp Uyên Ương, Quyền Lộc Tuần Phùng...
+- **Cách Cục Hung** (ví dụ): Tham Sát tọa Mệnh (không có giải), Cự Môn Hãm Địa, Liêm Trinh Thất Sát, Hình Kỵ Giáp Ấn, Lộc phùng Xung Phá, Mã Đầu Đới Kiếm (Kình Dương tại Ngọ), Tứ Sát hội tụ, Thiên Cơ Hãm hội Sát...
+- Ghi nhận: cách cục hoàn chỉnh hay bất toàn? Có sao giải cứu không?
+
+**Bước A4: Đánh giá Quang độ Toàn bộ 14 Chính Tinh**
+Lập bảng nhanh:
+| Chính Tinh | Cung An | Brightness | Hóa (nếu có) | Nhận xét |
+|---|---|---|---|---|
+| ... | ... | Miếu/Vượng/Đắc/Bình/Hãm | Lộc/Quyền/Khoa/Kỵ | ... |
+
+→ Tổng quan: Lá số nhiều sao sáng hay nhiều sao tối? Sao sáng rơi vào cung quan trọng hay cung phụ?
+
+---
+
+**GIAI ĐOẠN B: ĐỌC LÁ SỐ ĐỘNG (Dynamic Chart — Phương pháp PHI TINH)**
+
+**Bước B1: Phân tích Sinh Niên Tứ Hóa (Birth Year Four Transformations)**
+- Hóa Lộc phi vào cung nào? → Đây là **nguồn phúc** (source of fortune), lĩnh vực tự nhiên được ưu ái.
+- Hóa Quyền phi vào cung nào? → Đây là **trục quyền lực** (power axis), lĩnh vực có ý chí mạnh.
+- Hóa Khoa phi vào cung nào? → Đây là **quý nhân phù trợ** (noble support), lĩnh vực có danh tiếng / bảo hộ.
+- Hóa Kỵ phi vào cung nào? → Đây là **nút thắt nghiệp** (karmic knot), lĩnh vực nợ nần / ám ảnh / bài học chính.
+- **Quan hệ Lộc — Kỵ:** Lộc và Kỵ có nằm đối xung không? (→ "Lộc phùng Xung" = tài đến tay rồi mất). Lộc và Kỵ có cùng tam phương không? (→ vừa được vừa mất trong cùng lĩnh vực).
+
+**Bước B2: Truy vết Phi Hóa xuyên cung (Cross-Palace Flying Transformations)**
+- Từ cung Mệnh: Can cung Mệnh là gì? → Tứ Hóa của Can cung Mệnh phi đi đâu? (→ cho thấy đương sự chủ động hướng năng lượng về đâu)
+- Từ cung Quan Lộc: Can cung Quan Lộc phi Tứ Hóa đi đâu? (→ sự nghiệp vận động thế nào)
+- Từ cung Tài Bạch: Can cung Tài Bạch phi Tứ Hóa đi đâu? (→ tiền bạc lưu chuyển thế nào)
+- Từ cung Phu Thê: Can cung Phu Thê phi Tứ Hóa đi đâu? (→ hôn nhân tương tác thế nào)
+- **Đặc biệt chú ý:** Hóa Kỵ từ bất kỳ cung nào phi vào cung nào? Nếu Kỵ nhập Mệnh / nhập đối cung Mệnh → ảnh hưởng trực tiếp đến đương số. Nếu Kỵ nhập Mộ (cung Thìn/Tuất/Sửu/Mùi tương ứng Ngũ Hành) → "chôn vùi" vấn đề, khó giải.
+
+**Bước B3: Phát hiện Trùng Điệp Hóa (Stacked Transformations)**
+Kiểm tra các hiện tượng đặc biệt:
+- **Lộc + Lộc** (Song Lộc): Sinh Niên Lộc và Hóa Lộc từ Đại Hạn/Lưu Niên cùng phi vào một cung → Đại phát.
+- **Kỵ + Kỵ** (Song Kỵ/Điệp Kỵ): Sinh Niên Kỵ và Hóa Kỵ từ nguồn khác cùng phi vào một cung → Đại hung, khó tháo gỡ.
+- **Lộc + Kỵ** cùng cung: Được nhưng lại mất, phúc lẫn họa, tài lộc đi kèm thị phi.
+- **Tự Hóa:** Sao nào tự hóa trong cung mình? (Tự Hóa Lộc = tiền vào rồi ra, giữ không được; Tự Hóa Kỵ = tự gây rắc rối cho mình).
+
+**Bước B4: Xác định "Lai Nhân Cung" và "Lai Quả Cung" (Cause-Effect Chain)**
+Theo phương pháp Phi Tinh:
+- **Lai Nhân** (Nguyên nhân): Cung nào phi Kỵ vào cung đang xét? → Đây là nguyên nhân gốc rễ của vấn đề.
+- **Lai Quả** (Kết quả): Cung đang xét phi Kỵ đi cung nào? → Đây là hệ quả mà vấn đề tạo ra.
+- Truy chuỗi: Nếu A phi Kỵ → B, B phi Kỵ → C → hình thành "chuỗi Kỵ" (chain of affliction) → cho thấy hiệu ứng domino trong lá số.
+
+---
+
+**GIAI ĐOẠN C: TỔNG HỢP & CHUẨN BỊ LUẬN GIẢI**
+
+**Bước C1: So sánh kết luận Tam Hợp vs Phi Tinh**
+Lập bảng so sánh cho mỗi lĩnh vực chính (Mệnh, Sự nghiệp, Tài chính, Hôn nhân, Sức khỏe):
+| Lĩnh vực | Kết luận Tam Hợp | Kết luận Phi Tinh | Thống nhất? | Ghi chú |
+|---|---|---|---|---|
+| Sự nghiệp | ... | ... | Có/Không | ... |
+
+- Nếu **thống nhất** → Kết luận có độ tin cậy cao, trình bày tự tin.
+- Nếu **mâu thuẫn** → Trình bày cả hai góc nhìn, giải thích tại sao khác biệt, ưu tiên Phi Tinh cho timing (khi nào) và Tam Hợp cho tính chất (như thế nào).
+
+**Bước C2: Xác định 3 Điểm Sáng và 3 Điểm Lưu ý lớn nhất**
+- 3 Điểm Sáng: Cung/cách cục/Tứ Hóa nào là tài sản lớn nhất của lá số?
+- 3 Điểm Lưu ý: Cung/hung tinh/Hóa Kỵ nào là thử thách lớn nhất?
+- Với mỗi Điểm Lưu ý, phải chuẩn bị sẵn ít nhất 1 đường hóa giải (dựa trên sao giải cứu, cung bổ trợ, hoặc Hóa Khoa/Lộc cân bằng).
+
+**Bước C3: Phác thảo "Bản đồ Đời" (Life Map)**
+Dựa trên Đại Hạn, phác thảo nhanh biểu đồ vận thế theo thập niên:
+- Đại Hạn nào là đỉnh cao? (Nhiều Lộc, sao sáng, cung tốt)
+- Đại Hạn nào là thử thách? (Kỵ trùng, sao hung, cung hãm)
+- Đại Hạn hiện tại (dựa trên tuổi đương sự) đang ở giai đoạn nào?
 
 ---
 
