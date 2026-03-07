@@ -358,9 +358,10 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
     let channel: ReturnType<typeof supabase.channel> | null = null;
     let pollInterval: ReturnType<typeof setInterval> | null = null;
     let cancelled = false;
-
+    let alreadyHandled = false;
     const handleVerified = async (uid: string, paymentId: string) => {
-      if (cancelled) return;
+      if (cancelled || alreadyHandled) return;
+      alreadyHandled = true;
       console.log("[Modal] ✅ Payment verified! Creating package...");
       if (pollInterval) clearInterval(pollInterval);
       await createFeaturePackage(uid, paymentId);
