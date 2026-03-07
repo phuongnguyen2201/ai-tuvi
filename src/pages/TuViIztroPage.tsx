@@ -413,7 +413,7 @@ export default function TuViIztroPage() {
   // ── Load or call AI interpretation (STREAMING) ──
   // CHANGE C: Added `isFreeTrial` param to skip decrement
   const loadAnalysis = useCallback(
-    async (isFreeTrial = false) => {
+    async (isFreeTrial = false, skipCache = false) => {
       if (!chartHash || !chart) return;
       if (isAnalyzingRef.current) return;
 
@@ -422,25 +422,29 @@ export default function TuViIztroPage() {
       } = await supabase.auth.getUser();
       if (!currentUser) return;
 
-      // Check cache
-      const { data: existing } = await (supabase.from("chart_analyses") as any)
-        .select("*")
-        .eq("chart_hash", chartHash)
-        .eq("user_id", currentUser.id)
-        .maybeSingle();
+      // Check cache (skip when re-analyzing)
+      let existing: any = null;
+      if (!skipCache) {
+        const { data } = await (supabase.from("chart_analyses") as any)
+          .select("*")
+          .eq("chart_hash", chartHash)
+          .eq("user_id", currentUser.id)
+          .maybeSingle();
+        existing = data;
 
-      if (existing?.analysis_result) {
-        const isValidResult =
-          !existing.analysis_result.includes("Tôi xin lỗi") &&
-          !existing.analysis_result.includes("không thể thấy được lá số") &&
-          existing.analysis_result.length > 100;
+        if (existing?.analysis_result) {
+          const isValidResult =
+            !existing.analysis_result.includes("Tôi xin lỗi") &&
+            !existing.analysis_result.includes("không thể thấy được lá số") &&
+            existing.analysis_result.length > 100;
 
-        if (isValidResult) {
-          setCachedAnalysis(existing.analysis_result);
-          setAnalysisError(false);
-          return;
-        } else {
-          await (supabase.from("chart_analyses") as any).update({ analysis_result: null }).eq("id", existing.id);
+          if (isValidResult) {
+            setCachedAnalysis(existing.analysis_result);
+            setAnalysisError(false);
+            return;
+          } else {
+            await (supabase.from("chart_analyses") as any).update({ analysis_result: null }).eq("id", existing.id);
+          }
         }
       }
 
@@ -851,8 +855,8 @@ export default function TuViIztroPage() {
                       .eq("user_id", user.id);
                     setCachedAnalysis(null);
                     setAnalysisError(false);
-                    // 2. Luận giải lại ngay
-                    loadAnalysis(false);
+                    // 2. Luận giải lại ngay — skip cache
+                    loadAnalysis(false, true);
                   }}
                 >
                   🔄 Luận giải lại ({remaining} lượt còn lại)
