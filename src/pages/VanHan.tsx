@@ -453,8 +453,9 @@ const VanHan = () => {
   }, [selectedChart, activeTab, timeOffset]);
 
   const autoLoadCached = async () => {
-    // Clear history viewing state — user navigated via time/tab controls
+    // Clear history viewing state + stale streaming text
     setViewingHistoryId(null);
+    abortStreaming();
 
     const {
       data: { user },
@@ -662,6 +663,9 @@ const VanHan = () => {
 
     setCurrentResult(null);
     loadAnalysisHistory();
+
+    // Trigger new analysis immediately
+    handleAnalyze();
   };
 
   const cleanMarkdown = (text: string): string => {
