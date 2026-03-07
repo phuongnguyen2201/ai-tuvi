@@ -506,10 +506,41 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_audit_log: {
+        Row: {
+          action: string
+          created_at: string | null
+          details: Json | null
+          id: string
+          ip_address: string | null
+          payment_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          payment_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          payment_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
           created_at: string | null
+          expired_at: string | null
           feature_unlocked: string | null
           id: string
           notes: string | null
@@ -525,6 +556,7 @@ export type Database = {
         Insert: {
           amount: number
           created_at?: string | null
+          expired_at?: string | null
           feature_unlocked?: string | null
           id?: string
           notes?: string | null
@@ -540,6 +572,7 @@ export type Database = {
         Update: {
           amount?: number
           created_at?: string | null
+          expired_at?: string | null
           feature_unlocked?: string | null
           id?: string
           notes?: string | null
@@ -868,7 +901,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      expire_old_payments: { Args: never; Returns: number }
     }
     Enums: {
       [_ in never]: never
