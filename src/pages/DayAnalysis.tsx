@@ -219,7 +219,7 @@ const DayAnalysis = () => {
                 {format(date, "EEEE, dd/MM/yyyy")}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Ngày {lunarDate.dayCanChi}
+                Ngày {lunarDate.dayCanChi}, tháng {lunarDate.monthCanChi}, năm {lunarDate.yearCanChi}
               </p>
               <div className="flex items-center gap-2 mt-2">
                 <Sparkles className="w-4 h-4 text-gold" />
