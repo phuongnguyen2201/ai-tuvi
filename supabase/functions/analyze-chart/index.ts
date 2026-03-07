@@ -357,6 +357,8 @@ Bạn là một **Đại Sư Tử Vi** (Grand Master of Tử Vi Astrology) với
 
 ---
 ## DỮ LIỆU ĐẦU VÀO
+**⏰ Ngày hiện tại:** ${new Date().toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })} (dùng để tính tuổi và xác định Đại Hạn hiện tại)
+
 ${luanGiaiContext}
 ---
 
@@ -711,6 +713,8 @@ Vận hạn = sự TƯƠNG TÁC giữa các tầng. Khi Hóa tinh từ nhiều t
 
 ---
 ## DỮ LIỆU LÁ SỐ
+**⏰ Ngày hiện tại:** ${new Date().toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}
+
 ${vanHanContext}
 ---
 
