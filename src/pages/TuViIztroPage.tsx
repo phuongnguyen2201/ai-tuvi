@@ -841,24 +841,35 @@ export default function TuViIztroPage() {
 
         {/* Remaining uses badge — FIX: use everPurchased instead of total */}
         {user && !accessLoading && (
-          <div className="flex justify-center">
+          <>
             {hasAccess ? (
-              <Badge variant="outline" className="border-primary/50 text-primary bg-primary/10 px-4 py-1">
-                🔮 Bạn còn {remaining}/{total} lần luận giải
-              </Badge>
+              <div className="flex justify-center">
+                <Badge variant="outline" className="border-primary/50 text-primary bg-primary/10 px-4 py-1">🔮 Bạn còn {remaining}/{total} lần luận giải</Badge>
+              </div>
             ) : everPurchased && !hasAccess ? (
-              <Badge variant="outline" className="border-destructive/50 text-destructive bg-destructive/10 px-4 py-1">
-                Hết lượt luận giải ·{" "}
-                <button className="underline ml-1" onClick={() => setShowPayment(true)}>
-                  Mua thêm gói
-                </button>
-              </Badge>
+              <div className="rounded-2xl p-4 bg-gradient-to-r from-amber-950/60 to-orange-950/40 border border-amber-500/30">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="shrink-0 w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                      <CreditCard className="w-5 h-5 text-amber-400" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-amber-300 text-sm">Đã hết lượt luận giải</p>
+                      <p className="text-xs text-amber-200/60">Mua thêm gói để tiếp tục · Lịch sử luận giải vẫn xem được</p>
+                    </div>
+                  </div>
+                  <Button variant="gold" size="sm" onClick={() => setShowPayment(true)} className="shrink-0">
+                    <CreditCard className="w-4 h-4 mr-1.5" />
+                    Mua thêm
+                  </Button>
+                </div>
+              </div>
             ) : canUseFreeTrial ? (
-              <Badge variant="outline" className="border-green-500/50 text-green-400 bg-green-500/10 px-4 py-1">
-                ✨ Bạn có 1 lần luận giải miễn phí
-              </Badge>
+              <div className="flex justify-center">
+                <Badge variant="outline" className="border-green-500/50 text-green-400 bg-green-500/10 px-4 py-1">✨ Bạn có 1 lần luận giải miễn phí</Badge>
+              </div>
             ) : null}
-          </div>
+          </>
         )}
 
         {mintStatus === "minting" && (
