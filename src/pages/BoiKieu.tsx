@@ -729,7 +729,7 @@ const BoiKieu = () => {
         {/*   (preview handles blur inline if free)                */}
         {/* - exhausted + no result → PaymentGate blocks all       */}
         {/* ══════════════════════════════════════════════════════ */}
-        {canGieoQue || displayText ? (
+        {canGieoQue || displayText || everPurchased ? (
           mainContent
         ) : (
           <PaymentGate
