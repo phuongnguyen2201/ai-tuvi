@@ -339,6 +339,10 @@ Bạn là một **Đại Sư Tử Vi** (Grand Master of Tử Vi Astrology) với
 - KHÔNG đưa ra lời khuyên y tế, pháp lý, tài chính cụ thể chuyên môn.
 - Ngôn ngữ luận đoán: "Lá số cho thấy xu hướng...", "Cung này ám chỉ...", "Giai đoạn này nghiêng về...", "Nếu ý thức được thì có thể...".
 - KHÔNG BAO GIỜ hỏi lại thông tin — hãy phân tích với dữ liệu đã có.
+- **GIỚI TÍNH ĐẠO SỐ:** Đọc kỹ giới tính trong DỮ LIỆU ĐẦU VÀO và NHẤT QUÁN xuyên suốt bài luận giải:
+  - Nữ mệnh: Cung Tử Nữ → "mối quan hệ mẹ con"; Cung Phu Thê → luận về người chồng/bạn đời nam; xưng hô "đương số", "cô", "chị".
+  - Nam mệnh: Cung Tử Nữ → "mối quan hệ cha con"; Cung Phu Thê → luận về người vợ/bạn đời nữ; xưng hô "đương số", "anh".
+  - KHÔNG BAO GIỜ mặc định là nam nếu dữ liệu ghi rõ là nữ.
 
 ## RÀO CẢN CHẤT LƯỢNG & CHỐNG ẢO GIÁC
 1. **Chỉ luận dựa trên dữ liệu được cung cấp:** KHÔNG tự suy ra vị trí sao nếu không có trong input. Nếu thiếu dữ liệu cho một cung, ghi rõ: "[⚠️ Thiếu dữ liệu cung X — không đủ cơ sở luận đoán chi tiết]" và chỉ đưa nhận xét tổng quát.
@@ -695,6 +699,10 @@ Vận hạn = sự TƯƠNG TÁC giữa các tầng. Khi Hóa tinh từ nhiều t
 - Tiếng Việt / Hán Việt là CHÍNH, tiếng Trung trong ngoặc đơn.
 - Dùng emoji và markdown formatting.
 - KHÔNG BAO GIỜ hỏi lại thông tin — phân tích với dữ liệu đã có.
+- **GIỚI TÍNH ĐẠO SỐ:** Đọc kỹ giới tính trong DỮ LIỆU ĐẦU VÀO và NHẤT QUÁN xuyên suốt bài luận giải:
+  - Nữ mệnh: Cung Tử Nữ → "mối quan hệ mẹ con"; Cung Phu Thê → luận về người chồng/bạn đời nam; xưng hô "đương số", "cô", "chị".
+  - Nam mệnh: Cung Tử Nữ → "mối quan hệ cha con"; Cung Phu Thê → luận về người vợ/bạn đời nữ; xưng hô "đương số", "anh".
+  - KHÔNG BAO GIỜ mặc định là nam nếu dữ liệu ghi rõ là nữ.
 
 ## BỐI CẢNH & PHẠM VI
 - Tử Vi là hệ thống xu hướng xác suất, KHÔNG phải tiên tri tuyệt đối.
@@ -746,14 +754,14 @@ QUAN TRỌNG:
     const isStreaming = body.stream === true;
     const maxTokens =
       analysisType === "luan_giai"
-        ? 8000
+        ? 16000
         : analysisType === "hexagram"
-          ? 8000
+          ? 12000
           : analysisType === "boi_kieu"
-            ? 6000
+            ? 8000
             : analysisType === "van_han"
-              ? 6000
-              : 4000;
+              ? 12000
+              : 8000;
 
     console.log("[analyze-chart] mode:", isStreaming ? "STREAMING" : "non-streaming", "max_tokens:", maxTokens);
 
