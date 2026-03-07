@@ -29,6 +29,7 @@ import {
   History,
   ChevronDown,
   ChevronUp,
+  CreditCard,
 } from "lucide-react";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
@@ -732,13 +733,23 @@ export default function TuViIztroPage() {
                   🔄 Luận giải lại ({remaining} lượt còn lại)
                 </Button>
               ) : everPurchased && !hasAccess ? (
-                <Button variant="gold" size="sm" className="w-full text-xs" onClick={() => setShowPayment(true)}>
-                  Hết lượt · Mua thêm gói (39.000đ)
-                </Button>
-              ) : null}
-            </div>
-          </Card>
-        </div>
+                <div className="w-full rounded-2xl p-4 bg-gradient-to-r from-amber-950/60 to-orange-950/40 border border-amber-500/30">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="shrink-0 w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                        <CreditCard className="w-5 h-5 text-amber-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-amber-300 text-sm">Đã hết lượt luận giải</p>
+                        <p className="text-xs text-amber-200/60">Mua thêm gói để tiếp tục · Lịch sử luận giải vẫn xem được</p>
+                      </div>
+                    </div>
+                    <Button variant="gold" size="sm" onClick={() => setShowPayment(true)} className="shrink-0">
+                      <CreditCard className="w-4 h-4 mr-1.5" />
+                      Mua thêm
+                    </Button>
+                  </div>
+                </div>
       );
     }
 
