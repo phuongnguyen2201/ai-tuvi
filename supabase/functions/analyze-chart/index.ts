@@ -59,6 +59,59 @@ serve(async (req) => {
 
     console.log("[analyze-chart] analysisType:", analysisType, "keys:", Object.keys(body));
 
+    // ── SEC-007: Rate limiting ──
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const RATE_LIMITS: Record<string, { maxRequests: number; windowMinutes: number }> = {
+      luan_giai: { maxRequests: 5, windowMinutes: 60 },
+      hexagram: { maxRequests: 10, windowMinutes: 60 },
+      boi_kieu: { maxRequests: 10, windowMinutes: 60 },
+      van_han: { maxRequests: 10, windowMinutes: 60 },
+      default: { maxRequests: 15, windowMinutes: 60 },
+    };
+
+    const rateConfig = RATE_LIMITS[analysisType] || RATE_LIMITS.default;
+    const windowStart = new Date(Date.now() - rateConfig.windowMinutes * 60 * 1000).toISOString();
+
+    const countResponse = await fetch(
+      `${supabaseUrl}/rest/v1/api_rate_limits?user_id=eq.${user.id}&endpoint=eq.analyze-chart-${analysisType}&created_at=gte.${windowStart}&select=id`,
+      {
+        headers: {
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+          Prefer: "count=exact",
+          "Range-Unit": "items",
+          Range: "0-0",
+        },
+      },
+    );
+    const contentRange = countResponse.headers.get("content-range");
+    const requestCount = contentRange ? parseInt(contentRange.split("/")[1] || "0") : 0;
+
+    if (requestCount >= rateConfig.maxRequests) {
+      console.log(
+        `[analyze-chart] Rate limited: user ${user.id}, ${requestCount}/${rateConfig.maxRequests} in ${rateConfig.windowMinutes}min`,
+      );
+      return new Response(
+        JSON.stringify({
+          error: `Bạn đã gửi quá nhiều yêu cầu. Vui lòng thử lại sau ${rateConfig.windowMinutes} phút.`,
+        }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    await fetch(`${supabaseUrl}/rest/v1/api_rate_limits`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({
+        user_id: user.id,
+        endpoint: `analyze-chart-${analysisType}`,
+      }),
+    });
+    // ── END SEC-007 ──
     const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!anthropicKey) {
       throw new Error("ANTHROPIC_API_KEY not configured");
