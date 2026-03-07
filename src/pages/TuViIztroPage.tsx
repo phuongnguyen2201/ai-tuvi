@@ -834,8 +834,29 @@ export default function TuViIztroPage() {
               Luận giải chi tiết bởi AI
             </h2>
             <div className="space-y-1">{renderAnalysisMarkdown(displayText)}</div>
-            <div className="mt-8 pt-4 border-t border-primary/20">
+            <div className="mt-8 pt-4 border-t border-primary/20 space-y-3">
               <p className="text-xs text-muted-foreground">Luận giải bởi AI · Dựa trên lá số tử vi</p>
+              {hasAccess && remaining > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs text-muted-foreground"
+                  onClick={async () => {
+                    if (!user || !chartHash) return;
+                    abortStreaming();
+                    await (supabase.from("chart_analyses") as any)
+                      .delete()
+                      .eq("chart_hash", chartHash)
+                      .eq("user_id", user.id);
+                    setCachedAnalysis(null);
+                    setAnalysisError(false);
+                    loadChartHistory();
+                    toast.success("Đã xóa luận giải cũ. Bấm luận giải để tạo mới.");
+                  }}
+                >
+                  🔄 Luận giải lại ({remaining} lượt còn lại)
+                </Button>
+              )}
             </div>
           </Card>
         </div>
