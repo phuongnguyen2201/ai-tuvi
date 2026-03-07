@@ -177,7 +177,7 @@ export type Database = {
           {
             foreignKeyName: "boi_que_packages_payment_id_fkey"
             columns: ["payment_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "payments"
             referencedColumns: ["id"]
           },
@@ -389,7 +389,7 @@ export type Database = {
           {
             foreignKeyName: "kieu_packages_payment_id_fkey"
             columns: ["payment_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "payments"
             referencedColumns: ["id"]
           },
@@ -911,7 +911,7 @@ export type Database = {
           {
             foreignKeyName: "van_han_packages_payment_id_fkey"
             columns: ["payment_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "payments"
             referencedColumns: ["id"]
           },
