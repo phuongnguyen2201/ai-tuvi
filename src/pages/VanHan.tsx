@@ -1258,7 +1258,6 @@ const VanHan = () => {
           open={showPaymentModal}
           onOpenChange={(open) => {
             setShowPaymentModal(open);
-            if (!open) setCheckedPendingPayment(false);
           }}
           feature={currentTab.featureKey}
           onSuccess={() => {
