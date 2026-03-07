@@ -844,14 +844,15 @@ export default function TuViIztroPage() {
                   onClick={async () => {
                     if (!user || !chartHash) return;
                     abortStreaming();
+                    // 1. Xóa cache cũ
                     await (supabase.from("chart_analyses") as any)
                       .delete()
                       .eq("chart_hash", chartHash)
                       .eq("user_id", user.id);
                     setCachedAnalysis(null);
                     setAnalysisError(false);
-                    loadChartHistory();
-                    toast.success("Đã xóa luận giải cũ. Bấm luận giải để tạo mới.");
+                    // 2. Luận giải lại ngay
+                    loadAnalysis(false);
                   }}
                 >
                   🔄 Luận giải lại ({remaining} lượt còn lại)
