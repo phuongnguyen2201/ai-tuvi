@@ -271,7 +271,7 @@ const VanHan = () => {
     if (user) {
       loadFreeTrialCount();
     }
-  }, [user]);
+  }, [user, activeTab]);
 
   const loadFreeTrialCount = async () => {
     try {
@@ -286,7 +286,8 @@ const VanHan = () => {
       const { count } = await supabase
         .from("van_han_analyses")
         .select("id", { count: "exact", head: true })
-        .eq("user_id", currentUser.id);
+        .eq("user_id", currentUser.id)
+        .eq("time_frame", activeTab);
 
       setFreeTrialCount(count ?? 0);
     } catch {
