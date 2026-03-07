@@ -1,7 +1,4 @@
 // src/pages/TuViIztroPage.tsx - Page lập lá số dùng iztro library (Streaming AI)
-// CHANGE A: Form dirty tracking
-// CHANGE B: History section
-// CHANGE C: Freemium preview — 1 free analysis, show ~500 words, blur rest + payment CTA
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAddress } from "@thirdweb-dev/react";
@@ -46,6 +43,8 @@ import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 
+// ── Helpers ──
+
 function generateChartHash(birthDate: Date, birthHour: string, gender: string, calendarType: string): string {
   const dateStr = format(birthDate, "yyyy-MM-dd");
   return `${dateStr}_${birthHour}_${gender}_${calendarType}`;
@@ -57,15 +56,20 @@ function truncateToWords(text: string, maxWords: number): { preview: string; isT
   const lines = text.split("\n");
   let wordCount = 0;
   const previewLines: string[] = [];
+
   for (const line of lines) {
     const lineWords = line.trim().split(/\s+/).filter(Boolean).length;
-    if (wordCount + lineWords > maxWords && previewLines.length > 0) break;
+    if (wordCount + lineWords > maxWords && previewLines.length > 0) {
+      break;
+    }
     previewLines.push(line);
     wordCount += lineWords;
     if (wordCount >= maxWords) break;
   }
+
   const preview = previewLines.join("\n");
-  return { preview, isTruncated: preview.length < text.length };
+  const isTruncated = preview.length < text.length;
+  return { preview, isTruncated };
 }
 
 function renderAnalysisMarkdown(text: string): React.ReactNode[] {
@@ -104,13 +108,15 @@ function renderAnalysisMarkdown(text: string): React.ReactNode[] {
 }
 
 function formatInline(text: string): React.ReactNode {
-  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) => {
-    if (part.startsWith("**") && part.endsWith("**"))
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
       return (
         <strong key={i} className="text-foreground">
           {part.slice(2, -2)}
         </strong>
       );
+    }
     return part;
   });
 }
@@ -136,11 +142,15 @@ export default function TuViIztroPage() {
   const [chart, setChart] = useState<TuViChartData | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Form state
   const [personName, setPersonName] = useState("");
   const [birthDate, setBirthDate] = useState<Date>(new Date(2000, 0, 1));
   const [birthHour, setBirthHour] = useState("1");
   const [gender, setGender] = useState<"Nam" | "Nữ">("Nam");
   const [calendarType, setCalendarType] = useState<"solar" | "lunar">("solar");
+
+  // Form dirty tracking
   const [lastSubmitted, setLastSubmitted] = useState<{
     personName: string;
     birthDate: string;
@@ -157,22 +167,32 @@ export default function TuViIztroPage() {
     gender !== lastSubmitted.gender ||
     calendarType !== lastSubmitted.calendarType;
 
+  // Chart analysis state
   const [cachedAnalysis, setCachedAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [checkedPendingPayment, setCheckedPendingPayment] = useState(false);
+
+  // History state
   const [chartHistory, setChartHistory] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [viewingHistoryId, setViewingHistoryId] = useState<string | null>(null);
+
+  // Free trial tracking
   const [freeTrialCount, setFreeTrialCount] = useState<number | null>(null);
   const [everPurchased, setEverPurchased] = useState(false);
+
+  // Mint callback state
   const [searchParams, setSearchParams] = useSearchParams();
   const [mintStatus, setMintStatus] = useState<"idle" | "minting" | "success" | "error">("idle");
   const [mintResult, setMintResult] = useState<any>(null);
 
+  // Package-based access
   const { hasAccess, remaining, total, isLoading: accessLoading, refresh: refreshAccess } = useLuanGiaiAccess();
+
+  // Streaming AI analysis
   const {
     isStreaming: isStreamingAI,
     streamedText,
@@ -184,6 +204,7 @@ export default function TuViIztroPage() {
   const chartHash = chart ? generateChartHash(birthDate, birthHour, gender, calendarType) : null;
   const isAnalyzingRef = useRef(false);
 
+  // Derived state
   const isFreePreview = !!(cachedAnalysis || streamedText) && !hasAccess && !everPurchased;
   const canUseFreeTrial = freeTrialCount === 0 && !hasAccess;
 
@@ -194,8 +215,10 @@ export default function TuViIztroPage() {
     }
   }, [user]);
 
+  // Auto-open pending payment modal
   useEffect(() => {
     if (checkedPendingPayment || showPayment || !chart || hasAccess || accessLoading) return;
+
     const checkPending = async () => {
       const {
         data: { user: currentUser },
@@ -204,6 +227,7 @@ export default function TuViIztroPage() {
         setCheckedPendingPayment(true);
         return;
       }
+
       const { data: pending } = await supabase
         .from("payments")
         .select("id")
@@ -212,6 +236,7 @@ export default function TuViIztroPage() {
         .eq("status", "pending")
         .limit(1)
         .maybeSingle();
+
       if (pending) {
         console.log("[TuViIztroPage] Found pending luan_giai payment → auto-opening modal");
         setShowPayment(true);
@@ -230,11 +255,14 @@ export default function TuViIztroPage() {
         setFreeTrialCount(0);
         return;
       }
+
       const { count } = await (supabase.from("chart_analyses") as any)
         .select("id", { count: "exact", head: true })
         .eq("user_id", currentUser.id)
         .not("analysis_result", "is", null);
+
       setFreeTrialCount(count ?? 0);
+
       const { count: pkgCount } = await supabase
         .from("luan_giai_packages")
         .select("id", { count: "exact", head: true })
@@ -252,11 +280,13 @@ export default function TuViIztroPage() {
         data: { user: currentUser },
       } = await supabase.auth.getUser();
       if (!currentUser) return;
+
       const { data } = await (supabase.from("chart_analyses") as any)
         .select("id, chart_hash, birth_data, analysis_result, created_at")
         .eq("user_id", currentUser.id)
         .order("created_at", { ascending: false })
         .limit(20);
+
       setChartHistory(data || []);
     } catch (err) {
       console.error("[History] Load error:", err);
@@ -268,6 +298,7 @@ export default function TuViIztroPage() {
   const handleLoadFromHistory = (item: any) => {
     const bd = item.birth_data;
     if (!bd) return;
+
     if (bd.personName) setPersonName(bd.personName);
     if (bd.birthDate) {
       const parsed = new Date(bd.birthDate);
@@ -276,6 +307,7 @@ export default function TuViIztroPage() {
     if (bd.birthHour) setBirthHour(bd.birthHour);
     if (bd.gender === "Nam" || bd.gender === "Nữ") setGender(bd.gender);
     if (bd.calendarType) setCalendarType(bd.calendarType as "solar" | "lunar");
+
     try {
       const parsed = new Date(bd.birthDate);
       const input: BirthInput = {
@@ -286,14 +318,17 @@ export default function TuViIztroPage() {
         gender: bd.gender || "Nam",
         isLunarDate: bd.calendarType === "lunar",
       };
-      setChart(createTuViChart(input));
+      const result = createTuViChart(input);
+      setChart(result);
     } catch (e) {
       console.error("[History] Failed to recreate chart:", e);
       return;
     }
+
     const hasValidAnalysis = item.analysis_result && item.analysis_result.length > 100;
     setCachedAnalysis(hasValidAnalysis ? item.analysis_result : null);
     setAnalysisError(false);
+
     setLastSubmitted({
       personName: bd.personName || "",
       birthDate: bd.birthDate || "",
@@ -301,6 +336,7 @@ export default function TuViIztroPage() {
       gender: bd.gender || "Nam",
       calendarType: bd.calendarType || "solar",
     });
+
     setViewingHistoryId(item.id);
     setShowHistory(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -309,6 +345,7 @@ export default function TuViIztroPage() {
   useEffect(() => {
     const sessionId = searchParams.get("session_id");
     const mintSuccess = searchParams.get("mint_success");
+
     if (sessionId && mintSuccess === "true" && mintStatus === "idle") {
       setMintStatus("minting");
       supabase.functions.invoke("mint-menh-nft", { body: { sessionId } }).then(({ data, error: fnError }) => {
@@ -323,13 +360,16 @@ export default function TuViIztroPage() {
     }
   }, [searchParams, mintStatus]);
 
+  // Auto-fill from URL params
   useEffect(() => {
     const dateParam = searchParams.get("date");
     if (!dateParam) return;
+
     const hourParam = searchParams.get("hour");
     const genderParam = searchParams.get("gender");
     const calendarParam = searchParams.get("calendar");
     const nameParam = searchParams.get("name");
+
     const parsedDate = new Date(dateParam);
     if (!isNaN(parsedDate.getTime())) setBirthDate(parsedDate);
     if (hourParam) setBirthHour(hourParam);
@@ -337,6 +377,7 @@ export default function TuViIztroPage() {
     if (calendarParam === "lunar") setCalendarType("lunar");
     else setCalendarType("solar");
     if (nameParam) setPersonName(nameParam);
+
     const input: BirthInput = {
       year: parsedDate.getFullYear(),
       month: parsedDate.getMonth() + 1,
@@ -345,6 +386,7 @@ export default function TuViIztroPage() {
       gender: (genderParam as "Nam" | "Nữ") || "Nam",
       isLunarDate: calendarParam === "lunar",
     };
+
     try {
       setChart(createTuViChart(input));
     } catch (err) {
@@ -353,14 +395,18 @@ export default function TuViIztroPage() {
     setSearchParams({});
   }, []);
 
+  // Load or call AI interpretation (STREAMING)
   const loadAnalysis = useCallback(
     async (isFreeTrial = false, skipCache = false) => {
       if (!chartHash || !chart) return;
       if (isAnalyzingRef.current) return;
+
       const {
         data: { user: currentUser },
       } = await supabase.auth.getUser();
       if (!currentUser) return;
+
+      // Check cache (skip when re-analyzing)
       let existing: any = null;
       if (!skipCache) {
         const { data } = await (supabase.from("chart_analyses") as any)
@@ -369,11 +415,13 @@ export default function TuViIztroPage() {
           .eq("user_id", currentUser.id)
           .maybeSingle();
         existing = data;
+
         if (existing?.analysis_result) {
           const isValidResult =
             !existing.analysis_result.includes("Tôi xin lỗi") &&
             !existing.analysis_result.includes("không thể thấy được lá số") &&
             existing.analysis_result.length > 100;
+
           if (isValidResult) {
             setCachedAnalysis(existing.analysis_result);
             setAnalysisError(false);
@@ -383,13 +431,20 @@ export default function TuViIztroPage() {
           }
         }
       }
+
+      // No valid cache — stream from Claude
       isAnalyzingRef.current = true;
       setIsAnalyzing(true);
       setAnalysisError(false);
       setCachedAnalysis(null);
+
       try {
         const fullText = await startStreaming(
-          { analysisType: "luan_giai", chartData: chart, personName },
+          {
+            analysisType: "luan_giai",
+            chartData: chart,
+            personName,
+          },
           {
             onError: (err) => {
               console.error("[loadAnalysis] Stream error:", err);
@@ -398,23 +453,37 @@ export default function TuViIztroPage() {
             },
           },
         );
-        if (!fullText || fullText.length < 100) throw new Error("No analysis returned");
+
+        if (!fullText || fullText.length < 100) {
+          throw new Error("No analysis returned");
+        }
+
+        // Save result to DB
         if (existing) {
           await (supabase.from("chart_analyses") as any).update({ analysis_result: fullText }).eq("id", existing.id);
         } else {
           await (supabase.from("chart_analyses") as any).insert({
             user_id: currentUser.id,
             chart_hash: chartHash,
-            birth_data: { birthDate: format(birthDate, "yyyy-MM-dd"), birthHour, gender, calendarType, personName },
+            birth_data: {
+              birthDate: format(birthDate, "yyyy-MM-dd"),
+              birthHour,
+              gender,
+              calendarType,
+              personName,
+            },
             chart_data: chart,
             analysis_result: fullText,
             analysis_type: "full",
           });
         }
+
+        // Only decrement package uses if NOT free trial
         if (!isFreeTrial) {
           await decrementLuanGiaiUses(currentUser.id);
           await refreshAccess();
         }
+
         setCachedAnalysis(fullText);
         setFreeTrialCount((prev) => (prev ?? 0) + 1);
         loadChartHistory();
@@ -467,6 +536,7 @@ export default function TuViIztroPage() {
     setIsLoading(true);
     setCachedAnalysis(null);
     setAnalysisError(false);
+
     try {
       const input: BirthInput = {
         year: birthDate.getFullYear(),
@@ -476,9 +546,18 @@ export default function TuViIztroPage() {
         gender,
         isLunarDate: calendarType === "lunar",
       };
+
       const result = createTuViChart(input);
       setChart(result);
-      setLastSubmitted({ personName, birthDate: format(birthDate, "yyyy-MM-dd"), birthHour, gender, calendarType });
+
+      setLastSubmitted({
+        personName,
+        birthDate: format(birthDate, "yyyy-MM-dd"),
+        birthHour,
+        gender,
+        calendarType,
+      });
+
       if (user) {
         const hash = generateChartHash(birthDate, birthHour, gender, calendarType);
         const { data: existing } = await (supabase.from("chart_analyses") as any)
@@ -486,8 +565,10 @@ export default function TuViIztroPage() {
           .eq("chart_hash", hash)
           .eq("user_id", user.id)
           .maybeSingle();
-        if (existing?.analysis_result && existing.analysis_result.length > 100)
+
+        if (existing?.analysis_result && existing.analysis_result.length > 100) {
           setCachedAnalysis(existing.analysis_result);
+        }
       }
     } catch (err: any) {
       console.error("[TuViIztroPage] Error creating chart:", err);
@@ -497,8 +578,10 @@ export default function TuViIztroPage() {
     }
   };
 
+  // ── Render collapsible history panel ──
   const renderHistory = () => {
     if (!user || chartHistory.length === 0) return null;
+
     return (
       <div className="rounded-2xl bg-slate-900/80 border border-amber-600/30 overflow-hidden">
         <button
@@ -515,6 +598,7 @@ export default function TuViIztroPage() {
             <ChevronDown className="w-4 h-4 text-gray-400" />
           )}
         </button>
+
         {showHistory && (
           <div className="px-4 pb-4 space-y-2 max-h-[50vh] overflow-y-auto">
             {historyLoading ? (
@@ -528,6 +612,7 @@ export default function TuViIztroPage() {
                 const hourLabel =
                   LUNAR_HOURS.find((h) => h.value === bd?.birthHour)?.label?.split(" ")[0] || bd?.birthHour;
                 const isViewing = viewingHistoryId === item.id;
+
                 return (
                   <button
                     key={item.id}
@@ -579,10 +664,11 @@ export default function TuViIztroPage() {
     );
   };
 
+  // ── Render analysis section with all states ──
   const renderAnalysisSection = () => {
     const displayText = cachedAnalysis || streamedText;
 
-    // STATE 1: STREAMING
+    // ── STATE 1: STREAMING ──
     if ((isAnalyzing || isStreamingAI) && !cachedAnalysis) {
       return (
         <div id="analysis-result" className="space-y-6">
@@ -613,7 +699,7 @@ export default function TuViIztroPage() {
       );
     }
 
-    // STATE 2: ERROR
+    // ── STATE 2: ERROR ──
     if (analysisError && !displayText) {
       return (
         <Card className="p-6 bg-surface-3 border-primary/30 text-center space-y-3">
@@ -633,9 +719,10 @@ export default function TuViIztroPage() {
       );
     }
 
-    // STATE 3: FREE PREVIEW
+    // ── STATE 3: FREE PREVIEW — has result but no paid access ──
     if (displayText && isFreePreview) {
       const { preview } = truncateToWords(displayText, FREE_PREVIEW_WORD_LIMIT);
+
       return (
         <div id="analysis-result" className="space-y-6">
           <ChartInterpretationDisplay chart={chart!} />
@@ -645,7 +732,9 @@ export default function TuViIztroPage() {
               Luận giải chi tiết bởi AI
               <span className="text-xs font-normal text-muted-foreground ml-2">— Bản xem trước</span>
             </h2>
+
             <div className="space-y-1">{renderAnalysisMarkdown(preview)}</div>
+
             <div className="relative mt-0">
               <div className="h-32 bg-gradient-to-b from-transparent via-card/80 to-card relative z-10" />
               <div
@@ -654,19 +743,24 @@ export default function TuViIztroPage() {
               >
                 {renderAnalysisMarkdown(displayText.slice(preview.length, preview.length + 600))}
               </div>
+
               <div className="relative z-20 -mt-32 pt-8 pb-2 bg-gradient-to-b from-card/90 to-card">
                 <div className="text-center space-y-4 max-w-sm mx-auto">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
                     <Lock className="w-3.5 h-3.5 text-primary" />
                     <span className="text-xs font-medium text-primary">Nội dung bị giới hạn</span>
                   </div>
+
                   <h3 className="text-lg font-bold text-foreground">Mở khóa luận giải đầy đủ</h3>
+
                   <p className="text-sm text-muted-foreground">
                     Bạn đang xem bản rút gọn. Thanh toán để xem toàn bộ luận giải chi tiết
                     {personName ? ` cho ${personName}` : ""} và được thêm 2 lần luận giải cho lá số khác.
                   </p>
+
                   <p className="text-2xl font-bold text-primary">39.000đ</p>
                   <p className="text-xs text-muted-foreground -mt-2">Xem full luận giải này + 2 lần luận giải mới</p>
+
                   <Button
                     variant="gold"
                     size="lg"
@@ -687,6 +781,7 @@ export default function TuViIztroPage() {
               </div>
             </div>
           </Card>
+
           <VietQRPaymentModal
             open={showPayment}
             onOpenChange={(open) => {
@@ -700,7 +795,7 @@ export default function TuViIztroPage() {
       );
     }
 
-    // STATE 4: FULL RESULT — paid user (active or exhausted)
+    // ── STATE 4: FULL RESULT — paid user (active or exhausted) ──
     if (displayText && !isFreePreview) {
       return (
         <div id="analysis-result" className="space-y-6">
@@ -733,27 +828,17 @@ export default function TuViIztroPage() {
                   🔄 Luận giải lại ({remaining} lượt còn lại)
                 </Button>
               ) : everPurchased && !hasAccess ? (
-                <div className="w-full rounded-2xl p-4 bg-gradient-to-r from-amber-950/60 to-orange-950/40 border border-amber-500/30">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="shrink-0 w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
-                        <CreditCard className="w-5 h-5 text-amber-400" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-amber-300 text-sm">Đã hết lượt luận giải</p>
-                        <p className="text-xs text-amber-200/60">Mua thêm gói để tiếp tục · Lịch sử luận giải vẫn xem được</p>
-                      </div>
-                    </div>
-                    <Button variant="gold" size="sm" onClick={() => setShowPayment(true)} className="shrink-0">
-                      <CreditCard className="w-4 h-4 mr-1.5" />
-                      Mua thêm
-                    </Button>
-                  </div>
-                </div>
+                <Button variant="gold" size="sm" className="w-full text-xs" onClick={() => setShowPayment(true)}>
+                  Hết lượt · Mua thêm gói (39.000đ)
+                </Button>
+              ) : null}
+            </div>
+          </Card>
+        </div>
       );
     }
 
-    // STATE 5: LOCKED — no result yet
+    // ── STATE 5: LOCKED — no result yet ──
     return (
       <div className="relative">
         <div className="blur-sm pointer-events-none select-none" aria-hidden="true">
@@ -763,6 +848,7 @@ export default function TuViIztroPage() {
           <Card className="max-w-sm w-full mx-4 p-6 text-center border-border bg-card shadow-xl">
             <div className="text-4xl mb-3">🔮</div>
             <h3 className="text-lg font-bold text-foreground mb-1">Luận giải chi tiết lá số</h3>
+
             {canUseFreeTrial ? (
               <>
                 <p className="text-sm text-muted-foreground mb-3">
@@ -839,12 +925,17 @@ export default function TuViIztroPage() {
           <p className="text-center text-gray-400 text-sm">Nhập thông tin ngày sinh để xem lá số tử vi của bạn</p>
         )}
 
-        {/* Remaining uses badge — FIX: use everPurchased instead of total */}
+        {/* ══════════════════════════════════════════════════════ */}
+        {/* Status badge / exhausted banner                       */}
+        {/* FIX: Use everPurchased + amber banner like BoiKieu    */}
+        {/* ══════════════════════════════════════════════════════ */}
         {user && !accessLoading && (
           <>
             {hasAccess ? (
               <div className="flex justify-center">
-                <Badge variant="outline" className="border-primary/50 text-primary bg-primary/10 px-4 py-1">🔮 Bạn còn {remaining}/{total} lần luận giải</Badge>
+                <Badge variant="outline" className="border-primary/50 text-primary bg-primary/10 px-4 py-1">
+                  🔮 Bạn còn {remaining}/{total} lần luận giải
+                </Badge>
               </div>
             ) : everPurchased && !hasAccess ? (
               <div className="rounded-2xl p-4 bg-gradient-to-r from-amber-950/60 to-orange-950/40 border border-amber-500/30">
@@ -855,7 +946,9 @@ export default function TuViIztroPage() {
                     </div>
                     <div className="min-w-0">
                       <p className="font-semibold text-amber-300 text-sm">Đã hết lượt luận giải</p>
-                      <p className="text-xs text-amber-200/60">Mua thêm gói để tiếp tục · Lịch sử luận giải vẫn xem được</p>
+                      <p className="text-xs text-amber-200/60">
+                        Mua thêm gói để tiếp tục · Lịch sử luận giải vẫn xem được
+                      </p>
                     </div>
                   </div>
                   <Button variant="gold" size="sm" onClick={() => setShowPayment(true)} className="shrink-0">
@@ -866,12 +959,15 @@ export default function TuViIztroPage() {
               </div>
             ) : canUseFreeTrial ? (
               <div className="flex justify-center">
-                <Badge variant="outline" className="border-green-500/50 text-green-400 bg-green-500/10 px-4 py-1">✨ Bạn có 1 lần luận giải miễn phí</Badge>
+                <Badge variant="outline" className="border-green-500/50 text-green-400 bg-green-500/10 px-4 py-1">
+                  ✨ Bạn có 1 lần luận giải miễn phí
+                </Badge>
               </div>
             ) : null}
           </>
         )}
 
+        {/* Mint status banners */}
         {mintStatus === "minting" && (
           <Card className="border-amber-500/50 bg-amber-950/30">
             <CardContent className="flex items-center gap-3 py-4">
@@ -883,6 +979,7 @@ export default function TuViIztroPage() {
             </CardContent>
           </Card>
         )}
+
         {mintStatus === "success" && mintResult && (
           <Card className="border-green-500/50 bg-green-950/30">
             <CardContent className="flex items-center gap-3 py-4">
@@ -912,6 +1009,7 @@ export default function TuViIztroPage() {
             </CardContent>
           </Card>
         )}
+
         {mintStatus === "error" && (
           <Card className="border-red-500/50 bg-red-950/30">
             <CardContent className="flex items-center gap-3 py-4">
@@ -933,8 +1031,11 @@ export default function TuViIztroPage() {
         )}
 
         <NFTGallery key={address || "disconnected"} />
+
+        {/* History panel */}
         {renderHistory()}
 
+        {/* Form nhập liệu */}
         <Card className="bg-slate-900/80 border-amber-600/30">
           <CardHeader>
             <CardTitle className="text-amber-300">Thông tin ngày sinh</CardTitle>
@@ -954,6 +1055,7 @@ export default function TuViIztroPage() {
                   className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
                 />
               </div>
+
               <div className="space-y-2">
                 <Label className="text-gray-300">Loại lịch</Label>
                 <RadioGroup
@@ -975,6 +1077,7 @@ export default function TuViIztroPage() {
                   </div>
                 </RadioGroup>
               </div>
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="birthDate" className="text-gray-300">
@@ -1006,6 +1109,7 @@ export default function TuViIztroPage() {
                     </PopoverContent>
                   </Popover>
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="birthHour" className="text-gray-300">
                     Giờ sinh
@@ -1023,6 +1127,7 @@ export default function TuViIztroPage() {
                     </SelectContent>
                   </Select>
                 </div>
+
                 <div className="space-y-2">
                   <Label className="text-gray-300">Giới tính</Label>
                   <RadioGroup
@@ -1045,7 +1150,9 @@ export default function TuViIztroPage() {
                   </RadioGroup>
                 </div>
               </div>
+
               {error && <p className="text-red-400 text-sm bg-red-900/20 p-2 rounded">{error}</p>}
+
               <Button
                 type="submit"
                 className={cn(
@@ -1066,10 +1173,13 @@ export default function TuViIztroPage() {
           </CardContent>
         </Card>
 
+        {/* Chart display + Analysis */}
         {chart && (
           <div className="space-y-6">
             <TuViChartIztro chart={chart} />
+
             {renderAnalysisSection()}
+
             <NFTPreview
               chartData={chart}
               walletAddress={address}
@@ -1091,6 +1201,8 @@ export default function TuViIztroPage() {
                 isLunar: calendarType === "lunar",
               }}
             />
+
+            {/* Debug info */}
             <Card className="bg-slate-900/50 border-slate-700">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm text-gray-400">📋 Thông tin chi tiết (để so sánh với tuvi.vn)</CardTitle>
@@ -1150,7 +1262,13 @@ export default function TuViIztroPage() {
                     {chart.palaces.map((palace) => (
                       <div
                         key={palace.earthlyBranch}
-                        className={`p-2 rounded text-[10px] ${palace.isSoulPalace ? "bg-yellow-900/30 border border-yellow-500/50" : palace.isBodyPalace ? "bg-cyan-900/30 border border-cyan-500/50" : "bg-slate-800/50"}`}
+                        className={`p-2 rounded text-[10px] ${
+                          palace.isSoulPalace
+                            ? "bg-yellow-900/30 border border-yellow-500/50"
+                            : palace.isBodyPalace
+                              ? "bg-cyan-900/30 border border-cyan-500/50"
+                              : "bg-slate-800/50"
+                        }`}
                       >
                         <div className="font-bold text-amber-200">
                           {palace.name} ({palace.earthlyBranch})
