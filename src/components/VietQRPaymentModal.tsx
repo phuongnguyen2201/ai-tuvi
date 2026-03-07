@@ -482,16 +482,20 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
 
           const { data: byUser } = await supabase
             .from("payments")
-            .select("id, status, transfer_content")
+            .select("id, status, transfer_content, created_at")
             .eq("user_id", user.id)
             .eq("feature_unlocked", activeFeature)
             .in("status", VERIFIED_STATUSES)
+            .gte("created_at", new Date(Date.now() - 30 * 60 * 1000).toISOString())
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle();
 
           if (byUser && !cancelled) {
-            console.log("[Modal] ✅ Polling found verified payment (by user_id fallback), status:", byUser.status);
+            console.log(
+              "[Modal] ✅ Polling found verified payment (by user_id fallback, recent), status:",
+              byUser.status,
+            );
             await handleVerified(user.id, byUser.id);
             return;
           }
