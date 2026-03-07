@@ -4,15 +4,12 @@ import PaymentGate from "@/components/PaymentGate";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles, RefreshCw, BookOpen, Share2, Loader2, Lock } from "lucide-react";
+import { Sparkles, RefreshCw, BookOpen, Share2, Loader2, Lock, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 import { useAuth } from "@/contexts/AuthContext";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 
-// ══════════════════════════════════════════════════════════════
-// Fortune style map
-// ══════════════════════════════════════════════════════════════
 const fortuneStyles: Record<string, { bg: string; border: string; badge: string; badgeText: string }> = {
   excellent: {
     bg: "from-gold/20 to-gold/5",
@@ -40,34 +37,23 @@ const fortuneStyles: Record<string, { bg: string; border: string; badge: string;
   },
 };
 
-// ══════════════════════════════════════════════════════════════
-// FREEMIUM: Truncate text to ~N words, preserving whole lines
-// ══════════════════════════════════════════════════════════════
 const FREE_PREVIEW_WORD_LIMIT = 500;
 
 function truncateToWords(text: string, maxWords: number): { preview: string; isTruncated: boolean } {
   const lines = text.split("\n");
   let wordCount = 0;
   const previewLines: string[] = [];
-
   for (const line of lines) {
     const lineWords = line.trim().split(/\s+/).filter(Boolean).length;
-    if (wordCount + lineWords > maxWords && previewLines.length > 0) {
-      break;
-    }
+    if (wordCount + lineWords > maxWords && previewLines.length > 0) break;
     previewLines.push(line);
     wordCount += lineWords;
     if (wordCount >= maxWords) break;
   }
-
   const preview = previewLines.join("\n");
-  const isTruncated = preview.length < text.length;
-  return { preview, isTruncated };
+  return { preview, isTruncated: preview.length < text.length };
 }
 
-// ══════════════════════════════════════════════════════════════
-// Component
-// ══════════════════════════════════════════════════════════════
 const BoiKieu = () => {
   const { user } = useAuth();
   const [question, setQuestion] = useState("");
@@ -80,40 +66,22 @@ const BoiKieu = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [viewingHistoryId, setViewingHistoryId] = useState<string | null>(null);
   const [verses, setVerses] = useState<any[]>([]);
-
-  // ── FREEMIUM: DB-based free trial tracking ──
   const [freeTrialCount, setFreeTrialCount] = useState<number | null>(null);
   const [everPurchased, setEverPurchased] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
 
-  // ── Streaming hook ──
-  const {
-    isStreaming: isStreamingAI,
-    streamedText,
-    error: streamError,
-    startStreaming,
-    abort: abortStreaming,
-  } = useStreamingAnalysis();
+  const { isStreaming: isStreamingAI, streamedText, startStreaming } = useStreamingAnalysis();
 
-  // ══════════════════════════════════════════════════════════════
-  // FREEMIUM: Derived state
-  // ══════════════════════════════════════════════════════════════
   const canUseFreeTrial = freeTrialCount === 0 && !kieuPackage;
   const displayText = result || streamedText;
   const isFreePreview = !!displayText && !kieuPackage && !everPurchased;
-
-  // Can user gieo quẻ? Either has package OR free trial available
   const canGieoQue = !!kieuPackage || canUseFreeTrial;
 
-  // ══════════════════════════════════════════════════════════════
-  // Load data on mount
-  // ══════════════════════════════════════════════════════════════
   useEffect(() => {
     supabase
       .from("kieu_verses")
       .select("*")
       .then(({ data }) => setVerses(data || []));
-
     if (user) {
       loadKieuPackage();
       loadHistory();
@@ -124,23 +92,21 @@ const BoiKieu = () => {
   const loadFreeTrialCount = async () => {
     try {
       const {
-        data: { user: currentUser },
+        data: { user: u },
       } = await supabase.auth.getUser();
-      if (!currentUser) {
+      if (!u) {
         setFreeTrialCount(0);
         return;
       }
-
       const { count } = await supabase
         .from("kieu_analyses")
         .select("id", { count: "exact", head: true })
-        .eq("user_id", currentUser.id);
-
+        .eq("user_id", u.id);
       setFreeTrialCount(count ?? 0);
       const { count: pkgCount } = await supabase
         .from("kieu_packages")
         .select("id", { count: "exact", head: true })
-        .eq("user_id", currentUser.id);
+        .eq("user_id", u.id);
       setEverPurchased((pkgCount ?? 0) > 0);
     } catch {
       setFreeTrialCount(0);
@@ -149,41 +115,34 @@ const BoiKieu = () => {
 
   const loadKieuPackage = async () => {
     const {
-      data: { user: currentUser },
+      data: { user: u },
     } = await supabase.auth.getUser();
-    if (!currentUser) return;
-
+    if (!u) return;
     const { data } = await supabase
       .from("kieu_packages")
       .select("*")
-      .eq("user_id", currentUser.id)
+      .eq("user_id", u.id)
       .gt("uses_remaining", 0)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-
     setKieuPackage(data);
   };
 
   const loadHistory = async () => {
     const {
-      data: { user: currentUser },
+      data: { user: u },
     } = await supabase.auth.getUser();
-    if (!currentUser) return;
-
+    if (!u) return;
     const { data } = await supabase
       .from("kieu_analyses")
       .select("*")
-      .eq("user_id", currentUser.id)
+      .eq("user_id", u.id)
       .order("created_at", { ascending: false })
       .limit(20);
-
     setHistory(data || []);
   };
 
-  // ══════════════════════════════════════════════════════════════
-  // Gieo quẻ
-  // ══════════════════════════════════════════════════════════════
   const handleGieoQue = async () => {
     if (!question.trim()) {
       toast.error("Vui lòng nhập câu hỏi");
@@ -197,37 +156,24 @@ const BoiKieu = () => {
       setShowPayment(true);
       return;
     }
-
     setIsShaking(true);
     setResult(null);
     setVerse(null);
     setViewingHistoryId(null);
-
     setTimeout(async () => {
       const randomVerse = verses[Math.floor(Math.random() * verses.length)];
       setVerse(randomVerse);
       setIsShaking(false);
-
-      // Gọi Claude with STREAMING
       await handleAnalyze(randomVerse);
     }, 1500);
   };
 
-  // ══════════════════════════════════════════════════════════════
-  // Analyze with STREAMING — saves to DB for both free & paid
-  // ══════════════════════════════════════════════════════════════
   const handleAnalyze = async (selectedVerse: any) => {
     setIsAnalyzing(true);
     setResult(null);
-
     try {
       const fullText = await startStreaming(
-        {
-          analysisType: "boi_kieu",
-          question,
-          verse: selectedVerse.verse,
-          fortune: selectedVerse.fortune,
-        },
+        { analysisType: "boi_kieu", question, verse: selectedVerse.verse, fortune: selectedVerse.fortune },
         {
           onError: (err) => {
             console.error("[BoiKieu] Stream error:", err);
@@ -235,43 +181,34 @@ const BoiKieu = () => {
           },
         },
       );
-
-      if (!fullText) {
-        throw new Error("Không nhận được kết quả.");
-      }
-
+      if (!fullText) throw new Error("Không nhận được kết quả.");
       setResult(fullText);
-
-      // ── Save to DB for ALL users (free trial + paid) ──
       const {
-        data: { user: currentUser },
+        data: { user: u },
       } = await supabase.auth.getUser();
-      if (currentUser) {
+      if (u) {
         try {
-          await supabase.from("kieu_analyses").insert({
-            user_id: currentUser.id,
-            package_id: kieuPackage?.id || null,
-            verse_id: selectedVerse.id,
-            verse: selectedVerse.verse,
-            fortune: selectedVerse.fortune,
-            question,
-            analysis_result: fullText,
-          });
+          await supabase
+            .from("kieu_analyses")
+            .insert({
+              user_id: u.id,
+              package_id: kieuPackage?.id || null,
+              verse_id: selectedVerse.id,
+              verse: selectedVerse.verse,
+              fortune: selectedVerse.fortune,
+              question,
+              analysis_result: fullText,
+            });
         } catch (saveErr) {
-          console.warn("[BoiKieu] Save error (package_id may be required):", saveErr);
+          console.warn("[BoiKieu] Save error:", saveErr);
         }
-
-        // Only decrement if has paid package
         if (kieuPackage) {
           await supabase
             .from("kieu_packages")
             .update({ uses_remaining: kieuPackage.uses_remaining - 1 })
             .eq("id", kieuPackage.id);
         }
-
-        // Update free trial count so button won't show again
         setFreeTrialCount((prev) => (prev ?? 0) + 1);
-
         loadKieuPackage();
         loadHistory();
       }
@@ -283,20 +220,14 @@ const BoiKieu = () => {
     }
   };
 
-  // ══════════════════════════════════════════════════════════════
-  // Payment
-  // ══════════════════════════════════════════════════════════════
   const handlePaymentSuccess = () => {
     setShowPayment(false);
-    loadKieuPackage(); // kieuPackage loaded → isFreePreview becomes false → full result
+    loadKieuPackage();
+    loadFreeTrialCount();
   };
 
-  // ══════════════════════════════════════════════════════════════
-  // Share
-  // ══════════════════════════════════════════════════════════════
   const handleShare = async (type: "verse" | "full") => {
     if (!verse) return;
-
     let shareText = "";
     if (type === "verse") {
       shareText = `📜 Bói Kiều\n\n❓ ${question}\n\n"${verse.verse}"\n\n🔮 Xem tại: ai-tuvi.lovable.app`;
@@ -312,21 +243,16 @@ const BoiKieu = () => {
         .trim();
       shareText = `📜 Bói Kiều\n\n❓ ${question}\n\n"${verse.verse}"\n\n${cleaned}\n\n🔮 Xem tại: ai-tuvi.lovable.app`;
     }
-
     if (navigator.share) {
       try {
         await navigator.share({ title: "Bói Kiều - Tử Vi App", text: shareText, url: "https://ai-tuvi.lovable.app" });
         return;
       } catch {}
     }
-
     await navigator.clipboard.writeText(shareText);
     toast.success(type === "verse" ? "📋 Đã sao chép câu Kiều!" : "📋 Đã sao chép luận giải!");
   };
 
-  // ══════════════════════════════════════════════════════════════
-  // Markdown renderer
-  // ══════════════════════════════════════════════════════════════
   const renderMarkdown = (text: string) => {
     return text.split("\n").map((line, i) => {
       if (line.startsWith("## "))
@@ -381,13 +307,12 @@ const BoiKieu = () => {
   const renderBold = (text: string): React.ReactNode => {
     const parts = text.split(/(\*\*[^*]+\*\*)/g);
     return parts.map((part, i) => {
-      if (part.startsWith("**") && part.endsWith("**")) {
+      if (part.startsWith("**") && part.endsWith("**"))
         return (
           <strong key={i} className="text-foreground font-semibold">
             {part.slice(2, -2)}
           </strong>
         );
-      }
       return part;
     });
   };
@@ -405,20 +330,15 @@ const BoiKieu = () => {
 
   const style = verse ? fortuneStyles[verse.fortune] : null;
 
-  // ══════════════════════════════════════════════════════════════
-  // Uses label
-  // ══════════════════════════════════════════════════════════════
   const usesLabel = kieuPackage
     ? `Còn ${kieuPackage.uses_remaining}/${kieuPackage.uses_total} lần trong gói`
     : canUseFreeTrial
       ? "✨ 1 lần miễn phí"
-      : "Hết lượt miễn phí";
+      : everPurchased
+        ? "Đã hết lượt trong gói"
+        : "Hết lượt miễn phí";
 
-  // ══════════════════════════════════════════════════════════════
-  // AI Result rendering — 3 states
-  // ══════════════════════════════════════════════════════════════
   const renderAiResult = () => {
-    // ── STATE A: STREAMING ──
     if ((isAnalyzing || isStreamingAI) && !result) {
       return (
         <div className={cn("rounded-2xl p-5 bg-gradient-to-br from-surface-3 to-surface-2 border border-primary/20")}>
@@ -444,14 +364,10 @@ const BoiKieu = () => {
         </div>
       );
     }
-
-    // No text to display
     if (!displayText) return null;
 
-    // ── STATE B: FREE PREVIEW — has result but no paid package ──
     if (isFreePreview) {
       const { preview } = truncateToWords(displayText, FREE_PREVIEW_WORD_LIMIT);
-
       return (
         <div
           className={cn(
@@ -463,40 +379,27 @@ const BoiKieu = () => {
             <h3 className="font-display text-lg text-secondary">Luận Giải AI</h3>
             <span className="text-xs font-normal text-muted-foreground ml-1">— Bản xem trước</span>
           </div>
-
-          {/* Visible preview portion */}
           <div className="space-y-1">{renderMarkdown(preview)}</div>
-
-          {/* Gradient fade → blurred teaser → payment CTA */}
           <div className="relative mt-0">
-            {/* Fade gradient overlay */}
             <div className="h-32 bg-gradient-to-b from-transparent via-card/80 to-card relative z-10" />
-
-            {/* Blurred teaser of hidden content */}
             <div
               className="blur-sm select-none pointer-events-none -mt-4 max-h-40 overflow-hidden opacity-60"
               aria-hidden="true"
             >
               {renderMarkdown(displayText.slice(preview.length, preview.length + 600))}
             </div>
-
-            {/* Payment CTA overlay */}
             <div className="relative z-20 -mt-32 pt-8 pb-2 bg-gradient-to-b from-card/90 to-card">
               <div className="text-center space-y-4 max-w-sm mx-auto">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
                   <Lock className="w-3.5 h-3.5 text-primary" />
                   <span className="text-xs font-medium text-primary">Nội dung bị giới hạn</span>
                 </div>
-
                 <h3 className="text-lg font-bold text-foreground">Mở khóa luận giải đầy đủ</h3>
-
                 <p className="text-sm text-muted-foreground">
                   Bạn đang xem bản rút gọn. Thanh toán để xem toàn bộ luận giải chi tiết và được thêm 3 lần bói Kiều.
                 </p>
-
                 <p className="text-2xl font-bold text-primary">39.000đ</p>
                 <p className="text-xs text-muted-foreground -mt-2">Xem full luận giải này + 3 lần bói Kiều mới</p>
-
                 <Button
                   variant="gold"
                   size="lg"
@@ -516,8 +419,6 @@ const BoiKieu = () => {
               </div>
             </div>
           </div>
-
-          {/* Share verse only (full is locked) */}
           <div className="flex gap-2 mt-5">
             <Button variant="ghost" size="sm" onClick={() => handleShare("verse")} className="flex-1 text-xs">
               <Share2 className="w-3.5 h-3.5 mr-1" />
@@ -528,7 +429,6 @@ const BoiKieu = () => {
       );
     }
 
-    // ── STATE C: FULL RESULT — paid user ──
     return (
       <div className={cn("rounded-2xl p-5 bg-gradient-to-br from-secondary/5 to-surface-2 border border-secondary/20")}>
         <div className="flex items-center gap-2 mb-4">
@@ -550,12 +450,8 @@ const BoiKieu = () => {
     );
   };
 
-  // ══════════════════════════════════════════════════════════════
-  // Main content (question + gieo quẻ + verse + AI result)
-  // ══════════════════════════════════════════════════════════════
   const mainContent = (
     <div className="space-y-5">
-      {/* History — at top */}
       {history.length > 0 && (
         <div>
           <button
@@ -568,7 +464,6 @@ const BoiKieu = () => {
             </span>
             <span>{showHistory ? "▲" : "▼"}</span>
           </button>
-
           {showHistory && (
             <div className="mt-2 space-y-2">
               {history.map((item) => {
@@ -577,11 +472,7 @@ const BoiKieu = () => {
                   <div
                     key={item.id}
                     onClick={() => {
-                      setVerse({
-                        verse: item.verse,
-                        fortune: item.fortune,
-                        id: item.verse_id,
-                      });
+                      setVerse({ verse: item.verse, fortune: item.fortune, id: item.verse_id });
                       setQuestion(item.question);
                       setResult(item.analysis_result);
                       setViewingHistoryId(item.id);
@@ -642,7 +533,27 @@ const BoiKieu = () => {
         </div>
       )}
 
-      {/* Question input */}
+      {/* Exhausted banner */}
+      {!canGieoQue && everPurchased && !verse && (
+        <div className="rounded-2xl p-4 bg-gradient-to-r from-amber-950/60 to-orange-950/40 border border-amber-500/30">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="shrink-0 w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                <CreditCard className="w-5 h-5 text-amber-400" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-amber-300 text-sm">Đã hết lượt bói Kiều</p>
+                <p className="text-xs text-amber-200/60">Mua thêm gói để tiếp tục · Lịch sử luận giải vẫn xem được</p>
+              </div>
+            </div>
+            <Button variant="gold" size="sm" onClick={() => setShowPayment(true)} className="shrink-0">
+              <CreditCard className="w-4 h-4 mr-1.5" />
+              Mua thêm
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div>
         <textarea
           placeholder="Nhập câu hỏi của bạn... (VD: Công việc của tôi sắp tới sẽ thế nào?)"
@@ -652,7 +563,6 @@ const BoiKieu = () => {
         />
       </div>
 
-      {/* Gieo Que Button */}
       <div className="flex flex-col items-center gap-3 py-4">
         <button
           onClick={handleGieoQue}
@@ -683,7 +593,6 @@ const BoiKieu = () => {
         <p className="text-xs text-muted-foreground">{usesLabel}</p>
       </div>
 
-      {/* Verse result */}
       {verse && style && (
         <div className={cn("rounded-2xl p-6 animate-scale-in", "bg-gradient-to-br", style.bg, "border", style.border)}>
           <div className="flex justify-center mb-4">
@@ -693,10 +602,8 @@ const BoiKieu = () => {
         </div>
       )}
 
-      {/* AI Result — streaming + freemium aware */}
       {renderAiResult()}
 
-      {/* Hint */}
       {!verse && !isShaking && !isAnalyzing && !isStreamingAI && canGieoQue && (
         <p className="text-center text-sm text-muted-foreground">
           Tập trung vào câu hỏi trong tâm, rồi nhấn "Gieo Quẻ"
@@ -705,13 +612,9 @@ const BoiKieu = () => {
     </div>
   );
 
-  // ══════════════════════════════════════════════════════════════
-  // RENDER
-  // ══════════════════════════════════════════════════════════════
   return (
     <PageLayout title="Bói Kiều">
       <div className="space-y-6">
-        {/* Header */}
         <div className="text-center space-y-2">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20">
             <BookOpen className="w-4 h-4 text-primary" />
@@ -723,12 +626,6 @@ const BoiKieu = () => {
           </p>
         </div>
 
-        {/* ══════════════════════════════════════════════════════ */}
-        {/* FREEMIUM LOGIC:                                       */}
-        {/* - canGieoQue || has result → show mainContent          */}
-        {/*   (preview handles blur inline if free)                */}
-        {/* - exhausted + no result → PaymentGate blocks all       */}
-        {/* ══════════════════════════════════════════════════════ */}
         {canGieoQue || displayText || everPurchased ? (
           mainContent
         ) : (
@@ -737,13 +634,15 @@ const BoiKieu = () => {
             title="Bói Kiều"
             price="39.000đ"
             description="Gói 3 lần luận giải bằng thơ Kiều — 39.000đ"
-            onUnlocked={() => loadKieuPackage()}
+            onUnlocked={() => {
+              loadKieuPackage();
+              loadFreeTrialCount();
+            }}
           >
             {mainContent}
           </PaymentGate>
         )}
 
-        {/* VietQR Payment Modal */}
         <VietQRPaymentModal
           open={showPayment}
           onOpenChange={setShowPayment}
@@ -751,14 +650,7 @@ const BoiKieu = () => {
           onSuccess={handlePaymentSuccess}
         />
       </div>
-
-      <style>{`
-        @keyframes shake {
-          0%, 100% { transform: translateX(0) rotate(0deg); }
-          25% { transform: translateX(-5px) rotate(-5deg); }
-          75% { transform: translateX(5px) rotate(5deg); }
-        }
-      `}</style>
+      <style>{`@keyframes shake { 0%, 100% { transform: translateX(0) rotate(0deg); } 25% { transform: translateX(-5px) rotate(-5deg); } 75% { transform: translateX(5px) rotate(5deg); } }`}</style>
     </PageLayout>
   );
 };
