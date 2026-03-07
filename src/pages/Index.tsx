@@ -142,8 +142,16 @@ const Index = () => {
           </div>
 
           {/* Footer */}
-          <footer className="py-6 text-center">
+          <footer className="py-6 text-center space-y-2">
             <p className="text-xs text-muted-foreground">© 2024 Tử Vi Việt Nam</p>
+            <p className="text-xs text-muted-foreground">
+              <a 
+                href="/chinh-sach-bao-mat" 
+                className="hover:text-gold transition-colors"
+              >
+                Chính Sách Bảo Mật
+              </a>
+            </p>
           </footer>
         </div>
       </div>
