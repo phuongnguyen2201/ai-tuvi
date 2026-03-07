@@ -1288,6 +1288,16 @@ export default function TuViIztroPage() {
             </Card>
           </div>
         )}
+        {/* Global payment modal — for banner + STATE 4 buy more button */}
+        <VietQRPaymentModal
+          open={showPayment}
+          onOpenChange={(open) => {
+            setShowPayment(open);
+            if (!open) setCheckedPendingPayment(false);
+          }}
+          feature="luan_giai"
+          onSuccess={handlePaymentSuccess}
+        />
       </div>
     </PageLayout>
   );
