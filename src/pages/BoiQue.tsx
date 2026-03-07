@@ -16,6 +16,7 @@ import {
   Volume2,
   VolumeX,
   Lock,
+  CreditCard,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,7 +24,6 @@ import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 import { useAuth } from "@/contexts/AuthContext";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 
-// 64 quẻ Kinh Dịch
 const QUE_DATA = [
   {
     id: 1,
@@ -566,9 +566,6 @@ const fortuneConfig = {
   },
 };
 
-// ============================================================
-// BẢNG LOOKUP 64 QUẺ theo Trigram (thượng quái × hạ quái)
-// ============================================================
 const TRIGRAM_MAP: Record<string, number> = {
   "111": 0,
   "110": 1,
@@ -579,7 +576,6 @@ const TRIGRAM_MAP: Record<string, number> = {
   "001": 6,
   "000": 7,
 };
-
 const HEXAGRAM_TABLE: number[][] = [
   [1, 43, 14, 34, 9, 5, 26, 11],
   [10, 58, 38, 54, 61, 60, 41, 19],
@@ -591,74 +587,46 @@ const HEXAGRAM_TABLE: number[][] = [
   [12, 45, 35, 16, 20, 8, 23, 2],
 ];
 
-// ============================================================
-// THUẬT TOÁN TUNG XU
-// ============================================================
-const tossCoins = (): number => {
-  const coins = [Math.random() > 0.5 ? 3 : 2, Math.random() > 0.5 ? 3 : 2, Math.random() > 0.5 ? 3 : 2];
-  return coins.reduce((a, b) => a + b, 0);
-};
-
-const lineValueToYinYang = (val: number): 0 | 1 => {
-  return val === 7 || val === 9 ? 1 : 0;
-};
-
-const lineValueToChanged = (val: number): 0 | 1 => {
-  return val === 9 ? 0 : val === 6 ? 1 : lineValueToYinYang(val);
-};
-
+const tossCoins = (): number =>
+  [Math.random() > 0.5 ? 3 : 2, Math.random() > 0.5 ? 3 : 2, Math.random() > 0.5 ? 3 : 2].reduce((a, b) => a + b, 0);
+const lineValueToYinYang = (val: number): 0 | 1 => (val === 7 || val === 9 ? 1 : 0);
+const lineValueToChanged = (val: number): 0 | 1 => (val === 9 ? 0 : val === 6 ? 1 : lineValueToYinYang(val));
 const getHexNum = (lines: number[]) => {
   const lower = TRIGRAM_MAP[`${lines[0]}${lines[1]}${lines[2]}`];
   const upper = TRIGRAM_MAP[`${lines[3]}${lines[4]}${lines[5]}`];
   return HEXAGRAM_TABLE[lower][upper];
 };
-
 const calculateHexagram = () => {
   const lineValues = Array.from({ length: 6 }, () => tossCoins());
   const mainLines = lineValues.map(lineValueToYinYang);
   const changedLines = lineValues.map(lineValueToChanged);
   const hasChanging = lineValues.some((v) => v === 6 || v === 9);
-  const mainHexNum = getHexNum(mainLines);
-  const changedHexNum = hasChanging ? getHexNum(changedLines) : null;
-
   return {
     lineValues,
     mainLines,
-    mainHexNum,
-    changedHexNum,
+    mainHexNum: getHexNum(mainLines),
+    changedHexNum: hasChanging ? getHexNum(changedLines) : null,
     hasChanging,
     changingLines: lineValues.map((v, i) => ({ index: i, value: v, isChanging: v === 6 || v === 9 })),
   };
 };
 
-// ══════════════════════════════════════════════════════════════
-// FREEMIUM: Truncate text to ~N words, preserving whole lines
-// ══════════════════════════════════════════════════════════════
 const FREE_PREVIEW_WORD_LIMIT = 500;
-
 function truncateToWords(text: string, maxWords: number): { preview: string; isTruncated: boolean } {
   const lines = text.split("\n");
   let wordCount = 0;
   const previewLines: string[] = [];
-
   for (const line of lines) {
     const lineWords = line.trim().split(/\s+/).filter(Boolean).length;
-    if (wordCount + lineWords > maxWords && previewLines.length > 0) {
-      break;
-    }
+    if (wordCount + lineWords > maxWords && previewLines.length > 0) break;
     previewLines.push(line);
     wordCount += lineWords;
     if (wordCount >= maxWords) break;
   }
-
   const preview = previewLines.join("\n");
-  const isTruncated = preview.length < text.length;
-  return { preview, isTruncated };
+  return { preview, isTruncated: preview.length < text.length };
 }
 
-// ══════════════════════════════════════════════════════════════
-// Markdown renderer
-// ══════════════════════════════════════════════════════════════
 function renderMarkdown(text: string): React.ReactNode[] {
   return text.split("\n").map((line, i) => {
     if (line.startsWith("## "))
@@ -709,24 +677,18 @@ function renderMarkdown(text: string): React.ReactNode[] {
     );
   });
 }
-
 function renderBold(text: string): React.ReactNode {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith("**") && part.endsWith("**")) {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**"))
       return (
         <strong key={i} className="text-foreground font-semibold">
           {part.slice(2, -2)}
         </strong>
       );
-    }
     return part;
   });
 }
 
-// ══════════════════════════════════════════════════════════════
-// Component
-// ══════════════════════════════════════════════════════════════
 const BoiQue = () => {
   const { user } = useAuth();
   const [question, setQuestion] = useState("");
@@ -734,42 +696,22 @@ const BoiQue = () => {
   const [hexLines, setHexLines] = useState<string[]>([]);
   const [coins, setCoins] = useState<boolean[]>([]);
   const [isAnimating, setIsAnimating] = useState(false);
-
-  // Quẻ biến state
   const [changedHexNum, setChangedHexNum] = useState<number | null>(null);
   const [hasChanging, setHasChanging] = useState(false);
   const [changingLineIndexes, setChangingLineIndexes] = useState<number[]>([]);
-
-  // AI state
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
-
-  // Streaming hook
-  const {
-    isStreaming: isStreamingAI,
-    streamedText,
-    error: streamError,
-    startStreaming,
-    abort: abortStreaming,
-  } = useStreamingAnalysis();
-
-  // Package & history state
+  const { isStreaming: isStreamingAI, streamedText, startStreaming, abort: abortStreaming } = useStreamingAnalysis();
   const [quePackage, setQuePackage] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [viewingHistoryId, setViewingHistoryId] = useState<string | null>(null);
-
-  // Search/lookup state
   const [searchTerm, setSearchTerm] = useState("");
   const [showLookup, setShowLookup] = useState(false);
   const [selectedQue, setSelectedQue] = useState<(typeof QUE_DATA)[0] | null>(null);
-
-  // ── FREEMIUM: DB-based free trial tracking ──
   const [freeTrialCount, setFreeTrialCount] = useState<number | null>(null);
   const [everPurchased, setEverPurchased] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
-
-  // Audio
   const [soundEnabled, setSoundEnabled] = useState(() => {
     try {
       return localStorage.getItem("boique_sound") !== "off";
@@ -779,18 +721,11 @@ const BoiQue = () => {
   });
   const audioCtxRef = useRef<AudioContext | null>(null);
 
-  // ══════════════════════════════════════════════════════════════
-  // FREEMIUM: Derived state
-  // ══════════════════════════════════════════════════════════════
   const canUseFreeTrial = freeTrialCount === 0 && !quePackage;
   const displayText = aiResult || streamedText;
   const isFreePreview = !!displayText && !quePackage && !everPurchased;
-
   const canGieoQue = !!quePackage || canUseFreeTrial;
 
-  // ══════════════════════════════════════════════════════════════
-  // Load data on mount
-  // ══════════════════════════════════════════════════════════════
   useEffect(() => {
     if (user) {
       loadQuePackage();
@@ -802,23 +737,21 @@ const BoiQue = () => {
   const loadFreeTrialCount = async () => {
     try {
       const {
-        data: { user: currentUser },
+        data: { user: u },
       } = await supabase.auth.getUser();
-      if (!currentUser) {
+      if (!u) {
         setFreeTrialCount(0);
         return;
       }
-
       const { count } = await supabase
         .from("boi_que_analyses")
         .select("id", { count: "exact", head: true })
-        .eq("user_id", currentUser.id);
-
+        .eq("user_id", u.id);
       setFreeTrialCount(count ?? 0);
       const { count: pkgCount } = await supabase
         .from("boi_que_packages")
         .select("id", { count: "exact", head: true })
-        .eq("user_id", currentUser.id);
+        .eq("user_id", u.id);
       setEverPurchased((pkgCount ?? 0) > 0);
     } catch {
       setFreeTrialCount(0);
@@ -827,13 +760,13 @@ const BoiQue = () => {
 
   const loadQuePackage = async () => {
     const {
-      data: { user: currentUser },
+      data: { user: u },
     } = await supabase.auth.getUser();
-    if (!currentUser) return;
+    if (!u) return;
     const { data } = await supabase
       .from("boi_que_packages")
       .select("*")
-      .eq("user_id", currentUser.id)
+      .eq("user_id", u.id)
       .gt("uses_remaining", 0)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -843,13 +776,13 @@ const BoiQue = () => {
 
   const loadHistory = async () => {
     const {
-      data: { user: currentUser },
+      data: { user: u },
     } = await supabase.auth.getUser();
-    if (!currentUser) return;
+    if (!u) return;
     const { data } = await supabase
       .from("boi_que_analyses")
       .select("*")
-      .eq("user_id", currentUser.id)
+      .eq("user_id", u.id)
       .order("created_at", { ascending: false })
       .limit(20);
     setHistory(data || []);
@@ -860,14 +793,10 @@ const BoiQue = () => {
     setSoundEnabled(next);
     localStorage.setItem("boique_sound", next ? "on" : "off");
   };
-
   const getAudioCtx = () => {
-    if (!audioCtxRef.current) {
-      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-    }
+    if (!audioCtxRef.current) audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
     return audioCtxRef.current;
   };
-
   const playCoinFlip = () => {
     if (!soundEnabled) return;
     try {
@@ -886,13 +815,11 @@ const BoiQue = () => {
       osc.stop(ctx.currentTime + 0.15);
     } catch {}
   };
-
   const playResultReveal = () => {
     if (!soundEnabled) return;
     try {
       const ctx = getAudioCtx();
-      const notes = [523, 659, 784, 1047];
-      notes.forEach((freq, i) => {
+      [523, 659, 784, 1047].forEach((freq, i) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);
@@ -919,13 +846,9 @@ const BoiQue = () => {
       )
     : QUE_DATA;
 
-  // ══════════════════════════════════════════════════════════════
-  // Analyze with STREAMING — saves to DB for both free & paid
-  // ══════════════════════════════════════════════════════════════
   const handleAnalyze = async (queData: any, lines: string[], changedNum: number | null) => {
     setAiLoading(true);
     setAiResult(null);
-
     try {
       const fullText = await startStreaming(
         {
@@ -943,45 +866,36 @@ const BoiQue = () => {
           },
         },
       );
-
-      if (!fullText) {
-        throw new Error("Không nhận được kết quả.");
-      }
-
+      if (!fullText) throw new Error("Không nhận được kết quả.");
       setAiResult(fullText);
-
-      // ── Save to DB for ALL users (free trial + paid) ──
       const {
-        data: { user: currentUser },
+        data: { user: u },
       } = await supabase.auth.getUser();
-      if (currentUser) {
+      if (u) {
         try {
-          await supabase.from("boi_que_analyses").insert({
-            user_id: currentUser.id,
-            package_id: quePackage?.id || null,
-            question: question.trim(),
-            hexagram_num: queData.id,
-            hexagram_name: queData.name,
-            hexagram_symbol: queData.symbol,
-            hex_lines: lines,
-            changed_hex_num: changedNum,
-            analysis_result: fullText,
-          });
+          await supabase
+            .from("boi_que_analyses")
+            .insert({
+              user_id: u.id,
+              package_id: quePackage?.id || null,
+              question: question.trim(),
+              hexagram_num: queData.id,
+              hexagram_name: queData.name,
+              hexagram_symbol: queData.symbol,
+              hex_lines: lines,
+              changed_hex_num: changedNum,
+              analysis_result: fullText,
+            });
         } catch (saveErr) {
-          console.warn("[BoiQue] Save error (package_id may be required):", saveErr);
+          console.warn("[BoiQue] Save error:", saveErr);
         }
-
-        // Only decrement if has paid package
         if (quePackage) {
           await supabase
             .from("boi_que_packages")
             .update({ uses_remaining: quePackage.uses_remaining - 1 })
             .eq("id", quePackage.id);
         }
-
-        // Update free trial count
         setFreeTrialCount((prev) => (prev ?? 0) + 1);
-
         loadQuePackage();
         loadHistory();
       }
@@ -1001,7 +915,6 @@ const BoiQue = () => {
       setShowPayment(true);
       return;
     }
-
     setIsAnimating(true);
     setResult(null);
     setAiResult(null);
@@ -1011,17 +924,14 @@ const BoiQue = () => {
     setChangedHexNum(null);
     setHasChanging(false);
     setChangingLineIndexes([]);
-
     const hexData = calculateHexagram();
     const revealLines: string[] = [];
-
     for (let hao = 0; hao < 6; hao++) {
       setTimeout(() => {
         playCoinFlip();
         navigator.vibrate?.(30);
         revealLines.push(hexData.mainLines[hao] === 1 ? "yang" : "yin");
         setHexLines([...revealLines]);
-
         if (hao === 5) {
           setTimeout(() => {
             const queData = QUE_DATA.find((q) => q.id === hexData.mainHexNum) || QUE_DATA[0];
@@ -1032,8 +942,6 @@ const BoiQue = () => {
             setIsAnimating(false);
             playResultReveal();
             navigator.vibrate?.([20, 40, 20, 40, 50]);
-
-            // Auto analyze
             handleAnalyze(queData, [...revealLines], hexData.changedHexNum);
           }, 400);
         }
@@ -1052,42 +960,34 @@ const BoiQue = () => {
     setHasChanging(false);
     setChangingLineIndexes([]);
   };
-
   const handleShare = () => {
     const shareText = displayText;
     if (shareText) {
       navigator.clipboard.writeText(shareText);
     } else if (result) {
-      const text = `🎴 Bói Quẻ Dịch\nQuẻ ${result.id} - ${result.name} ${result.symbol}\n${result.summary}`;
-      navigator.clipboard.writeText(text);
+      navigator.clipboard.writeText(
+        `🎴 Bói Quẻ Dịch\nQuẻ ${result.id} - ${result.name} ${result.symbol}\n${result.summary}`,
+      );
     }
     toast.success("Đã sao chép!");
   };
-
-  // ══════════════════════════════════════════════════════════════
-  // Payment
-  // ══════════════════════════════════════════════════════════════
   const handlePaymentSuccess = () => {
     setShowPayment(false);
     loadQuePackage();
+    loadFreeTrialCount();
   };
 
   const style = result ? fortuneConfig[result.fortune as keyof typeof fortuneConfig] : null;
 
-  // ══════════════════════════════════════════════════════════════
-  // Uses label
-  // ══════════════════════════════════════════════════════════════
   const usesLabel = quePackage
     ? `Còn ${quePackage.uses_remaining}/${quePackage.uses_total} lần trong gói`
     : canUseFreeTrial
       ? "✨ 1 lần miễn phí"
-      : "Hết lượt miễn phí";
+      : everPurchased
+        ? "Đã hết lượt trong gói"
+        : "Hết lượt miễn phí";
 
-  // ══════════════════════════════════════════════════════════════
-  // AI Result rendering — 3 states (streaming / preview / full)
-  // ══════════════════════════════════════════════════════════════
   const renderAiSection = () => {
-    // ── STATE A: STREAMING ──
     if ((aiLoading || isStreamingAI) && !aiResult) {
       return (
         <div className={cn("rounded-2xl p-5 bg-gradient-to-br from-surface-3 to-surface-2 border border-gold/20")}>
@@ -1113,14 +1013,10 @@ const BoiQue = () => {
         </div>
       );
     }
-
-    // No text to display
     if (!displayText) return null;
 
-    // ── STATE B: FREE PREVIEW — has result but no paid package ──
     if (isFreePreview) {
       const { preview } = truncateToWords(displayText, FREE_PREVIEW_WORD_LIMIT);
-
       return (
         <div
           className={cn(
@@ -1132,37 +1028,27 @@ const BoiQue = () => {
             <h3 className="font-display text-lg text-gold">Luận Giải AI</h3>
             <span className="text-xs font-normal text-muted-foreground ml-1">— Bản xem trước</span>
           </div>
-
-          {/* Visible preview portion */}
           <div className="space-y-1">{renderMarkdown(preview)}</div>
-
-          {/* Gradient fade → blurred teaser → payment CTA */}
           <div className="relative mt-0">
             <div className="h-32 bg-gradient-to-b from-transparent via-card/80 to-card relative z-10" />
-
             <div
               className="blur-sm select-none pointer-events-none -mt-4 max-h-40 overflow-hidden opacity-60"
               aria-hidden="true"
             >
               {renderMarkdown(displayText.slice(preview.length, preview.length + 600))}
             </div>
-
             <div className="relative z-20 -mt-32 pt-8 pb-2 bg-gradient-to-b from-card/90 to-card">
               <div className="text-center space-y-4 max-w-sm mx-auto">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gold/10 border border-gold/20">
                   <Lock className="w-3.5 h-3.5 text-gold" />
                   <span className="text-xs font-medium text-gold">Nội dung bị giới hạn</span>
                 </div>
-
                 <h3 className="text-lg font-bold text-foreground">Mở khóa luận giải đầy đủ</h3>
-
                 <p className="text-sm text-muted-foreground">
                   Bạn đang xem bản rút gọn. Thanh toán để xem toàn bộ luận giải chi tiết và được thêm 3 lần gieo quẻ.
                 </p>
-
                 <p className="text-2xl font-bold text-gold">39.000đ</p>
                 <p className="text-xs text-muted-foreground -mt-2">Xem full luận giải này + 3 lần gieo quẻ mới</p>
-
                 <Button
                   variant="gold"
                   size="lg"
@@ -1186,7 +1072,6 @@ const BoiQue = () => {
       );
     }
 
-    // ── STATE C: FULL RESULT — paid user ──
     return (
       <div className={cn("rounded-2xl p-5 bg-gradient-to-br from-surface-3 to-surface-2 border border-gold/20")}>
         <div className="space-y-1">{renderMarkdown(displayText)}</div>
@@ -1197,7 +1082,6 @@ const BoiQue = () => {
   return (
     <PageLayout title="Bói Quẻ Dịch">
       <div className="space-y-6">
-        {/* Header */}
         <div className="text-center p-6 rounded-2xl bg-gradient-to-br from-surface-3 to-surface-2 border border-border relative">
           <button
             onClick={toggleSound}
@@ -1213,7 +1097,6 @@ const BoiQue = () => {
           </p>
         </div>
 
-        {/* Lịch sử — at top */}
         {history.length > 0 && (
           <div>
             <button
@@ -1283,7 +1166,27 @@ const BoiQue = () => {
           </div>
         )}
 
-        {/* Question Input */}
+        {/* Exhausted banner */}
+        {!canGieoQue && everPurchased && !result && (
+          <div className="rounded-2xl p-4 bg-gradient-to-r from-amber-950/60 to-orange-950/40 border border-amber-500/30">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="shrink-0 w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                  <CreditCard className="w-5 h-5 text-amber-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-amber-300 text-sm">Đã hết lượt bói Quẻ</p>
+                  <p className="text-xs text-amber-200/60">Mua thêm gói để tiếp tục · Lịch sử luận giải vẫn xem được</p>
+                </div>
+              </div>
+              <Button variant="gold" size="sm" onClick={() => setShowPayment(true)} className="shrink-0">
+                <CreditCard className="w-4 h-4 mr-1.5" />
+                Mua thêm
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-3">
           <Textarea
             placeholder="Nhập câu hỏi của bạn... (VD: Tôi có nên đầu tư lúc này?)"
@@ -1293,7 +1196,6 @@ const BoiQue = () => {
             disabled={isAnimating}
           />
 
-          {/* Coins animation */}
           {(isAnimating || coins.length > 0) && (
             <div className="flex justify-center gap-4 py-4">
               {[0, 1, 2].map((i) => (
@@ -1315,11 +1217,6 @@ const BoiQue = () => {
             </div>
           )}
 
-          {/* ══════════════════════════════════════════════════════ */}
-          {/* FREEMIUM: Action buttons                              */}
-          {/* - canGieoQue → show button directly                   */}
-          {/* - no package + exhausted free → PaymentGate block     */}
-          {/* ══════════════════════════════════════════════════════ */}
           {!result &&
             (canGieoQue ? (
               <>
@@ -1334,24 +1231,25 @@ const BoiQue = () => {
                 </Button>
                 <p className="text-center text-xs text-muted-foreground">{usesLabel}</p>
               </>
-            ) : (
+            ) : !everPurchased ? (
               <PaymentGate
                 feature="boi_que"
                 title="Gói Bói Quẻ - 39.000đ"
                 description="3 lần gieo quẻ + luận giải AI chi tiết"
-                onUnlocked={() => loadQuePackage()}
+                onUnlocked={() => {
+                  loadQuePackage();
+                  loadFreeTrialCount();
+                }}
               >
                 <Button disabled variant="gold" size="lg" className="w-full">
                   Gieo Quẻ 🎴
                 </Button>
               </PaymentGate>
-            ))}
+            ) : null)}
         </div>
 
-        {/* Result */}
         {result && style && (
           <div className="space-y-4">
-            {/* Quẻ header */}
             <div className={cn("rounded-2xl p-6 border bg-gradient-to-br ink-splash", style.bg, style.border)}>
               <div className="flex justify-center mb-3 ink-drip" style={{ animationDelay: "0.3s" }}>
                 <span className={cn("px-4 py-1 rounded-full text-xs font-bold", style.badge)}>{style.label}</span>
@@ -1374,8 +1272,6 @@ const BoiQue = () => {
               >
                 Ngũ hành: {result.element}
               </p>
-
-              {/* 6 hào display */}
               {hexLines.length > 0 && (
                 <div
                   className="flex flex-col-reverse items-center gap-1 my-4 ink-reveal"
@@ -1401,13 +1297,9 @@ const BoiQue = () => {
                   ))}
                 </div>
               )}
-
-              {/* Free summary */}
               <div className="mt-4 p-4 rounded-xl bg-surface-2/60 ink-reveal" style={{ animationDelay: "1.1s" }}>
                 <p className="text-sm text-foreground leading-relaxed">{result.summary}</p>
               </div>
-
-              {/* Quẻ biến */}
               {hasChanging && changedHexNum && (
                 <div
                   className="mt-3 p-3 rounded-xl bg-surface-2/60 border border-gold/20 ink-reveal"
@@ -1426,8 +1318,6 @@ const BoiQue = () => {
                 </div>
               )}
             </div>
-
-            {/* Action buttons */}
             <div className="flex gap-3 ink-drip" style={{ animationDelay: "1.3s" }}>
               <Button variant="goldOutline" className="flex-1" onClick={handleShare}>
                 <Share2 className="w-4 h-4 mr-2" />
@@ -1438,8 +1328,6 @@ const BoiQue = () => {
                 Gieo Lại
               </Button>
             </div>
-
-            {/* AI Analysis — streaming + freemium aware */}
             <div className="space-y-4">{renderAiSection()}</div>
           </div>
         )}
@@ -1450,7 +1338,6 @@ const BoiQue = () => {
           </p>
         )}
 
-        {/* Lookup / Tra cứu 64 quẻ */}
         <div className="rounded-2xl bg-gradient-to-br from-surface-3 to-surface-2 border border-border overflow-hidden">
           <button
             onClick={() => {
@@ -1469,7 +1356,6 @@ const BoiQue = () => {
               <ChevronDown className="w-4 h-4 text-muted-foreground" />
             )}
           </button>
-
           {showLookup && (
             <div className="px-4 pb-4 space-y-3">
               <div className="relative">
@@ -1484,8 +1370,6 @@ const BoiQue = () => {
                   className="pl-9 bg-surface-2 border-border text-foreground"
                 />
               </div>
-
-              {/* Selected quẻ detail */}
               {selectedQue && (
                 <div
                   className={cn(
@@ -1518,8 +1402,6 @@ const BoiQue = () => {
                   </button>
                 </div>
               )}
-
-              {/* Quẻ list */}
               {!selectedQue && (
                 <div className="max-h-[400px] overflow-y-auto space-y-1.5 pr-1">
                   {filteredQue.length === 0 ? (
@@ -1560,7 +1442,6 @@ const BoiQue = () => {
           )}
         </div>
 
-        {/* VietQR Payment Modal */}
         <VietQRPaymentModal
           open={showPayment}
           onOpenChange={setShowPayment}
