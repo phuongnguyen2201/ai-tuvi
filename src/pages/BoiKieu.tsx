@@ -83,6 +83,7 @@ const BoiKieu = () => {
 
   // ── FREEMIUM: DB-based free trial tracking ──
   const [freeTrialCount, setFreeTrialCount] = useState<number | null>(null);
+  const [everPurchased, setEverPurchased] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
 
   // ── Streaming hook ──
@@ -99,7 +100,7 @@ const BoiKieu = () => {
   // ══════════════════════════════════════════════════════════════
   const canUseFreeTrial = freeTrialCount === 0 && !kieuPackage;
   const displayText = result || streamedText;
-  const isFreePreview = !!displayText && !kieuPackage;
+  const isFreePreview = !!displayText && !kieuPackage && !everPurchased;
 
   // Can user gieo quẻ? Either has package OR free trial available
   const canGieoQue = !!kieuPackage || canUseFreeTrial;
@@ -136,6 +137,11 @@ const BoiKieu = () => {
         .eq("user_id", currentUser.id);
 
       setFreeTrialCount(count ?? 0);
+      const { count: pkgCount } = await supabase
+        .from("kieu_packages")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", currentUser.id);
+      setEverPurchased((pkgCount ?? 0) > 0);
     } catch {
       setFreeTrialCount(0);
     }
@@ -689,7 +695,6 @@ const BoiKieu = () => {
 
       {/* AI Result — streaming + freemium aware */}
       {renderAiResult()}
-
 
       {/* Hint */}
       {!verse && !isShaking && !isAnalyzing && !isStreamingAI && canGieoQue && (
