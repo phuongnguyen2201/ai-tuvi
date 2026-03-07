@@ -192,6 +192,7 @@ export default function TuViIztroPage() {
   // If 0 → eligible for 1 free analysis (preview mode).
   // ══════════════════════════════════════════════════════════════
   const [freeTrialCount, setFreeTrialCount] = useState<number | null>(null); // null = loading
+  const [everPurchased, setEverPurchased] = useState(false);
 
   // Mint callback state
   const [searchParams, setSearchParams] = useSearchParams();
@@ -217,8 +218,7 @@ export default function TuViIztroPage() {
   // CHANGE C: Derived state — is this a free preview?
   // True when: has cached result BUT no paid package access
   // ══════════════════════════════════════════════════════════════
-  const isFreePreview = !!(cachedAnalysis || streamedText) && !hasAccess && total === 0;
-
+  const isFreePreview = !!(cachedAnalysis || streamedText) && !hasAccess && !everPurchased;
 
   // Can user use free trial? Only if never completed an analysis before
   const canUseFreeTrial = freeTrialCount === 0 && !hasAccess;
@@ -283,6 +283,13 @@ export default function TuViIztroPage() {
         .not("analysis_result", "is", null);
 
       setFreeTrialCount(count ?? 0);
+
+      // Check if user ever purchased luan_giai
+      const { count: pkgCount } = await supabase
+        .from("luan_giai_packages")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", currentUser.id);
+      setEverPurchased((pkgCount ?? 0) > 0);
     } catch {
       setFreeTrialCount(0);
     }
