@@ -217,7 +217,7 @@ export default function TuViIztroPage() {
   // CHANGE C: Derived state — is this a free preview?
   // True when: has cached result BUT no paid package access
   // ══════════════════════════════════════════════════════════════
-  const isFreePreview = !!(cachedAnalysis || streamedText) && !hasAccessconst isFreePreview = !!(cachedAnalysis || streamedText) && !hasAccess && total === 0;
+  const isFreePreview = !!(cachedAnalysis || streamedText) && !hasAccess && total === 0;
 
 
   // Can user use free trial? Only if never completed an analysis before
