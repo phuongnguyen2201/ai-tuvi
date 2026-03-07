@@ -258,7 +258,7 @@ const VanHan = () => {
   // FIX: Only show streamedText if it belongs to the current tab
   const activeStreamedText = streamingForTab === activeTab ? streamedText : "";
   const displayText = currentResult || activeStreamedText;
-  const isFreePreview = !!displayText && !vanHanPackage;
+  const isFreePreview = !!displayText && !vanHanPackage && !isPackageExhausted;
   const canAnalyze = !!vanHanPackage || canUseFreeTrial;
 
   // Load user charts from chart_analyses
