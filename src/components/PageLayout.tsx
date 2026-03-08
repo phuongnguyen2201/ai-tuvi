@@ -1,7 +1,6 @@
 import { cn } from "@/lib/utils";
 import { ArrowLeft, LogIn, User as UserIcon } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { WalletStatus } from "@/components/WalletStatus";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -59,7 +58,6 @@ const PageLayout = ({ children, title, showBack = true, className }: PageLayoutP
               )}
               <div className="ml-auto flex items-center gap-2">
                 <ThemeToggle />
-                <WalletStatus />
                 {user ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
