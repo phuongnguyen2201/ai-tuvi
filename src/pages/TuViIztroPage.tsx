@@ -1,7 +1,6 @@
 // src/pages/TuViIztroPage.tsx - Page lập lá số dùng iztro library (Streaming AI)
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useAddress } from "@thirdweb-dev/react";
 import { useSearchParams } from "react-router-dom";
 import { createTuViChart, TuViChartData, BirthInput } from "@/services/TuViService";
 import TuViChartIztro from "@/components/TuViChartIztro";
@@ -15,26 +14,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  CalendarIcon,
-  Loader2,
-  CheckCircle,
-  XCircle,
-  ExternalLink,
-  Sparkles,
-  Lock,
-  History,
-  ChevronDown,
-  ChevronUp,
-  CreditCard,
-} from "lucide-react";
+import { CalendarIcon, Loader2, Sparkles, Lock, History, ChevronDown, ChevronUp, CreditCard } from "lucide-react";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import PageLayout from "@/components/PageLayout";
-import { MintMenhNFT } from "@/components/MintMenhNFT";
-import { NFTPreview } from "@/components/NFTPreview";
-import { NFTGallery } from "@/components/NFTGallery";
 import { supabase } from "@/integrations/supabase/client";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import { useAuth } from "@/contexts/AuthContext";
@@ -137,7 +121,6 @@ const LUNAR_HOURS = [
 ];
 
 export default function TuViIztroPage() {
-  const address = useAddress();
   const { user } = useAuth();
   const [chart, setChart] = useState<TuViChartData | null>(null);
   const [error, setError] = useState("");
@@ -184,10 +167,8 @@ export default function TuViIztroPage() {
   const [freeTrialCount, setFreeTrialCount] = useState<number | null>(null);
   const [everPurchased, setEverPurchased] = useState(false);
 
-  // Mint callback state
+  // URL params
   const [searchParams, setSearchParams] = useSearchParams();
-  const [mintStatus, setMintStatus] = useState<"idle" | "minting" | "success" | "error">("idle");
-  const [mintResult, setMintResult] = useState<any>(null);
 
   // Package-based access
   const { hasAccess, remaining, total, isLoading: accessLoading, refresh: refreshAccess } = useLuanGiaiAccess();
@@ -341,24 +322,6 @@ export default function TuViIztroPage() {
     setShowHistory(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
-
-  useEffect(() => {
-    const sessionId = searchParams.get("session_id");
-    const mintSuccess = searchParams.get("mint_success");
-
-    if (sessionId && mintSuccess === "true" && mintStatus === "idle") {
-      setMintStatus("minting");
-      supabase.functions.invoke("mint-menh-nft", { body: { sessionId } }).then(({ data, error: fnError }) => {
-        if (fnError || !data?.success) {
-          setMintStatus("error");
-        } else {
-          setMintResult(data);
-          setMintStatus("success");
-        }
-        setSearchParams({});
-      });
-    }
-  }, [searchParams, mintStatus]);
 
   // Auto-fill from URL params
   useEffect(() => {
@@ -781,16 +744,6 @@ export default function TuViIztroPage() {
               </div>
             </div>
           </Card>
-
-          <VietQRPaymentModal
-            open={showPayment}
-            onOpenChange={(open) => {
-              setShowPayment(open);
-              if (!open) setCheckedPendingPayment(false);
-            }}
-            feature="luan_giai"
-            onSuccess={handlePaymentSuccess}
-          />
         </div>
       );
     }
@@ -902,15 +855,6 @@ export default function TuViIztroPage() {
             )}
           </Card>
         </div>
-        <VietQRPaymentModal
-          open={showPayment}
-          onOpenChange={(open) => {
-            setShowPayment(open);
-            if (!open) setCheckedPendingPayment(false);
-          }}
-          feature="luan_giai"
-          onSuccess={handlePaymentSuccess}
-        />
       </div>
     );
   };
@@ -925,10 +869,7 @@ export default function TuViIztroPage() {
           <p className="text-center text-gray-400 text-sm">Nhập thông tin ngày sinh để xem lá số tử vi của bạn</p>
         )}
 
-        {/* ══════════════════════════════════════════════════════ */}
-        {/* Status badge / exhausted banner                       */}
-        {/* FIX: Use everPurchased + amber banner like BoiKieu    */}
-        {/* ══════════════════════════════════════════════════════ */}
+        {/* Status badge / exhausted banner */}
         {user && !accessLoading && (
           <>
             {hasAccess ? (
@@ -966,71 +907,6 @@ export default function TuViIztroPage() {
             ) : null}
           </>
         )}
-
-        {/* Mint status banners */}
-        {mintStatus === "minting" && (
-          <Card className="border-amber-500/50 bg-amber-950/30">
-            <CardContent className="flex items-center gap-3 py-4">
-              <Loader2 className="h-5 w-5 animate-spin text-amber-400" />
-              <div>
-                <p className="font-semibold text-amber-300">Đang mint NFT...</p>
-                <p className="text-sm text-gray-400">Vui lòng chờ trong giây lát.</p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {mintStatus === "success" && mintResult && (
-          <Card className="border-green-500/50 bg-green-950/30">
-            <CardContent className="flex items-center gap-3 py-4">
-              <CheckCircle className="h-5 w-5 text-green-400 shrink-0" />
-              <div className="flex-1">
-                <p className="font-semibold text-green-300">🎉 Mint NFT thành công!</p>
-                <p className="text-sm text-gray-400">Token ID: #{mintResult.tokenId}</p>
-                {mintResult.basescanUrl && (
-                  <a
-                    href={mintResult.basescanUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-sm text-blue-400 hover:underline mt-1"
-                  >
-                    Xem giao dịch trên Basescan <ExternalLink className="h-3 w-3" />
-                  </a>
-                )}
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setMintStatus("idle")}
-                className="text-gray-400 hover:text-white"
-              >
-                ✕
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {mintStatus === "error" && (
-          <Card className="border-red-500/50 bg-red-950/30">
-            <CardContent className="flex items-center gap-3 py-4">
-              <XCircle className="h-5 w-5 text-red-400 shrink-0" />
-              <div className="flex-1">
-                <p className="font-semibold text-red-300">Mint NFT thất bại</p>
-                <p className="text-sm text-gray-400">Có lỗi xảy ra. Vui lòng thử lại sau.</p>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setMintStatus("idle")}
-                className="text-gray-400 hover:text-white"
-              >
-                ✕
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        <NFTGallery key={address || "disconnected"} />
 
         {/* History panel */}
         {renderHistory()}
@@ -1180,28 +1056,6 @@ export default function TuViIztroPage() {
 
             {renderAnalysisSection()}
 
-            <NFTPreview
-              chartData={chart}
-              walletAddress={address}
-              birthData={{
-                name: personName,
-                solarDate: format(birthDate, "yyyy-MM-dd"),
-                hour: parseInt(birthHour),
-                gender,
-                isLunar: calendarType === "lunar",
-              }}
-            />
-            <MintMenhNFT
-              chartData={chart}
-              birthData={{
-                name: personName,
-                solarDate: format(birthDate, "yyyy-MM-dd"),
-                hour: parseInt(birthHour),
-                gender,
-                isLunar: calendarType === "lunar",
-              }}
-            />
-
             {/* Debug info */}
             <Card className="bg-slate-900/50 border-slate-700">
               <CardHeader className="pb-2">
@@ -1288,12 +1142,12 @@ export default function TuViIztroPage() {
             </Card>
           </div>
         )}
-        {/* Global payment modal — for banner + STATE 4 buy more button */}
+
+        {/* Global payment modal */}
         <VietQRPaymentModal
           open={showPayment}
           onOpenChange={(open) => {
             setShowPayment(open);
-            if (!open) setCheckedPendingPayment(false);
           }}
           feature="luan_giai"
           onSuccess={handlePaymentSuccess}
