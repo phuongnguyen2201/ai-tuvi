@@ -3,7 +3,6 @@ import Logo from "@/components/Logo";
 import MenuCard from "@/components/MenuCard";
 import DailyWisdom from "@/components/DailyWisdom";
 import ThemeToggle from "@/components/ThemeToggle";
-import { ScrollText, Heart, Calendar, BookOpen, Image, Sparkles, Layers, LogIn } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -60,12 +59,6 @@ const Index = () => {
       icon: Layers,
       to: "/boi-que",
     },
-    {
-      title: "NFT Của Tôi",
-      description: "Xem bộ sưu tập NFT lá số đã đúc",
-      icon: Image,
-      to: "/my-nfts",
-    },
   ];
 
   return (
@@ -84,7 +77,9 @@ const Index = () => {
           <div className="flex items-center justify-between mb-2">
             {user ? (
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">✨ Xin chào, <span className="text-foreground font-medium">{displayName}</span>!</span>
+                <span className="text-sm text-muted-foreground">
+                  ✨ Xin chào, <span className="text-foreground font-medium">{displayName}</span>!
+                </span>
               </div>
             ) : (
               <div />
@@ -101,7 +96,9 @@ const Index = () => {
                           {displayName.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="text-xs text-foreground max-w-[80px] truncate hidden sm:inline">{displayName}</span>
+                      <span className="text-xs text-foreground max-w-[80px] truncate hidden sm:inline">
+                        {displayName}
+                      </span>
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -145,10 +142,7 @@ const Index = () => {
           <footer className="py-6 text-center space-y-2">
             <p className="text-xs text-muted-foreground">© 2024 Tử Vi Việt Nam</p>
             <p className="text-xs text-muted-foreground">
-              <a 
-                href="/chinh-sach-bao-mat" 
-                className="hover:text-gold transition-colors"
-              >
+              <a href="/chinh-sach-bao-mat" className="hover:text-gold transition-colors">
                 Chính Sách Bảo Mật
               </a>
             </p>
