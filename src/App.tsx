@@ -12,7 +12,7 @@ import DayAnalysis from "./pages/DayAnalysis";
 import BoiKieu from "./pages/BoiKieu";
 import BoiQue from "./pages/BoiQue";
 import VanHan from "./pages/VanHan";
-import MyNFTs from "./pages/MyNFTs";
+
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
@@ -43,7 +43,7 @@ const App = () => (
               <Route path="/boi-kieu" element={<BoiKieu />} />
               <Route path="/boi-que" element={<BoiQue />} />
               <Route path="/van-han" element={<VanHan />} />
-              <Route path="/my-nfts" element={<MyNFTs />} />
+              
               <Route path="/admin-tuvi-2026" element={<Admin />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/chinh-sach-bao-mat" element={<PrivacyPolicy />} />
