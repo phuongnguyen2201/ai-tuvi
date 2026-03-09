@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +11,19 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bell, DollarSign, Users, CheckCircle, XCircle, Loader2, Plus, Package, RotateCcw } from "lucide-react";
+import {
+  Bell,
+  DollarSign,
+  Users,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  Plus,
+  Package,
+  RotateCcw,
+  Search,
+  X,
+} from "lucide-react";
 
 const ADMIN_EMAILS = ["phuongnguyen2201@gmail.com"];
 
@@ -95,6 +107,15 @@ const callAdmin = async (action: string, params: Record<string, any> = {}) => {
   return res.data;
 };
 
+// Filter helper: match email or display_name
+function matchesSearch(item: { user_email?: string | null; display_name?: string | null }, term: string): boolean {
+  if (!term) return true;
+  const lower = term.toLowerCase();
+  return (
+    (item.user_email ?? "").toLowerCase().includes(lower) || (item.display_name ?? "").toLowerCase().includes(lower)
+  );
+}
+
 const Admin = () => {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
@@ -107,6 +128,9 @@ const Admin = () => {
   const [activeUsers, setActiveUsers] = useState(0);
   const [loadingStats, setLoadingStats] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // Search
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Grant package state
   const [grantEmail, setGrantEmail] = useState("");
@@ -144,6 +168,23 @@ const Admin = () => {
     if (!user || !ADMIN_EMAILS.includes(user.email ?? "")) return;
     fetchAll();
   }, [user, fetchAll]);
+
+  // Filtered data
+  const filteredPending = useMemo(
+    () => pendingPayments.filter((p) => matchesSearch(p, searchTerm)),
+    [pendingPayments, searchTerm],
+  );
+  const filteredHistory = useMemo(
+    () => historyPayments.filter((p) => matchesSearch(p, searchTerm)),
+    [historyPayments, searchTerm],
+  );
+  const filteredPackages = useMemo(
+    () => luanGiaiPackages.filter((p) => matchesSearch(p, searchTerm)),
+    [luanGiaiPackages, searchTerm],
+  );
+
+  const activePending = filteredPending.filter((p) => p.status === "pending");
+  const expiredRecoverable = filteredPending.filter((p) => p.status === "expired");
 
   const handleVerify = async (payment: PaymentRow) => {
     if (!payment.user_id) return;
@@ -257,9 +298,6 @@ const Admin = () => {
     return <Navigate to="/" replace />;
   }
 
-  const activePending = pendingPayments.filter((p) => p.status === "pending");
-  const expiredRecoverable = pendingPayments.filter((p) => p.status === "expired");
-
   return (
     <div className="min-h-screen bg-background">
       <div className="container max-w-5xl mx-auto px-4 py-6">
@@ -279,8 +317,10 @@ const Admin = () => {
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold text-foreground">{loadingStats ? "..." : pendingCount}</p>
-              {expiredRecoverable.length > 0 && (
-                <p className="text-xs text-amber-400 mt-1">+ {expiredRecoverable.length} expired cần xử lý</p>
+              {pendingPayments.filter((p) => p.status === "expired").length > 0 && (
+                <p className="text-xs text-amber-400 mt-1">
+                  + {pendingPayments.filter((p) => p.status === "expired").length} expired cần xử lý
+                </p>
               )}
             </CardContent>
           </Card>
@@ -306,6 +346,31 @@ const Admin = () => {
               <p className="text-2xl font-bold text-foreground">{loadingStats ? "..." : activeUsers}</p>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Global Search Bar */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Tìm kiếm theo email hoặc tên user..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 pr-9 bg-surface-2 border-border"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+          {searchTerm && (
+            <p className="text-xs text-muted-foreground mt-1 ml-1">
+              Đang lọc: {activePending.length} chờ xác nhận · {expiredRecoverable.length} expired ·{" "}
+              {filteredPackages.length} gói · {filteredHistory.length} lịch sử
+            </p>
+          )}
         </div>
 
         {/* Tabs */}
@@ -428,7 +493,9 @@ const Admin = () => {
                     {activePending.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                          Không có giao dịch chờ xác nhận
+                          {searchTerm
+                            ? `Không tìm thấy giao dịch pending cho "${searchTerm}"`
+                            : "Không có giao dịch chờ xác nhận"}
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -502,16 +569,17 @@ const Admin = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {luanGiaiPackages.length === 0 ? (
+                    {filteredPackages.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                          Chưa có gói Luận Giải nào
+                          {searchTerm ? `Không tìm thấy gói cho "${searchTerm}"` : "Chưa có gói Luận Giải nào"}
                         </TableCell>
                       </TableRow>
                     ) : (
-                      luanGiaiPackages.map((pkg) => {
+                      filteredPackages.map((pkg) => {
                         const used = pkg.total_uses - pkg.remaining_uses;
                         const isPending = pkg.payment_status === "pending";
+                        const isExhausted = pkg.remaining_uses === 0;
                         return (
                           <TableRow key={pkg.id} className="hover:bg-accent/50">
                             <TableCell className="text-xs">{formatTime(pkg.created_at)}</TableCell>
@@ -522,14 +590,23 @@ const Admin = () => {
                                 <Badge variant="outline" className="text-xs text-yellow-500 border-yellow-500">
                                   ⏳ Chờ xác nhận
                                 </Badge>
+                              ) : isExhausted ? (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs text-muted-foreground border-muted-foreground/30"
+                                >
+                                  Đã dùng hết
+                                </Badge>
                               ) : (
                                 <Badge variant="secondary" className="text-xs">
-                                  ✅ Đã xác nhận
+                                  ✅ Đang active
                                 </Badge>
                               )}
                             </TableCell>
                             <TableCell className="font-medium">
-                              {used}/{pkg.total_uses}
+                              <span className={isExhausted ? "text-muted-foreground" : ""}>
+                                {used}/{pkg.total_uses}
+                              </span>
                             </TableCell>
                             <TableCell className="text-xs">
                               {formatCurrency(pkg.amount)}
@@ -692,14 +769,14 @@ const Admin = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {historyPayments.length === 0 ? (
+                    {filteredHistory.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                          Chưa có lịch sử
+                          {searchTerm ? `Không tìm thấy lịch sử cho "${searchTerm}"` : "Chưa có lịch sử"}
                         </TableCell>
                       </TableRow>
                     ) : (
-                      historyPayments.map((p) => (
+                      filteredHistory.map((p) => (
                         <TableRow key={p.id} className="hover:bg-accent/50">
                           <TableCell className="text-xs">{formatTime(p.created_at)}</TableCell>
                           <TableCell className="text-sm">{p.display_name || "—"}</TableCell>
