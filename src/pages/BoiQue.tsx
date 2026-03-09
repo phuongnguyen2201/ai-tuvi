@@ -873,19 +873,17 @@ const BoiQue = () => {
       } = await supabase.auth.getUser();
       if (u) {
         try {
-          await supabase
-            .from("boi_que_analyses")
-            .insert({
-              user_id: u.id,
-              package_id: quePackage?.id || null,
-              question: question.trim(),
-              hexagram_num: queData.id,
-              hexagram_name: queData.name,
-              hexagram_symbol: queData.symbol,
-              hex_lines: lines,
-              changed_hex_num: changedNum,
-              analysis_result: fullText,
-            });
+          await supabase.from("boi_que_analyses").insert({
+            user_id: u.id,
+            package_id: quePackage?.id || null,
+            question: question.trim(),
+            hexagram_num: queData.id,
+            hexagram_name: queData.name,
+            hexagram_symbol: queData.symbol,
+            hex_lines: lines,
+            changed_hex_num: changedNum,
+            analysis_result: fullText,
+          });
         } catch (saveErr) {
           console.warn("[BoiQue] Save error:", saveErr);
         }
@@ -1167,7 +1165,7 @@ const BoiQue = () => {
         )}
 
         {/* Exhausted banner */}
-        {!canGieoQue && everPurchased && !result && (
+        {!canGieoQue && everPurchased && (
           <div className="rounded-2xl p-4 bg-gradient-to-r from-amber-950/60 to-orange-950/40 border border-amber-500/30">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
