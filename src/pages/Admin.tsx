@@ -108,11 +108,16 @@ const callAdmin = async (action: string, params: Record<string, any> = {}) => {
 };
 
 // Filter helper: match email or display_name
-function matchesSearch(item: { user_email?: string | null; display_name?: string | null }, term: string): boolean {
+function matchesSearch(
+  item: { user_email?: string | null; display_name?: string | null; transfer_content?: string | null },
+  term: string,
+): boolean {
   if (!term) return true;
   const lower = term.toLowerCase();
   return (
-    (item.user_email ?? "").toLowerCase().includes(lower) || (item.display_name ?? "").toLowerCase().includes(lower)
+    (item.user_email ?? "").toLowerCase().includes(lower) ||
+    (item.display_name ?? "").toLowerCase().includes(lower) ||
+    (item.transfer_content ?? "").toLowerCase().includes(lower)
   );
 }
 
@@ -352,7 +357,7 @@ const Admin = () => {
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Tìm kiếm theo email hoặc tên user..."
+            placeholder="Tìm theo email, tên user hoặc nội dung CK..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9 pr-9 bg-surface-2 border-border"
