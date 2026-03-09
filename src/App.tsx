@@ -18,6 +18,7 @@ import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
 import Profile from "./pages/Profile";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import DieuKhoanSuDung from "./pages/DieuKhoanSuDung";
 import NguHanhTest from "./components/NguHanhTest";
 import CompatibilityTest from "./components/CompatibilityTest";
 import Test from "./pages/Test";
@@ -47,6 +48,7 @@ const App = () => (
               <Route path="/admin-tuvi-2026" element={<Admin />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/chinh-sach-bao-mat" element={<PrivacyPolicy />} />
+              <Route path="/dieu-khoan-su-dung" element={<DieuKhoanSuDung />} />
               <Route path="/test-nguhanh" element={<NguHanhTest />} />
               <Route path="/test-compatibility" element={<CompatibilityTest />} />
               <Route path="/test" element={<Test />} />

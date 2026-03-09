@@ -919,11 +919,20 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      security_dashboard: {
+        Row: {
+          event_count: number | null
+          event_type: string | null
+          last_seen: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       cleanup_old_rate_limits: { Args: never; Returns: number }
       expire_old_payments: { Args: never; Returns: number }
+      expire_old_pending_payments: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
