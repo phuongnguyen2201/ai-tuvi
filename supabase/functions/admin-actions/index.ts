@@ -2,14 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // ============================================================
-// SEC-002 FIX #1: Restricted CORS (thay vì wildcard *)
+// CORS
 // ============================================================
-const ALLOWED_ORIGINS = [
-  "https://ai-tuvi.lovable.app",
-  "https://preview--ai-tuvi.lovable.app",
-  // Thêm custom domain nếu có:
-  // "https://tuvi.vn",
-];
+const ALLOWED_ORIGINS = ["https://ai-tuvi.lovable.app", "https://preview--ai-tuvi.lovable.app"];
 
 function getCorsHeaders(req: Request) {
   const origin = req.headers.get("origin") ?? "";
@@ -21,7 +16,7 @@ function getCorsHeaders(req: Request) {
 }
 
 // ============================================================
-// SEC-002 FIX #3: Audit log helper
+// Audit log helper
 // ============================================================
 async function logAdminAction(
   adminClient: any,
@@ -61,7 +56,7 @@ serve(async (req) => {
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
     // ============================================================
-    // SEC-002 FIX #2: Server-side admin check via DATABASE
+    // Auth check
     // ============================================================
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -88,7 +83,7 @@ serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceKey);
 
-    // Check admin_users table (service_role bypasses RLS)
+    // Check admin_users table
     const { data: adminRecord, error: adminErr } = await adminClient
       .from("admin_users")
       .select("id, email, role")
@@ -113,7 +108,6 @@ serve(async (req) => {
       });
     }
 
-    // Link user_id nếu chưa có
     if (!adminRecord.user_id) {
       await adminClient.from("admin_users").update({ user_id: user.id }).eq("id", adminRecord.id);
     }
@@ -147,11 +141,7 @@ serve(async (req) => {
       await logAdminAction(adminClient, user.email!, adminRecord.id, "get_stats", null, null, null, req);
 
       return new Response(
-        JSON.stringify({
-          pendingCount: pendingRes.count ?? 0,
-          monthRevenue: revenue,
-          activeUsers: uniqueUsers.size,
-        }),
+        JSON.stringify({ pendingCount: pendingRes.count ?? 0, monthRevenue: revenue, activeUsers: uniqueUsers.size }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -234,20 +224,14 @@ serve(async (req) => {
     }
 
     // ══════════════════════════════════════════════════════════════
-    // VERIFY — Admin confirms a payment → create feature packages
-    // Now accepts both "pending" and "expired" payments
+    // VERIFY — accepts both "pending" and "expired" payments
     // ══════════════════════════════════════════════════════════════
     if (action === "verify") {
       const { paymentId, userId, feature, expiresAt, paymentRef } = params;
 
-      // 1) Mark payment as verified (accept pending OR expired)
-      const { error: updateErr, count } = await adminClient
+      const { error: updateErr } = await adminClient
         .from("payments")
-        .update({
-          status: "verified",
-          verified_at: new Date().toISOString(),
-          verified_by: user.id,
-        })
+        .update({ status: "verified", verified_at: new Date().toISOString(), verified_by: user.id })
         .in("status", ["pending", "expired"])
         .eq("id", paymentId);
 
@@ -258,7 +242,7 @@ serve(async (req) => {
         });
       }
 
-      // 2) Create feature-specific package/record
+      // Create feature-specific package
       if (feature === "luan_giai") {
         const { data: pendingPkgs } = await adminClient
           .from("luan_giai_packages")
@@ -308,67 +292,32 @@ serve(async (req) => {
           })
           .select("id")
           .single();
-        if (pkgErr) {
-          console.error("[verify] van_han_packages insert error:", pkgErr);
-        } else {
-          console.log(
-            "[verify] ✅ van_han_packages created:",
-            insertedPkg?.id,
-            "time_frame:",
-            timeFrameMap[feature],
-            "uses:",
-            usesMap[feature],
-          );
-        }
+        if (pkgErr) console.error("[verify] van_han_packages error:", pkgErr);
+        else console.log("[verify] ✅ van_han_packages created:", insertedPkg?.id);
       } else if (feature === "boi_kieu") {
-        const uses = 3;
-        const { data: insertedPkg, error: kieuPkgErr } = await adminClient
+        const { data: insertedPkg, error: pkgErr } = await adminClient
           .from("kieu_packages")
-          .insert({
-            user_id: userId,
-            payment_id: paymentId,
-            uses_total: uses,
-            uses_remaining: uses,
-          })
+          .insert({ user_id: userId, payment_id: paymentId, uses_total: 3, uses_remaining: 3 })
           .select("id")
           .single();
-        if (kieuPkgErr) {
-          console.error("[verify] kieu_packages insert error:", kieuPkgErr);
-        } else {
-          console.log("[verify] ✅ kieu_packages created:", insertedPkg?.id, "uses:", uses);
-        }
+        if (pkgErr) console.error("[verify] kieu_packages error:", pkgErr);
+        else console.log("[verify] ✅ kieu_packages created:", insertedPkg?.id);
       } else if (feature === "boi_que") {
-        const uses = 3;
-        const { data: insertedPkg, error: quePkgErr } = await adminClient
+        const { data: insertedPkg, error: pkgErr } = await adminClient
           .from("boi_que_packages")
-          .insert({
-            user_id: userId,
-            payment_id: paymentId,
-            uses_total: uses,
-            uses_remaining: uses,
-          })
+          .insert({ user_id: userId, payment_id: paymentId, uses_total: 3, uses_remaining: 3 })
           .select("id")
           .single();
-        if (quePkgErr) {
-          console.error("[verify] boi_que_packages insert error:", quePkgErr);
-        } else {
-          console.log("[verify] ✅ boi_que_packages created:", insertedPkg?.id, "uses:", uses);
-        }
+        if (pkgErr) console.error("[verify] boi_que_packages error:", pkgErr);
+        else console.log("[verify] ✅ boi_que_packages created:", insertedPkg?.id);
       } else {
-        const { error: featErr } = await adminClient.from("user_features").insert({
-          user_id: userId,
-          feature,
-          expires_at: expiresAt,
-          payment_ref: paymentRef,
-        });
-        if (featErr) {
-          console.error("[verify] user_features insert error:", featErr);
-        } else {
-          console.log("[verify] ✅ user_features created for feature:", feature);
-        }
+        const { error: featErr } = await adminClient
+          .from("user_features")
+          .insert({ user_id: userId, feature, expires_at: expiresAt, payment_ref: paymentRef });
+        if (featErr) console.error("[verify] user_features error:", featErr);
+        else console.log("[verify] ✅ user_features created for:", feature);
       }
 
-      // Audit log
       await logAdminAction(
         adminClient,
         user.email!,
@@ -376,7 +325,7 @@ serve(async (req) => {
         "verify",
         "payments",
         paymentId,
-        { userId, feature, paymentId, wasExpired: true },
+        { userId, feature, paymentId },
         req,
       );
 
@@ -386,16 +335,12 @@ serve(async (req) => {
     }
 
     // ============================================================
-    // REJECT — now also works for expired payments
+    // REJECT — works for pending and expired
     // ============================================================
     if (action === "reject") {
       await adminClient
         .from("payments")
-        .update({
-          status: "rejected",
-          verified_at: new Date().toISOString(),
-          verified_by: user.id,
-        })
+        .update({ status: "rejected", verified_at: new Date().toISOString(), verified_by: user.id })
         .in("status", ["pending", "expired"])
         .eq("id", params.paymentId);
 
@@ -415,8 +360,9 @@ serve(async (req) => {
       });
     }
 
-    // ==================== LUAN GIAI PACKAGES MANAGEMENT ====================
-
+    // ============================================================
+    // GET LUAN GIAI PACKAGES
+    // ============================================================
     if (action === "get_luan_giai_packages") {
       const { data } = await adminClient
         .from("luan_giai_packages")
@@ -445,6 +391,9 @@ serve(async (req) => {
       return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // ============================================================
+    // CONFIRM LUAN GIAI
+    // ============================================================
     if (action === "confirm_luan_giai") {
       const { packageId } = params;
       const { error } = await adminClient
@@ -475,80 +424,76 @@ serve(async (req) => {
       });
     }
 
-    if (action === "add_luan_giai_uses") {
-      const { packageId, addUses } = params;
-      const { data: pkg } = await adminClient
-        .from("luan_giai_packages")
-        .select("remaining_uses, total_uses")
-        .eq("id", packageId)
-        .single();
+    // ══════════════════════════════════════════════════════════════
+    // GRANT PACKAGE — cấp gói bất kỳ cho user (6 features)
+    // ══════════════════════════════════════════════════════════════
+    if (action === "grant_package") {
+      const { email, feature, uses } = params;
+      const numUses = uses ?? 3;
 
-      if (!pkg) {
-        return new Response(JSON.stringify({ error: "Package not found" }), {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const { error } = await adminClient
-        .from("luan_giai_packages")
-        .update({
-          remaining_uses: pkg.remaining_uses + (addUses ?? 3),
-          total_uses: pkg.total_uses + (addUses ?? 3),
-        })
-        .eq("id", packageId);
-
-      if (error) {
-        return new Response(JSON.stringify({ error: error.message }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      await logAdminAction(
-        adminClient,
-        user.email!,
-        adminRecord.id,
-        "add_luan_giai_uses",
-        "luan_giai_packages",
-        packageId,
-        { packageId, addUses: addUses ?? 3 },
-        req,
-      );
-
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if (action === "grant_luan_giai") {
-      const { email, uses } = params;
+      // Find user
       const { data: profiles } = await adminClient
         .from("profiles")
         .select("id, email, display_name")
         .eq("email", email)
         .limit(1);
-
       if (!profiles || profiles.length === 0) {
         return new Response(JSON.stringify({ error: "Không tìm thấy user với email: " + email }), {
           status: 404,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-
       const targetUser = profiles[0];
-      const { error } = await adminClient.from("luan_giai_packages").insert({
-        user_id: targetUser.id,
-        total_uses: uses ?? 3,
-        remaining_uses: uses ?? 3,
-        amount: 0,
-        payment_status: "confirmed",
-        confirmed_at: new Date().toISOString(),
-        payment_method: "admin_grant",
-      });
 
-      if (error) {
-        return new Response(JSON.stringify({ error: error.message }), {
+      let insertError: any = null;
+
+      if (feature === "luan_giai") {
+        const { error } = await adminClient.from("luan_giai_packages").insert({
+          user_id: targetUser.id,
+          total_uses: numUses,
+          remaining_uses: numUses,
+          amount: 0,
+          payment_status: "confirmed",
+          confirmed_at: new Date().toISOString(),
+          payment_method: "admin_grant",
+        });
+        insertError = error;
+      } else if (feature === "boi_kieu") {
+        const { error } = await adminClient.from("kieu_packages").insert({
+          user_id: targetUser.id,
+          uses_total: numUses,
+          uses_remaining: numUses,
+        });
+        insertError = error;
+      } else if (feature === "boi_que") {
+        const { error } = await adminClient.from("boi_que_packages").insert({
+          user_id: targetUser.id,
+          uses_total: numUses,
+          uses_remaining: numUses,
+        });
+        insertError = error;
+      } else if (["van_han_week", "van_han_month", "van_han_year"].includes(feature)) {
+        const timeFrameMap: Record<string, string> = {
+          van_han_week: "week",
+          van_han_month: "month",
+          van_han_year: "year",
+        };
+        const { error } = await adminClient.from("van_han_packages").insert({
+          user_id: targetUser.id,
+          time_frame: timeFrameMap[feature],
+          uses_total: numUses,
+          uses_remaining: numUses,
+        });
+        insertError = error;
+      } else {
+        return new Response(JSON.stringify({ error: "Unknown feature: " + feature }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (insertError) {
+        return new Response(JSON.stringify({ error: insertError.message }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -558,10 +503,10 @@ serve(async (req) => {
         adminClient,
         user.email!,
         adminRecord.id,
-        "grant_luan_giai",
-        "luan_giai_packages",
+        "grant_package",
+        feature,
         targetUser.id,
-        { targetEmail: email, uses: uses ?? 3 },
+        { targetEmail: email, feature, uses: numUses },
         req,
       );
 
@@ -570,6 +515,84 @@ serve(async (req) => {
       });
     }
 
+    // ══════════════════════════════════════════════════════════════
+    // RESET USER — xóa toàn bộ data, user trở về trạng thái mới
+    // ══════════════════════════════════════════════════════════════
+    if (action === "reset_user") {
+      const { email } = params;
+
+      // Find user
+      const { data: profiles } = await adminClient
+        .from("profiles")
+        .select("id, email, display_name")
+        .eq("email", email)
+        .limit(1);
+      if (!profiles || profiles.length === 0) {
+        return new Response(JSON.stringify({ error: "Không tìm thấy user với email: " + email }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const targetUser = profiles[0];
+      const uid = targetUser.id;
+
+      const deleted: Record<string, number> = {};
+
+      // 1. Analyses (FK references packages)
+      const tables1 = ["van_han_analyses", "kieu_analyses", "boi_que_analyses", "chart_analyses"];
+      for (const table of tables1) {
+        const { count } = await adminClient.from(table).delete({ count: "exact" }).eq("user_id", uid);
+        deleted[table] = count ?? 0;
+      }
+
+      // 2. Nullify payment_id FK in chart_analyses (already deleted above, but safety)
+      await adminClient
+        .rpc("exec_sql", {
+          query: `UPDATE chart_analyses SET payment_id = NULL WHERE payment_id IN (SELECT id FROM payments WHERE user_id = '${uid}')`,
+        })
+        .catch(() => {
+          // If rpc not available, skip — chart_analyses already deleted
+        });
+
+      // 3. Packages
+      const tables2 = ["van_han_packages", "kieu_packages", "boi_que_packages", "luan_giai_packages"];
+      for (const table of tables2) {
+        const { count } = await adminClient.from(table).delete({ count: "exact" }).eq("user_id", uid);
+        deleted[table] = count ?? 0;
+      }
+
+      // 4. User features
+      const { count: featCount } = await adminClient
+        .from("user_features")
+        .delete({ count: "exact" })
+        .eq("user_id", uid);
+      deleted["user_features"] = featCount ?? 0;
+
+      // 5. Payments (last — other tables may FK to it)
+      const { count: payCount } = await adminClient.from("payments").delete({ count: "exact" }).eq("user_id", uid);
+      deleted["payments"] = payCount ?? 0;
+
+      const total = Object.values(deleted).reduce((a, b) => a + b, 0);
+
+      await logAdminAction(
+        adminClient,
+        user.email!,
+        adminRecord.id,
+        "reset_user",
+        "profiles",
+        uid,
+        { targetEmail: email, deleted, total },
+        req,
+      );
+
+      return new Response(JSON.stringify({ success: true, user: targetUser, deleted: { ...deleted, total } }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ============================================================
+    // SEARCH USERS
+    // ============================================================
     if (action === "search_users") {
       const { query } = params;
       const { data } = await adminClient
