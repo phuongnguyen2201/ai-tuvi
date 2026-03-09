@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 // ── SEC-004: Restricted CORS ──
 const ALLOWED_ORIGINS = [
@@ -55,6 +56,39 @@ serve(async (req) => {
     }
 
     const body = await req.json();
+
+    // ── SEC-014: Input validation ──
+    const InputSchema = z.object({
+      analysisType: z.enum(["luan_giai", "hexagram", "boi_kieu", "van_han"]),
+      stream: z.boolean().optional(),
+      // Hexagram
+      question: z.string().max(2000).optional(),
+      hexagramNumber: z.number().int().min(1).max(64).optional(),
+      hexagramName: z.string().max(100).optional(),
+      hexagramSymbol: z.string().max(20).optional(),
+      lines: z.array(z.string().max(10)).max(6).optional(),
+      // Boi Kieu
+      verse: z.string().max(2000).optional(),
+      fortune: z.string().max(50).optional(),
+      // Luan Giai
+      chartData: z.any().optional(),
+      fullChartData: z.any().optional(),
+      personName: z.string().max(200).optional(),
+      // Van Han
+      timeFrame: z.string().max(20).optional(),
+      period: z.string().max(50).optional(),
+      periodLabel: z.string().max(200).optional(),
+    });
+
+    const parsed = InputSchema.safeParse(body);
+    if (!parsed.success) {
+      console.warn("[analyze-chart] Invalid input:", parsed.error.issues);
+      return new Response(
+        JSON.stringify({ error: "Dữ liệu không hợp lệ", details: parsed.error.issues.map((i) => i.message) }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const { analysisType } = body;
 
     console.log("[analyze-chart] analysisType:", analysisType, "keys:", Object.keys(body));
