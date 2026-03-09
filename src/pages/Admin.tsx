@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bell, DollarSign, Users, CheckCircle, XCircle, Loader2, Plus, Search, Package } from "lucide-react";
+import { Bell, DollarSign, Users, CheckCircle, XCircle, Loader2, Plus, Package, RotateCcw } from "lucide-react";
 
 const ADMIN_EMAILS = ["phuongnguyen2201@gmail.com"];
 
@@ -20,10 +21,19 @@ const FEATURE_LABELS: Record<string, string> = {
   van_han_year: "Vận hạn năm",
   boi_que: "Bói quẻ",
   boi_kieu: "Bói Kiều",
+  luan_giai: "Luận Giải Lá Số",
   premium_monthly: "Premium tháng",
   premium_yearly: "Premium năm",
-  luan_giai: "Gói Luận Giải (3 lần - 39,000đ)",
 };
+
+const GRANTABLE_FEATURES = [
+  { value: "luan_giai", label: "Luận Giải Lá Số (3 lượt)" },
+  { value: "boi_kieu", label: "Bói Kiều (3 lượt)" },
+  { value: "boi_que", label: "Bói Quẻ (3 lượt)" },
+  { value: "van_han_week", label: "Vận Hạn Tuần (3 lượt)" },
+  { value: "van_han_month", label: "Vận Hạn Tháng (3 lượt)" },
+  { value: "van_han_year", label: "Vận Hạn Năm (3 lượt)" },
+];
 
 const formatCurrency = (amount: number) => amount.toLocaleString("vi-VN") + "đ";
 
@@ -38,7 +48,6 @@ const formatTime = (dateStr: string | null) => {
   });
 };
 
-// Helper: time ago for expired payments
 const timeAgo = (dateStr: string | null): string => {
   if (!dateStr) return "";
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -101,8 +110,14 @@ const Admin = () => {
 
   // Grant package state
   const [grantEmail, setGrantEmail] = useState("");
+  const [grantFeature, setGrantFeature] = useState("luan_giai");
   const [grantUses, setGrantUses] = useState(3);
   const [grantLoading, setGrantLoading] = useState(false);
+
+  // Reset user state
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetConfirm, setResetConfirm] = useState(false);
 
   const fetchAll = useCallback(async () => {
     setLoadingStats(true);
@@ -185,26 +200,19 @@ const Admin = () => {
     setActionLoading(null);
   };
 
-  const handleAddUses = async (pkg: LuanGiaiPackage) => {
-    setActionLoading(pkg.id);
-    try {
-      await callAdmin("add_luan_giai_uses", { packageId: pkg.id, addUses: 3 });
-      toast({ title: "✅ Đã thêm 3 lượt luận giải" });
-      fetchAll();
-    } catch (err: any) {
-      toast({ title: "Lỗi", description: err.message, variant: "destructive" });
-    }
-    setActionLoading(null);
-  };
-
   const handleGrantPackage = async () => {
-    if (!grantEmail.trim()) return;
+    if (!grantEmail.trim() || !grantFeature) return;
     setGrantLoading(true);
     try {
-      const result = await callAdmin("grant_luan_giai", { email: grantEmail.trim(), uses: grantUses });
+      const result = await callAdmin("grant_package", {
+        email: grantEmail.trim(),
+        feature: grantFeature,
+        uses: grantUses,
+      });
+      const featureLabel = GRANTABLE_FEATURES.find((f) => f.value === grantFeature)?.label || grantFeature;
       toast({
-        title: "✅ Đã cấp gói Luận Giải",
-        description: `Cấp ${grantUses} lượt cho ${result.user?.display_name || grantEmail}`,
+        title: "✅ Đã cấp gói",
+        description: `Cấp ${featureLabel} (${grantUses} lượt) cho ${result.user?.display_name || grantEmail}`,
       });
       setGrantEmail("");
       setGrantUses(3);
@@ -213,6 +221,28 @@ const Admin = () => {
       toast({ title: "Lỗi", description: err.message, variant: "destructive" });
     }
     setGrantLoading(false);
+  };
+
+  const handleResetUser = async () => {
+    if (!resetEmail.trim()) return;
+    if (!resetConfirm) {
+      setResetConfirm(true);
+      return;
+    }
+    setResetLoading(true);
+    try {
+      const result = await callAdmin("reset_user", { email: resetEmail.trim() });
+      toast({
+        title: "✅ Đã reset user",
+        description: `Reset ${result.deleted?.total || 0} records cho ${resetEmail}. User trở về trạng thái mới.`,
+      });
+      setResetEmail("");
+      setResetConfirm(false);
+      fetchAll();
+    } catch (err: any) {
+      toast({ title: "Lỗi", description: err.message, variant: "destructive" });
+    }
+    setResetLoading(false);
   };
 
   if (authLoading) {
@@ -227,7 +257,6 @@ const Admin = () => {
     return <Navigate to="/" replace />;
   }
 
-  // Split pending into active pending vs expired (for UI grouping)
   const activePending = pendingPayments.filter((p) => p.status === "pending");
   const expiredRecoverable = pendingPayments.filter((p) => p.status === "expired");
 
@@ -291,12 +320,12 @@ const Admin = () => {
               )}
             </TabsTrigger>
             <TabsTrigger value="luan_giai">Gói Luận Giải 📦</TabsTrigger>
+            <TabsTrigger value="tools">Công cụ 🔧</TabsTrigger>
             <TabsTrigger value="history">Lịch sử ✅</TabsTrigger>
           </TabsList>
 
           {/* =================== PENDING PAYMENTS =================== */}
           <TabsContent value="pending">
-            {/* Expired recoverable section */}
             {expiredRecoverable.length > 0 && (
               <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-950/20 p-3">
                 <p className="text-sm font-semibold text-amber-300 mb-2">
@@ -381,7 +410,6 @@ const Admin = () => {
               </div>
             )}
 
-            {/* Active pending payments */}
             <ScrollArea className="w-full">
               <div className="min-w-[700px]">
                 <Table>
@@ -459,48 +487,6 @@ const Admin = () => {
 
           {/* =================== LUAN GIAI PACKAGES =================== */}
           <TabsContent value="luan_giai">
-            {/* Grant package card */}
-            <Card className="bg-surface-2 border-border mb-4">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Plus className="h-4 w-4" /> Cấp gói Luận Giải
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Input
-                    placeholder="Email người dùng"
-                    value={grantEmail}
-                    onChange={(e) => setGrantEmail(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Input
-                    type="number"
-                    min={1}
-                    max={99}
-                    value={grantUses}
-                    onChange={(e) => setGrantUses(parseInt(e.target.value) || 3)}
-                    className="w-24"
-                    placeholder="Số lượt"
-                  />
-                  <Button
-                    onClick={handleGrantPackage}
-                    disabled={grantLoading || !grantEmail.trim()}
-                    className="whitespace-nowrap"
-                  >
-                    {grantLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <>
-                        <Package className="h-4 w-4 mr-1" /> Cấp gói
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Packages table */}
             <ScrollArea className="w-full">
               <div className="min-w-[700px]">
                 <Table>
@@ -552,44 +538,24 @@ const Admin = () => {
                               )}
                             </TableCell>
                             <TableCell>
-                              <div className="flex gap-1">
-                                {isPending && (
-                                  <Button
-                                    size="sm"
-                                    variant="default"
-                                    className="h-7 text-xs"
-                                    disabled={actionLoading === pkg.id}
-                                    onClick={() => handleConfirmLuanGiai(pkg)}
-                                  >
-                                    {actionLoading === pkg.id ? (
-                                      <Loader2 className="h-3 w-3 animate-spin" />
-                                    ) : (
-                                      <>
-                                        <CheckCircle className="h-3 w-3 mr-1" />
-                                        Xác nhận
-                                      </>
-                                    )}
-                                  </Button>
-                                )}
-                                {!isPending && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-7 text-xs"
-                                    disabled={actionLoading === pkg.id}
-                                    onClick={() => handleAddUses(pkg)}
-                                  >
-                                    {actionLoading === pkg.id ? (
-                                      <Loader2 className="h-3 w-3 animate-spin" />
-                                    ) : (
-                                      <>
-                                        <Plus className="h-3 w-3 mr-1" />
-                                        Thêm 3 lượt
-                                      </>
-                                    )}
-                                  </Button>
-                                )}
-                              </div>
+                              {isPending && (
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  className="h-7 text-xs"
+                                  disabled={actionLoading === pkg.id}
+                                  onClick={() => handleConfirmLuanGiai(pkg)}
+                                >
+                                  {actionLoading === pkg.id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <CheckCircle className="h-3 w-3 mr-1" />
+                                      Xác nhận
+                                    </>
+                                  )}
+                                </Button>
+                              )}
                             </TableCell>
                           </TableRow>
                         );
@@ -599,6 +565,114 @@ const Admin = () => {
                 </Table>
               </div>
             </ScrollArea>
+          </TabsContent>
+
+          {/* =================== TOOLS =================== */}
+          <TabsContent value="tools">
+            <div className="space-y-4">
+              {/* Grant package */}
+              <Card className="bg-surface-2 border-border">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <Package className="h-4 w-4" /> Cấp gói cho user
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Input
+                        placeholder="Email người dùng"
+                        value={grantEmail}
+                        onChange={(e) => setGrantEmail(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Select value={grantFeature} onValueChange={setGrantFeature}>
+                        <SelectTrigger className="w-full sm:w-[220px]">
+                          <SelectValue placeholder="Chọn tính năng" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {GRANTABLE_FEATURES.map((f) => (
+                            <SelectItem key={f.value} value={f.value}>
+                              {f.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={99}
+                        value={grantUses}
+                        onChange={(e) => setGrantUses(parseInt(e.target.value) || 3)}
+                        className="w-20"
+                        placeholder="Lượt"
+                      />
+                    </div>
+                    <Button
+                      onClick={handleGrantPackage}
+                      disabled={grantLoading || !grantEmail.trim()}
+                      className="w-full sm:w-auto"
+                    >
+                      {grantLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Plus className="h-4 w-4 mr-1" /> Cấp gói
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Reset user */}
+              <Card className="bg-surface-2 border-destructive/30">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2 text-destructive">
+                    <RotateCcw className="h-4 w-4" /> Reset user (cho test)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Xóa toàn bộ analyses, packages, payments, user_features — user trở về trạng thái mới hoàn toàn.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Input
+                      placeholder="Email user cần reset"
+                      value={resetEmail}
+                      onChange={(e) => {
+                        setResetEmail(e.target.value);
+                        setResetConfirm(false);
+                      }}
+                      className="flex-1"
+                    />
+                    <Button
+                      variant={resetConfirm ? "destructive" : "outline"}
+                      onClick={handleResetUser}
+                      disabled={resetLoading || !resetEmail.trim()}
+                      className="whitespace-nowrap"
+                    >
+                      {resetLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : resetConfirm ? (
+                        <>
+                          <RotateCcw className="h-4 w-4 mr-1" /> Xác nhận RESET
+                        </>
+                      ) : (
+                        <>
+                          <RotateCcw className="h-4 w-4 mr-1" /> Reset
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  {resetConfirm && (
+                    <p className="text-xs text-destructive mt-2 font-medium">
+                      ⚠️ Thao tác không thể hoàn tác! Nhấn "Xác nhận RESET" lần nữa để thực hiện.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* =================== HISTORY =================== */}
