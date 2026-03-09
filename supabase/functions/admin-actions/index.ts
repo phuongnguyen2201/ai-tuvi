@@ -62,7 +62,6 @@ serve(async (req) => {
 
     // ============================================================
     // SEC-002 FIX #2: Server-side admin check via DATABASE
-    // Thay vì hardcode ADMIN_EMAILS, check bảng admin_users
     // ============================================================
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -158,13 +157,16 @@ serve(async (req) => {
     }
 
     // ============================================================
-    // GET PENDING
+    // GET PENDING — includes expired payments from last 7 days
     // ============================================================
     if (action === "get_pending") {
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
       const { data } = await adminClient
         .from("payments")
         .select("*")
-        .eq("status", "pending")
+        .in("status", ["pending", "expired"])
+        .gte("created_at", sevenDaysAgo)
         .order("created_at", { ascending: false });
 
       const userIds = [...new Set((data ?? []).map((p: any) => p.user_id).filter(Boolean))];
@@ -233,18 +235,20 @@ serve(async (req) => {
 
     // ══════════════════════════════════════════════════════════════
     // VERIFY — Admin confirms a payment → create feature packages
+    // Now accepts both "pending" and "expired" payments
     // ══════════════════════════════════════════════════════════════
     if (action === "verify") {
       const { paymentId, userId, feature, expiresAt, paymentRef } = params;
 
-      // 1) Mark payment as verified
-      const { error: updateErr } = await adminClient
+      // 1) Mark payment as verified (accept pending OR expired)
+      const { error: updateErr, count } = await adminClient
         .from("payments")
         .update({
           status: "verified",
           verified_at: new Date().toISOString(),
           verified_by: user.id,
         })
+        .in("status", ["pending", "expired"])
         .eq("id", paymentId);
 
       if (updateErr) {
@@ -280,6 +284,7 @@ serve(async (req) => {
               amount: 39000,
               payment_status: "confirmed",
               confirmed_at: new Date().toISOString(),
+              payment_id: paymentId,
             })
             .select("id")
             .single();
@@ -371,7 +376,7 @@ serve(async (req) => {
         "verify",
         "payments",
         paymentId,
-        { userId, feature, paymentId },
+        { userId, feature, paymentId, wasExpired: true },
         req,
       );
 
@@ -381,7 +386,7 @@ serve(async (req) => {
     }
 
     // ============================================================
-    // REJECT
+    // REJECT — now also works for expired payments
     // ============================================================
     if (action === "reject") {
       await adminClient
@@ -391,6 +396,7 @@ serve(async (req) => {
           verified_at: new Date().toISOString(),
           verified_by: user.id,
         })
+        .in("status", ["pending", "expired"])
         .eq("id", params.paymentId);
 
       await logAdminAction(
