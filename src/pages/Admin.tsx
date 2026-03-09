@@ -8,14 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bell, DollarSign, Users, CheckCircle, XCircle, Loader2, Plus, Search, Package } from "lucide-react";
 
@@ -32,8 +25,7 @@ const FEATURE_LABELS: Record<string, string> = {
   luan_giai: "Gói Luận Giải (3 lần - 39,000đ)",
 };
 
-const formatCurrency = (amount: number) =>
-  amount.toLocaleString("vi-VN") + "đ";
+const formatCurrency = (amount: number) => amount.toLocaleString("vi-VN") + "đ";
 
 const formatTime = (dateStr: string | null) => {
   if (!dateStr) return "—";
@@ -44,6 +36,17 @@ const formatTime = (dateStr: string | null) => {
     hour: "2-digit",
     minute: "2-digit",
   });
+};
+
+// Helper: time ago for expired payments
+const timeAgo = (dateStr: string | null): string => {
+  if (!dateStr) return "";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const hours = Math.floor(diff / 3600000);
+  if (hours < 1) return "vừa xong";
+  if (hours < 24) return `${hours}h trước`;
+  const days = Math.floor(hours / 24);
+  return `${days} ngày trước`;
 };
 
 interface PaymentRow {
@@ -224,14 +227,16 @@ const Admin = () => {
     return <Navigate to="/" replace />;
   }
 
+  // Split pending into active pending vs expired (for UI grouping)
+  const activePending = pendingPayments.filter((p) => p.status === "pending");
+  const expiredRecoverable = pendingPayments.filter((p) => p.status === "expired");
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container max-w-5xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl font-display font-bold text-foreground">
-            ⚙️ Admin Panel - Tử Vi App
-          </h1>
+          <h1 className="text-xl font-display font-bold text-foreground">⚙️ Admin Panel - Tử Vi App</h1>
           <span className="text-xs text-muted-foreground">{user.email}</span>
         </div>
 
@@ -244,9 +249,10 @@ const Admin = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold text-foreground">
-                {loadingStats ? "..." : pendingCount}
-              </p>
+              <p className="text-2xl font-bold text-foreground">{loadingStats ? "..." : pendingCount}</p>
+              {expiredRecoverable.length > 0 && (
+                <p className="text-xs text-amber-400 mt-1">+ {expiredRecoverable.length} expired cần xử lý</p>
+              )}
             </CardContent>
           </Card>
           <Card className="bg-surface-2 border-border">
@@ -268,9 +274,7 @@ const Admin = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold text-foreground">
-                {loadingStats ? "..." : activeUsers}
-              </p>
+              <p className="text-2xl font-bold text-foreground">{loadingStats ? "..." : activeUsers}</p>
             </CardContent>
           </Card>
         </div>
@@ -278,13 +282,106 @@ const Admin = () => {
         {/* Tabs */}
         <Tabs defaultValue="pending">
           <TabsList className="mb-4 flex-wrap h-auto gap-1">
-            <TabsTrigger value="pending">Chờ xác nhận 🔔</TabsTrigger>
+            <TabsTrigger value="pending">
+              Chờ xác nhận 🔔
+              {expiredRecoverable.length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-bold">
+                  +{expiredRecoverable.length}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="luan_giai">Gói Luận Giải 📦</TabsTrigger>
             <TabsTrigger value="history">Lịch sử ✅</TabsTrigger>
           </TabsList>
 
           {/* =================== PENDING PAYMENTS =================== */}
           <TabsContent value="pending">
+            {/* Expired recoverable section */}
+            {expiredRecoverable.length > 0 && (
+              <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-950/20 p-3">
+                <p className="text-sm font-semibold text-amber-300 mb-2">
+                  ⏰ Giao dịch hết hạn — có thể user đã CK nhưng webhook không nhận được
+                </p>
+                <p className="text-xs text-amber-200/60 mb-3">
+                  Kiểm tra sao kê ngân hàng rồi xác nhận thủ công nếu đã nhận tiền.
+                </p>
+                <ScrollArea className="w-full">
+                  <div className="min-w-[700px]">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Thời gian</TableHead>
+                          <TableHead>Họ tên</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Tính năng</TableHead>
+                          <TableHead>Số tiền</TableHead>
+                          <TableHead>Nội dung CK</TableHead>
+                          <TableHead>Thao tác</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {expiredRecoverable.map((p) => (
+                          <TableRow key={p.id} className="hover:bg-amber-950/30">
+                            <TableCell className="text-xs">
+                              <div>{formatTime(p.created_at)}</div>
+                              <span className="text-amber-400 text-[10px]">Expired {timeAgo(p.created_at)}</span>
+                            </TableCell>
+                            <TableCell className="text-sm">{p.display_name || "—"}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">{p.user_email || "—"}</TableCell>
+                            <TableCell>
+                              <div className="flex flex-col gap-1">
+                                <Badge variant="outline" className="text-xs">
+                                  {FEATURE_LABELS[p.feature_unlocked ?? p.plan] ?? p.plan}
+                                </Badge>
+                                <Badge variant="destructive" className="text-[10px]">
+                                  ⏰ Hết hạn
+                                </Badge>
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-medium">{formatCurrency(p.amount)}</TableCell>
+                            <TableCell className="text-xs whitespace-normal break-words">
+                              {p.transfer_content || "—"}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  className="h-7 text-xs bg-amber-600 hover:bg-amber-500"
+                                  disabled={actionLoading === p.id}
+                                  onClick={() => handleVerify(p)}
+                                >
+                                  {actionLoading === p.id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <CheckCircle className="h-3 w-3 mr-1" />
+                                      Xác nhận
+                                    </>
+                                  )}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="h-7 text-xs"
+                                  disabled={actionLoading === p.id}
+                                  onClick={() => handleReject(p)}
+                                >
+                                  <XCircle className="h-3 w-3 mr-1" />
+                                  Bỏ qua
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
+
+            {/* Active pending payments */}
             <ScrollArea className="w-full">
               <div className="min-w-[700px]">
                 <Table>
@@ -300,14 +397,14 @@ const Admin = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pendingPayments.length === 0 ? (
+                    {activePending.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                           Không có giao dịch chờ xác nhận
                         </TableCell>
                       </TableRow>
                     ) : (
-                      pendingPayments.map((p) => (
+                      activePending.map((p) => (
                         <TableRow key={p.id} className="hover:bg-accent/50">
                           <TableCell className="text-xs">{formatTime(p.created_at)}</TableCell>
                           <TableCell className="text-sm">{p.display_name || "—"}</TableCell>
@@ -318,7 +415,9 @@ const Admin = () => {
                             </Badge>
                           </TableCell>
                           <TableCell className="font-medium">{formatCurrency(p.amount)}</TableCell>
-                          <TableCell className="text-xs whitespace-normal break-words">{p.transfer_content || "—"}</TableCell>
+                          <TableCell className="text-xs whitespace-normal break-words">
+                            {p.transfer_content || "—"}
+                          </TableCell>
                           <TableCell>
                             <div className="flex gap-1">
                               <Button
@@ -331,7 +430,10 @@ const Admin = () => {
                                 {actionLoading === p.id ? (
                                   <Loader2 className="h-3 w-3 animate-spin" />
                                 ) : (
-                                  <><CheckCircle className="h-3 w-3 mr-1" />Xác nhận</>
+                                  <>
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    Xác nhận
+                                  </>
                                 )}
                               </Button>
                               <Button
@@ -341,7 +443,8 @@ const Admin = () => {
                                 disabled={actionLoading === p.id}
                                 onClick={() => handleReject(p)}
                               >
-                                <XCircle className="h-3 w-3 mr-1" />Từ chối
+                                <XCircle className="h-3 w-3 mr-1" />
+                                Từ chối
                               </Button>
                             </div>
                           </TableCell>
@@ -388,7 +491,9 @@ const Admin = () => {
                     {grantLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      <><Package className="h-4 w-4 mr-1" /> Cấp gói</>
+                      <>
+                        <Package className="h-4 w-4 mr-1" /> Cấp gói
+                      </>
                     )}
                   </Button>
                 </div>
@@ -459,7 +564,10 @@ const Admin = () => {
                                     {actionLoading === pkg.id ? (
                                       <Loader2 className="h-3 w-3 animate-spin" />
                                     ) : (
-                                      <><CheckCircle className="h-3 w-3 mr-1" />Xác nhận</>
+                                      <>
+                                        <CheckCircle className="h-3 w-3 mr-1" />
+                                        Xác nhận
+                                      </>
                                     )}
                                   </Button>
                                 )}
@@ -474,7 +582,10 @@ const Admin = () => {
                                     {actionLoading === pkg.id ? (
                                       <Loader2 className="h-3 w-3 animate-spin" />
                                     ) : (
-                                      <><Plus className="h-3 w-3 mr-1" />Thêm 3 lượt</>
+                                      <>
+                                        <Plus className="h-3 w-3 mr-1" />
+                                        Thêm 3 lượt
+                                      </>
                                     )}
                                   </Button>
                                 )}
