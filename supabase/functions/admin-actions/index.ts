@@ -521,7 +521,6 @@ serve(async (req) => {
     if (action === "reset_user") {
       const { email } = params;
 
-      // Find user
       const { data: profiles } = await adminClient
         .from("profiles")
         .select("id, email, display_name")
@@ -538,25 +537,17 @@ serve(async (req) => {
 
       const deleted: Record<string, number> = {};
 
-      // 1. Analyses (FK references packages)
-      const tables1 = ["van_han_analyses", "kieu_analyses", "boi_que_analyses", "chart_analyses"];
-      for (const table of tables1) {
+      // 1. Nullify FK: chart_analyses.payment_id → payments
+      await adminClient.from("chart_analyses").update({ payment_id: null }).eq("user_id", uid);
+
+      // 2. Analyses
+      for (const table of ["van_han_analyses", "kieu_analyses", "boi_que_analyses", "chart_analyses"]) {
         const { count } = await adminClient.from(table).delete({ count: "exact" }).eq("user_id", uid);
         deleted[table] = count ?? 0;
       }
 
-      // 2. Nullify payment_id FK in chart_analyses (already deleted above, but safety)
-      await adminClient
-        .rpc("exec_sql", {
-          query: `UPDATE chart_analyses SET payment_id = NULL WHERE payment_id IN (SELECT id FROM payments WHERE user_id = '${uid}')`,
-        })
-        .catch(() => {
-          // If rpc not available, skip — chart_analyses already deleted
-        });
-
       // 3. Packages
-      const tables2 = ["van_han_packages", "kieu_packages", "boi_que_packages", "luan_giai_packages"];
-      for (const table of tables2) {
+      for (const table of ["van_han_packages", "kieu_packages", "boi_que_packages", "luan_giai_packages"]) {
         const { count } = await adminClient.from(table).delete({ count: "exact" }).eq("user_id", uid);
         deleted[table] = count ?? 0;
       }
@@ -568,7 +559,7 @@ serve(async (req) => {
         .eq("user_id", uid);
       deleted["user_features"] = featCount ?? 0;
 
-      // 5. Payments (last — other tables may FK to it)
+      // 5. Payments last
       const { count: payCount } = await adminClient.from("payments").delete({ count: "exact" }).eq("user_id", uid);
       deleted["payments"] = payCount ?? 0;
 
