@@ -188,17 +188,15 @@ const BoiKieu = () => {
       } = await supabase.auth.getUser();
       if (u) {
         try {
-          await supabase
-            .from("kieu_analyses")
-            .insert({
-              user_id: u.id,
-              package_id: kieuPackage?.id || null,
-              verse_id: selectedVerse.id,
-              verse: selectedVerse.verse,
-              fortune: selectedVerse.fortune,
-              question,
-              analysis_result: fullText,
-            });
+          await supabase.from("kieu_analyses").insert({
+            user_id: u.id,
+            package_id: kieuPackage?.id || null,
+            verse_id: selectedVerse.id,
+            verse: selectedVerse.verse,
+            fortune: selectedVerse.fortune,
+            question,
+            analysis_result: fullText,
+          });
         } catch (saveErr) {
           console.warn("[BoiKieu] Save error:", saveErr);
         }
@@ -534,7 +532,7 @@ const BoiKieu = () => {
       )}
 
       {/* Exhausted banner */}
-      {!canGieoQue && everPurchased && !verse && (
+      {!canGieoQue && everPurchased && (
         <div className="rounded-2xl p-4 bg-gradient-to-r from-amber-950/60 to-orange-950/40 border border-amber-500/30">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
