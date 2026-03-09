@@ -142,7 +142,11 @@ const Index = () => {
           {/* Footer */}
           <footer className="py-6 text-center space-y-2">
             <p className="text-xs text-muted-foreground">© 2024 Tử Vi Việt Nam</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground flex items-center justify-center gap-2">
+              <a href="/dieu-khoan-su-dung" className="hover:text-gold transition-colors">
+                Điều Khoản Sử Dụng
+              </a>
+              <span>·</span>
               <a href="/chinh-sach-bao-mat" className="hover:text-gold transition-colors">
                 Chính Sách Bảo Mật
               </a>
