@@ -8,8 +8,8 @@ const ALLOWED_ORIGINS = [
   "https://ai-tuvi.lovable.app",
   "https://preview--ai-tuvi.lovable.app",
   // Thêm custom domain khi có:
-  // "https://tuvi.vn",
-  // "https://www.tuvi.vn",
+  "https://tuviapp.vn",
+  "https://www.tuviapp.vn",
 ];
 
 function getCorsHeaders(req: Request) {
