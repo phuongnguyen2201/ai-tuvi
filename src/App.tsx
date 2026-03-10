@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import Index from "./pages/Index";
 import TuViIztroPage from "./pages/TuViIztroPage";
 import Compatibility from "./pages/Compatibility";
@@ -27,7 +28,9 @@ import TestChartPage from "./components/test-chart-page";
 
 const queryClient = new QueryClient();
 
-const App = () => (
+const AppRoutes = () => {
+  usePageTitle();
+  return (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
       <AuthProvider>
