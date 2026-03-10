@@ -31,6 +31,31 @@ const queryClient = new QueryClient();
 const AppRoutes = () => {
   usePageTitle();
   return (
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/auth" element={<Auth />} />
+      <Route path="/lap-la-so" element={<TuViIztroPage />} />
+      <Route path="/tuoi-hop" element={<Compatibility />} />
+      <Route path="/xem-ngay" element={<DayAnalysis />} />
+      <Route path="/boi-kieu" element={<BoiKieu />} />
+      <Route path="/boi-que" element={<BoiQue />} />
+      <Route path="/van-han" element={<VanHan />} />
+      
+      <Route path="/admin-tuvi-2026" element={<Admin />} />
+      <Route path="/profile" element={<Profile />} />
+      <Route path="/chinh-sach-bao-mat" element={<PrivacyPolicy />} />
+      <Route path="/dieu-khoan-su-dung" element={<DieuKhoanSuDung />} />
+      <Route path="/test-nguhanh" element={<NguHanhTest />} />
+      <Route path="/test-compatibility" element={<CompatibilityTest />} />
+      <Route path="/test" element={<Test />} />
+      <Route path="/test-tuvi" element={<TuViTest />} />
+      <Route path="/test-chart" element={<TestChartPage />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+};
+
+const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
       <AuthProvider>
@@ -38,27 +63,7 @@ const AppRoutes = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/lap-la-so" element={<TuViIztroPage />} />
-              <Route path="/tuoi-hop" element={<Compatibility />} />
-              <Route path="/xem-ngay" element={<DayAnalysis />} />
-              <Route path="/boi-kieu" element={<BoiKieu />} />
-              <Route path="/boi-que" element={<BoiQue />} />
-              <Route path="/van-han" element={<VanHan />} />
-              
-              <Route path="/admin-tuvi-2026" element={<Admin />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/chinh-sach-bao-mat" element={<PrivacyPolicy />} />
-              <Route path="/dieu-khoan-su-dung" element={<DieuKhoanSuDung />} />
-              <Route path="/test-nguhanh" element={<NguHanhTest />} />
-              <Route path="/test-compatibility" element={<CompatibilityTest />} />
-              <Route path="/test" element={<Test />} />
-              <Route path="/test-tuvi" element={<TuViTest />} />
-              <Route path="/test-chart" element={<TestChartPage />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <AppRoutes />
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
