@@ -4,7 +4,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // ============================================================
 // CORS
 // ============================================================
-const ALLOWED_ORIGINS = ["https://ai-tuvi.lovable.app", "https://preview--ai-tuvi.lovable.app"];
+const ALLOWED_ORIGINS = [
+  "https://ai-tuvi.lovable.app",
+  "https://preview--ai-tuvi.lovable.app",
+  "https://tuviapp.vn",
+  "https://www.tuviapp.vn",
+];
 
 function getCorsHeaders(req: Request) {
   const origin = req.headers.get("origin") ?? "";
