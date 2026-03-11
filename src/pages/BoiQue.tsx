@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { hapticImpact, hapticSuccess } from "@/utils/native";
 import {
   Share2,
   RotateCcw,
@@ -913,6 +914,7 @@ const BoiQue = () => {
       setShowPayment(true);
       return;
     }
+    hapticImpact();
     setIsAnimating(true);
     setResult(null);
     setAiResult(null);
@@ -938,6 +940,7 @@ const BoiQue = () => {
             setHasChanging(hexData.hasChanging);
             setChangingLineIndexes(hexData.changingLines.filter((l) => l.isChanging).map((l) => l.index));
             setIsAnimating(false);
+            hapticSuccess();
             playResultReveal();
             navigator.vibrate?.([20, 40, 20, 40, 50]);
             handleAnalyze(queData, [...revealLines], hexData.changedHexNum);

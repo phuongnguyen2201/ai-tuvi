@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Sparkles, RefreshCw, BookOpen, Share2, Loader2, Lock, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
+import { hapticImpact, hapticSuccess } from "@/utils/native";
 import { useAuth } from "@/contexts/AuthContext";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 
@@ -156,6 +157,7 @@ const BoiKieu = () => {
       setShowPayment(true);
       return;
     }
+    hapticImpact();
     setIsShaking(true);
     setResult(null);
     setVerse(null);
@@ -182,6 +184,7 @@ const BoiKieu = () => {
         },
       );
       if (!fullText) throw new Error("Không nhận được kết quả.");
+      hapticSuccess();
       setResult(fullText);
       const {
         data: { user: u },

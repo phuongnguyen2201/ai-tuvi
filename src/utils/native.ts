@@ -2,6 +2,7 @@ import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { Share } from '@capacitor/share';
 import { App } from '@capacitor/app';
+import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import type { NavigateFunction } from 'react-router-dom';
 
 export const openExternalLink = async (url: string) => {
@@ -37,4 +38,16 @@ export const setupBackButton = (navigate: NavigateFunction) => {
   return () => {
     listener.then((handle) => handle.remove());
   };
+};
+
+export const hapticImpact = async () => {
+  if (Capacitor.isNativePlatform()) {
+    await Haptics.impact({ style: ImpactStyle.Medium });
+  }
+};
+
+export const hapticSuccess = async () => {
+  if (Capacitor.isNativePlatform()) {
+    await Haptics.notification({ type: NotificationType.Success });
+  }
 };
