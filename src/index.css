@@ -345,3 +345,26 @@
   background: none !important;
   background-color: transparent !important;
 }
+
+/* Capacitor safe area insets */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+body {
+  padding-top: var(--sat);
+  padding-bottom: var(--sab);
+  padding-left: var(--sal);
+  padding-right: var(--sar);
+}
+
+.mobile-safe-top {
+  padding-top: max(1rem, var(--sat));
+}
+
+.mobile-safe-bottom {
+  padding-bottom: max(1rem, var(--sab));
+}
