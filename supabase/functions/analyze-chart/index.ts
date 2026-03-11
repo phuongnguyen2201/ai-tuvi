@@ -10,6 +10,8 @@ const ALLOWED_ORIGINS = [
   // Thêm custom domain khi có:
   "https://tuviapp.vn",
   "https://www.tuviapp.vn",
+  "capacitor://localhost",
+  "http://localhost",
 ];
 
 function getCorsHeaders(req: Request) {
