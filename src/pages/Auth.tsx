@@ -71,8 +71,9 @@ const Auth = () => {
               display_name: fullName.trim(),
             } as any);
           }
-          toast.success("Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.");
-          setIsLogin(true);
+          toast.success("Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.", { duration: 10000 });
+          setSignupEmail(email);
+          setSignupSuccess(true);
           setEmail("");
           setPassword("");
           setFullName("");
