@@ -12,6 +12,7 @@ const ALLOWED_ORIGINS = [
   "https://www.tuviapp.vn",
   "capacitor://localhost",
   "http://localhost",
+  "https://localhost",
 ];
 
 function getCorsHeaders(req: Request) {
