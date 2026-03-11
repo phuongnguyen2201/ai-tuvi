@@ -17,6 +17,8 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState("");
+  const [signupSuccess, setSignupSuccess] = useState(false);
+  const [signupEmail, setSignupEmail] = useState("");
   const { user, loading: authLoading, signIn } = useAuth();
   const navigate = useNavigate();
   const searchParams = new URLSearchParams(window.location.search);
