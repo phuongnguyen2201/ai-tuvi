@@ -103,6 +103,29 @@ const Auth = () => {
           <Logo size="lg" />
         </div>
 
+        {signupSuccess ? (
+          <div className="bg-surface-2/80 backdrop-blur-xl rounded-2xl border-2 border-green-500/50 p-8 shadow-2xl">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <CheckCircle2 className="w-16 h-16 text-green-500" />
+              <h2 className="font-display text-2xl text-foreground">Đăng ký thành công!</h2>
+              <p className="text-muted-foreground leading-relaxed">
+                Chúng tôi đã gửi email xác nhận đến <span className="font-semibold text-foreground">{signupEmail}</span>. 
+                Vui lòng kiểm tra hộp thư (và thư mục Spam) rồi nhấn vào link xác nhận để hoàn tất đăng ký.
+              </p>
+              <Button
+                variant="gold"
+                size="lg"
+                className="mt-4"
+                onClick={() => {
+                  setSignupSuccess(false);
+                  setIsLogin(true);
+                }}
+              >
+                Quay lại đăng nhập
+              </Button>
+            </div>
+          </div>
+        ) : (
         <div className="bg-surface-2/80 backdrop-blur-xl rounded-2xl border border-gold/20 p-8 shadow-2xl">
           <div className="text-center mb-6">
             <h1 className="font-display text-2xl text-foreground mb-2">
