@@ -26,6 +26,7 @@ import CompatibilityTest from "./components/CompatibilityTest";
 import Test from "./pages/Test";
 import TuViTest from "./pages/TuViTest";
 import TestChartPage from "./components/test-chart-page";
+import NetworkStatus from "./components/NetworkStatus";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +66,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <NetworkStatus />
           <Router>
             <AppRoutes />
           </Router>
