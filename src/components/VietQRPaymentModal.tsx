@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
-import { generateVietQRUrl, generateTransferContent, getFeatureLabel, PRICING, type FeatureKey } from "@/utils/vietqr";
+import { generateVietQRUrl, generateTransferContent, getFeatureLabel, generateBankDeepLink, PRICING, type FeatureKey } from "@/utils/vietqr";
 import { Copy, Check, Loader2, ExternalLink, Sparkles, ShieldAlert } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { openExternalLink } from "@/utils/native";
+import { Capacitor } from "@capacitor/core";
 
 type Step = "select_plan" | "show_qr" | "pending" | "processing" | "success" | "blocked";
 
@@ -603,6 +604,15 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
           <img src={qrUrl} alt="VietQR Payment" className="w-52 h-52 object-contain" loading="eager" />
         </div>
       </div>
+      {Capacitor.isNativePlatform() && (
+        <Button
+          variant="goldOutline"
+          className="w-full"
+          onClick={() => openExternalLink(generateBankDeepLink(activeFeature, transferContent))}
+        >
+          🏦 Mở app ngân hàng
+        </Button>
+      )}
       <div className="rounded-xl bg-muted/50 border border-border p-4 space-y-2 text-sm">
         <div className="flex justify-between">
           <span className="text-muted-foreground">Ngân hàng</span>

@@ -64,3 +64,16 @@ export function getFeatureLabel(feature: FeatureKey): string {
   };
   return labels[feature];
 }
+
+export function generateBankDeepLink(feature: FeatureKey, transferContent: string): string {
+  const amount = PRICING[feature];
+  const { accountNo, accountName } = BANK_CONFIG;
+
+  return (
+    `https://dl.vietqr.io/pay?bankId=VPBank` +
+    `&accountNo=${accountNo}` +
+    `&amount=${amount}` +
+    `&addInfo=${encodeURIComponent(transferContent)}` +
+    `&accountName=${encodeURIComponent(accountName)}`
+  );
+}
