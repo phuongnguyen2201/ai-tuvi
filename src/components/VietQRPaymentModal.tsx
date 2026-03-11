@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { generateVietQRUrl, generateTransferContent, getFeatureLabel, PRICING, type FeatureKey } from "@/utils/vietqr";
 import { Copy, Check, Loader2, ExternalLink, Sparkles, ShieldAlert } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { openExternalLink } from "@/utils/native";
 
 type Step = "select_plan" | "show_qr" | "pending" | "processing" | "success" | "blocked";
 
@@ -659,7 +660,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
         variant="goldOutline"
         size="default"
         className="mt-4"
-        onClick={() => window.open("https://zalo.me/0702127233", "_blank")}
+        onClick={() => openExternalLink("https://zalo.me/0702127233")}
       >
         <ExternalLink className="w-4 h-4 mr-1" />
         Liên hệ Zalo hỗ trợ
@@ -738,7 +739,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
         variant="goldOutline"
         size="default"
         className="mt-4"
-        onClick={() => window.open("https://zalo.me/0702127233", "_blank")}
+        onClick={() => openExternalLink("https://zalo.me/0702127233")}
       >
         <ExternalLink className="w-4 h-4 mr-1" />
         Liên hệ Zalo hỗ trợ
