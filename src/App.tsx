@@ -2,7 +2,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, MemoryRouter, Routes, Route } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -27,6 +28,8 @@ import TuViTest from "./pages/TuViTest";
 import TestChartPage from "./components/test-chart-page";
 
 const queryClient = new QueryClient();
+
+const Router = Capacitor.isNativePlatform() ? MemoryRouter : BrowserRouter;
 
 const AppRoutes = () => {
   usePageTitle();
@@ -62,9 +65,9 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
+          <Router>
             <AppRoutes />
-          </BrowserRouter>
+          </Router>
         </TooltipProvider>
       </AuthProvider>
     </ThemeProvider>

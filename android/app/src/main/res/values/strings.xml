@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Tử Vi Việt Nam</string>
+    <string name="title_activity_main">Tử Vi Việt Nam</string>
+    <string name="package_name">vn.tuviapp.app</string>
+    <string name="custom_url_scheme">vn.tuviapp.app</string>
+</resources>
