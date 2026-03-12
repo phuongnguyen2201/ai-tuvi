@@ -1141,6 +1141,7 @@ export default function TuViIztroPage() {
                 </div>
               </CardContent>
             </Card>
+            )}
           </div>
         )}
 
