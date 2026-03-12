@@ -297,11 +297,8 @@ export function createTuViChart(input: BirthInput): TuViChartData {
     : astro.bySolar(dateStr, input.hour, input.gender, true, "vi-VN");
 
   // Debug delete after debug
-  console.log("[TuViService] Gender input:", input.gender, "→ iztro gender:", iztroGender);
-  console.log(
-    "[TuViService] Palaces stage data:",
-    (astrolabe.palaces || []).map((p) => ({ name: p.name, stage: p.stage, ages: p.ages })),
-  );
+  console.log("[DEBUG] gender:", input.gender, "iztroGender:", iztroGender);
+  console.log("[DEBUG] stages:", JSON.stringify(astrolabe.palaces?.map((p: any) => ({ n: p.name, s: p.stage }))));
 
   // Debug delete after debug
 
