@@ -355,8 +355,13 @@ function PalaceCell({ palace, isActiveDaiHan, onClick }: PalaceCellProps) {
     >
       {/* Đại Hạn */}
       {palace.stage && (
-        <div className="text-[10px] text-center text-muted-foreground bg-muted/50 rounded px-1 py-0.5 mb-1">
+        <div className={`text-[10px] text-center rounded px-1 py-0.5 mb-1 ${
+          isActiveDaiHan
+            ? 'bg-teal-500/30 text-teal-200 font-semibold'
+            : 'text-muted-foreground bg-muted/50'
+        }`}>
           {palace.stage.heavenlyStem} {palace.stage.range[0]}-{palace.stage.range[1]}
+          {isActiveDaiHan && ' ◀'}
         </div>
       )}
 
