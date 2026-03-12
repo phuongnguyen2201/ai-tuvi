@@ -592,10 +592,13 @@ export function TuViChartIztro({ chart }: Props) {
                   );
                 }
                 
+                const isActive = !!(palace.stage && currentAge >= palace.stage.range[0] && currentAge <= palace.stage.range[1]);
+                
                 return (
                   <PalaceCell 
                     key={`palace-${branch}`} 
-                    palace={palace} 
+                    palace={palace}
+                    isActiveDaiHan={isActive}
                     onClick={() => setSelectedPalace(palace)}
                   />
                 );
