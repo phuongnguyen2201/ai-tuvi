@@ -250,11 +250,11 @@ function convertPalace(palace: any): PalaceInfo {
     boshi12: palace.boshi12, // Bác Sĩ 12 thần
     jiangqian12: palace.jiangqian12, // Tướng Tiền 12 thần
     suiqian12: palace.suiqian12, // Tuế Tiền 12 thần
-    stage: palace.stage
+    stage: palace.decadal
       ? {
           // Đại Hạn
-          range: palace.stage.range,
-          heavenlyStem: palace.stage.heavenlyStem,
+          range: palace.decadal.range,
+          heavenlyStem: palace.decadal.heavenlyStem,
         }
       : undefined,
     ages: palace.ages, // Tiểu Hạn
