@@ -23,6 +23,9 @@ const Auth = () => {
   const [nameError, setNameError] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [forgotEmail, setForgotEmail] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
+  const [emailError, setEmailError] = useState("");
   const { user, loading: authLoading, signIn } = useAuth();
   const navigate = useNavigate();
   const searchParams = new URLSearchParams(window.location.search);
@@ -43,18 +46,34 @@ const Auth = () => {
     }
   }, [user, authLoading, redirectTo, navigate, view]);
 
+  const validateEmail = (value: string) => {
+    if (!value) return "";
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(value) ? "" : "Email không hợp lệ";
+  };
+
+  const clearInlineErrors = () => {
+    setPasswordError("");
+    setConfirmPasswordError("");
+    setEmailError("");
+    setNameError("");
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    clearInlineErrors();
+    const eErr = validateEmail(email);
+    if (eErr) { setEmailError(eErr); return; }
     setLoading(true);
     try {
       const { error } = await signIn(email, password);
       if (error) {
-        toast.error(error.message);
+        toast.error(translateError(error.message), { duration: 10000 });
       } else {
         toast.success("Đăng nhập thành công!");
       }
     } catch (err: any) {
-      toast.error(err?.message || "Đã có lỗi xảy ra");
+      toast.error(translateError(err?.message) || "Đã có lỗi xảy ra", { duration: 10000 });
     } finally {
       setLoading(false);
     }
@@ -62,11 +81,11 @@ const Auth = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setNameError("");
-    if (!fullName.trim()) {
-      setNameError("Vui lòng nhập họ và tên");
-      return;
-    }
+    clearInlineErrors();
+    if (!fullName.trim()) { setNameError("Vui lòng nhập họ và tên"); return; }
+    const eErr = validateEmail(email);
+    if (eErr) { setEmailError(eErr); return; }
+    if (password.length < 6) { setPasswordError("Mật khẩu phải có ít nhất 6 ký tự"); return; }
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -78,7 +97,7 @@ const Auth = () => {
         },
       });
       if (error) {
-        toast.error(error.message);
+        toast.error(translateError(error.message), { duration: 10000 });
       } else {
         if (data.user) {
           await supabase.from("profiles").upsert({
@@ -95,7 +114,7 @@ const Auth = () => {
         setFullName("");
       }
     } catch (err: any) {
-      toast.error(err?.message || "Đã có lỗi xảy ra");
+      toast.error(translateError(err?.message) || "Đã có lỗi xảy ra", { duration: 10000 });
     } finally {
       setLoading(false);
     }
@@ -103,20 +122,23 @@ const Auth = () => {
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    clearInlineErrors();
+    const eErr = validateEmail(email);
+    if (eErr) { setEmailError(eErr); return; }
     setLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin + '/auth?type=recovery',
       });
       if (error) {
-        toast.error(error.message);
+        toast.error(translateError(error.message), { duration: 10000 });
       } else {
         setForgotEmail(email);
         setView("forgotSuccess");
         setEmail("");
       }
     } catch (err: any) {
-      toast.error(err?.message || "Đã có lỗi xảy ra");
+      toast.error(translateError(err?.message) || "Đã có lỗi xảy ra", { duration: 10000 });
     } finally {
       setLoading(false);
     }
@@ -124,29 +146,55 @@ const Auth = () => {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) {
-      toast.error("Mật khẩu xác nhận không khớp");
-      return;
-    }
+    clearInlineErrors();
+    let hasError = false;
     if (password.length < 6) {
-      toast.error("Mật khẩu phải có ít nhất 6 ký tự");
-      return;
+      setPasswordError("Mật khẩu phải có ít nhất 6 ký tự");
+      hasError = true;
     }
+    if (password !== confirmPassword) {
+      setConfirmPasswordError("Mật khẩu xác nhận không khớp");
+      hasError = true;
+    }
+    if (hasError) return;
     setLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) {
-        toast.error(error.message);
+        const msg = translateError(error.message);
+        // Show inline for known password errors
+        if (error.message.toLowerCase().includes("different") || error.message.toLowerCase().includes("same")) {
+          setPasswordError("Mật khẩu mới phải khác mật khẩu cũ");
+        }
+        toast.error(msg, { duration: 10000 });
       } else {
         setView("resetSuccess");
         setPassword("");
         setConfirmPassword("");
       }
     } catch (err: any) {
-      toast.error(err?.message || "Đã có lỗi xảy ra");
+      toast.error(translateError(err?.message) || "Đã có lỗi xảy ra", { duration: 10000 });
     } finally {
       setLoading(false);
     }
+  };
+
+  const translateError = (msg: string): string => {
+    if (!msg) return "Đã có lỗi xảy ra";
+    const lower = msg.toLowerCase();
+    if (lower.includes("different") || lower.includes("same as old")) return "Mật khẩu mới phải khác mật khẩu cũ";
+    if (lower.includes("at least 6") || lower.includes("too short")) return "Mật khẩu phải có ít nhất 6 ký tự";
+    if (lower.includes("don't match") || lower.includes("do not match")) return "Mật khẩu xác nhận không khớp";
+    if (lower.includes("invalid email")) return "Email không hợp lệ";
+    if (lower.includes("invalid login")) return "Email hoặc mật khẩu không đúng";
+    if (lower.includes("already registered")) return "Email này đã được đăng ký";
+    if (lower.includes("rate limit")) return "Quá nhiều yêu cầu, vui lòng thử lại sau";
+    return msg;
+  };
+
+  const InlineError = ({ message }: { message: string }) => {
+    if (!message) return null;
+    return <p className="text-destructive text-xs mt-1">{message}</p>;
   };
 
   const renderSuccessCard = (icon: string, title: string, message: React.ReactNode, buttonText: string, onButton: () => void) => (
@@ -209,21 +257,23 @@ const Auth = () => {
               <Label htmlFor="newPassword" className="text-foreground">Mật khẩu mới</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input id="newPassword" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10 pr-10 bg-surface-3 border-gold/20 focus:border-gold" required minLength={6} />
+                <Input id="newPassword" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => { setPassword(e.target.value); setPasswordError(""); }} className={`pl-10 pr-10 bg-surface-3 border-gold/20 focus:border-gold ${passwordError ? "border-destructive" : ""}`} required />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
+              <InlineError message={passwordError} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPassword" className="text-foreground">Xác nhận mật khẩu</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="pl-10 pr-10 bg-surface-3 border-gold/20 focus:border-gold" required minLength={6} />
+                <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="••••••••" value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setConfirmPasswordError(""); }} className={`pl-10 pr-10 bg-surface-3 border-gold/20 focus:border-gold ${confirmPasswordError ? "border-destructive" : ""}`} required />
                 <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                   {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
+              <InlineError message={confirmPasswordError} />
             </div>
             <Button type="submit" variant="gold" size="lg" className="w-full" disabled={loading}>
               {loading ? <Sparkles className="w-5 h-5 animate-spin" /> : "Đặt lại mật khẩu"}
@@ -245,15 +295,16 @@ const Auth = () => {
               <Label htmlFor="forgotEmail" className="text-foreground">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input id="forgotEmail" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10 bg-surface-3 border-gold/20 focus:border-gold" required />
+                <Input id="forgotEmail" type="email" placeholder="your@email.com" value={email} onChange={(e) => { setEmail(e.target.value); setEmailError(""); }} className={`pl-10 bg-surface-3 border-gold/20 focus:border-gold ${emailError ? "border-destructive" : ""}`} required />
               </div>
+              <InlineError message={emailError} />
             </div>
             <Button type="submit" variant="gold" size="lg" className="w-full" disabled={loading}>
               {loading ? <Sparkles className="w-5 h-5 animate-spin" /> : "Gửi link đặt lại mật khẩu"}
             </Button>
           </form>
           <div className="mt-6 text-center">
-            <button onClick={() => setView("login")} className="text-gold hover:text-gold/80 font-medium transition-colors text-sm">
+            <button onClick={() => { setView("login"); clearInlineErrors(); }} className="text-gold hover:text-gold/80 font-medium transition-colors text-sm">
               ← Quay lại đăng nhập
             </button>
           </div>
@@ -282,7 +333,7 @@ const Auth = () => {
                 <UserRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input id="fullName" type="text" placeholder="Họ và tên của bạn" value={fullName} onChange={(e) => { setFullName(e.target.value); setNameError(""); }} className={`pl-10 bg-surface-3 border-gold/20 focus:border-gold ${nameError ? "border-destructive" : ""}`} maxLength={100} />
               </div>
-              {nameError && <p className="text-destructive text-xs">{nameError}</p>}
+              <InlineError message={nameError} />
             </div>
           )}
 
@@ -290,22 +341,24 @@ const Auth = () => {
             <Label htmlFor="email" className="text-foreground">Email</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <Input id="email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10 bg-surface-3 border-gold/20 focus:border-gold" required />
+              <Input id="email" type="email" placeholder="your@email.com" value={email} onChange={(e) => { setEmail(e.target.value); setEmailError(""); }} className={`pl-10 bg-surface-3 border-gold/20 focus:border-gold ${emailError ? "border-destructive" : ""}`} required />
             </div>
+            <InlineError message={emailError} />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="password" className="text-foreground">Mật khẩu</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10 pr-10 bg-surface-3 border-gold/20 focus:border-gold" required minLength={6} />
+              <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => { setPassword(e.target.value); setPasswordError(""); }} className={`pl-10 pr-10 bg-surface-3 border-gold/20 focus:border-gold ${passwordError ? "border-destructive" : ""}`} required />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
+            <InlineError message={passwordError} />
             {isLogin && (
               <div className="text-right">
-                <button type="button" onClick={() => { setView("forgot"); setEmail(""); }} className="text-gold/70 hover:text-gold text-xs transition-colors">
+                <button type="button" onClick={() => { setView("forgot"); clearInlineErrors(); setEmail(""); }} className="text-gold/70 hover:text-gold text-xs transition-colors">
                   Quên mật khẩu?
                 </button>
               </div>
@@ -320,7 +373,7 @@ const Auth = () => {
         <div className="mt-6 text-center">
           <p className="text-muted-foreground text-sm">
             {isLogin ? "Chưa có tài khoản?" : "Đã có tài khoản?"}{" "}
-            <button onClick={() => { setView(isLogin ? "signup" : "login"); setNameError(""); }} className="text-gold hover:text-gold/80 font-medium transition-colors">
+            <button onClick={() => { setView(isLogin ? "signup" : "login"); clearInlineErrors(); }} className="text-gold hover:text-gold/80 font-medium transition-colors">
               {isLogin ? "Đăng ký ngay" : "Đăng nhập"}
             </button>
           </p>
