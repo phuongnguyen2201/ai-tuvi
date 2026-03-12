@@ -289,6 +289,9 @@ function extractTuHoa(palaces: PalaceInfo[]) {
 export function createTuViChart(input: BirthInput): TuViChartData {
   const dateStr = `${input.year}-${input.month}-${input.day}`;
 
+  // FIX: iztro vi-VN expects lowercase gender
+  const iztroGender = input.gender === "Nữ" ? "nữ" : "nam";
+
   const astrolabe = input.isLunarDate
     ? astro.byLunar(dateStr, input.hour, input.gender, input.isLeapMonth || false, true, "vi-VN")
     : astro.bySolar(dateStr, input.hour, input.gender, true, "vi-VN");
