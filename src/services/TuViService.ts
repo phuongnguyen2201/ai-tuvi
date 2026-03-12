@@ -293,15 +293,17 @@ export function createTuViChart(input: BirthInput): TuViChartData {
   const iztroGender = input.gender === "Nữ" ? "nữ" : "nam";
 
   const astrolabe = input.isLunarDate
-
-    // Debug delete after debug
-    console.log('[TuViService] Gender input:', input.gender, '→ iztro gender:', iztroGender);
-    console.log('[TuViService] Palaces stage data:', (astrolabe.palaces || []).map(p => ({ name: p.name, stage: p.stage, ages: p.ages })));
-
-  // Debug delete after debug
-  
     ? astro.byLunar(dateStr, input.hour, input.gender, input.isLeapMonth || false, true, "vi-VN")
     : astro.bySolar(dateStr, input.hour, input.gender, true, "vi-VN");
+
+  // Debug delete after debug
+  console.log("[TuViService] Gender input:", input.gender, "→ iztro gender:", iztroGender);
+  console.log(
+    "[TuViService] Palaces stage data:",
+    (astrolabe.palaces || []).map((p) => ({ name: p.name, stage: p.stage, ages: p.ages })),
+  );
+
+  // Debug delete after debug
 
   const palaces = (astrolabe.palaces || []).map(convertPalace);
   const chineseParts = (astrolabe.chineseDate || "").split(" - ");
