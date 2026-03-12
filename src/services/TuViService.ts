@@ -296,13 +296,6 @@ export function createTuViChart(input: BirthInput): TuViChartData {
     ? astro.byLunar(dateStr, input.hour, input.gender, input.isLeapMonth || false, true, "vi-VN")
     : astro.bySolar(dateStr, input.hour, input.gender, true, "vi-VN");
 
-  // Debug delete after debug
-  console.log("[DEBUG] gender:", input.gender, "iztroGender:", iztroGender);
-  console.log(
-    "[DEBUG] decadal:",
-    JSON.stringify(astrolabe.palaces?.map((p: any) => ({ n: p.name, d: p.decadal, a: p.ages?.slice(0, 3) }))),
-  ); // Debug delete after debug
-
   const palaces = (astrolabe.palaces || []).map(convertPalace);
   const chineseParts = (astrolabe.chineseDate || "").split(" - ");
   const lunarYear = chineseParts[0] || "";
