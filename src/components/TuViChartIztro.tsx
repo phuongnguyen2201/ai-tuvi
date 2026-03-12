@@ -549,6 +549,10 @@ function CenterInfo({ chart }: { chart: TuViChartData }) {
 export function TuViChartIztro({ chart }: Props) {
   const [selectedPalace, setSelectedPalace] = useState<PalaceInfo | null>(null);
 
+  // Calculate current age (tuổi âm lịch ≈ year diff + 1) from solarDate
+  const birthYear = parseInt(chart.solarDate?.split('-')[0] || chart.solarDate?.split('/')[0] || '0');
+  const currentAge = birthYear > 0 ? new Date().getFullYear() - birthYear + 1 : 0;
+
   // Map earthly branch to palace
   const palaceMap = new Map<string, PalaceInfo>();
   chart.palaces.forEach(p => palaceMap.set(p.earthlyBranch, p));
