@@ -1056,7 +1056,8 @@ export default function TuViIztroPage() {
 
             {renderAnalysisSection()}
 
-            {/* Debug info */}
+            {/* Debug info - only for admin */}
+            {user?.email === "phuongnguyen2201@gmail.com" && (
             <Card className="bg-slate-900/50 border-slate-700">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm text-gray-400">📋 Thông tin chi tiết (để so sánh với tuvi.vn)</CardTitle>
@@ -1140,6 +1141,7 @@ export default function TuViIztroPage() {
                 </div>
               </CardContent>
             </Card>
+            )}
           </div>
         )}
 
