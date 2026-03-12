@@ -298,8 +298,10 @@ export function createTuViChart(input: BirthInput): TuViChartData {
 
   // Debug delete after debug
   console.log("[DEBUG] gender:", input.gender, "iztroGender:", iztroGender);
-  console.log("[DEBUG] palace keys:", Object.keys(astrolabe.palaces?.[0] || {}));
-  // Debug delete after debug
+  console.log(
+    "[DEBUG] decadal:",
+    JSON.stringify(astrolabe.palaces?.map((p: any) => ({ n: p.name, d: p.decadal, a: p.ages?.slice(0, 3) }))),
+  ); // Debug delete after debug
 
   const palaces = (astrolabe.palaces || []).map(convertPalace);
   const chineseParts = (astrolabe.chineseDate || "").split(" - ");
