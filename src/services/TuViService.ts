@@ -298,8 +298,7 @@ export function createTuViChart(input: BirthInput): TuViChartData {
 
   // Debug delete after debug
   console.log("[DEBUG] gender:", input.gender, "iztroGender:", iztroGender);
-  console.log("[DEBUG] stages:", JSON.stringify(astrolabe.palaces?.map((p: any) => ({ n: p.name, s: p.stage }))));
-
+  console.log("[DEBUG] palace keys:", Object.keys(astrolabe.palaces?.[0] || {}));
   // Debug delete after debug
 
   const palaces = (astrolabe.palaces || []).map(convertPalace);
