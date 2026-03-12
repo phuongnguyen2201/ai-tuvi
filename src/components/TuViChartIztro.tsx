@@ -349,6 +349,13 @@ function PalaceCell({ palace, onClick }: PalaceCellProps) {
         hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/10
       `}
     >
+      {/* Đại Hạn */}
+      {palace.stage && (
+        <div className="text-[10px] text-center text-muted-foreground bg-muted/50 rounded px-1 py-0.5 mb-1">
+          {palace.stage.heavenlyStem} {palace.stage.range[0]}-{palace.stage.range[1]}
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-start mb-1">
         <span className="text-xs text-amber-300/80 font-medium">{palace.earthlyBranch}</span>
