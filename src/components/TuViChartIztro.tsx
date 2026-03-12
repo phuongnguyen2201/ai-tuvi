@@ -628,6 +628,10 @@ export function TuViChartIztro({ chart }: Props) {
               <span className="w-3 h-3 rounded border-2 border-cyan-400 bg-cyan-900/30"></span>
               <span className="text-gray-400">Cung Thân</span>
             </div>
+            <div className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded border-2 border-teal-400 bg-teal-900/30"></span>
+              <span className="text-gray-400">Đại Hạn hiện tại</span>
+            </div>
           </div>
           
           {/* Tứ Hóa Legend */}
