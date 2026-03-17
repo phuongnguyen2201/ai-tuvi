@@ -222,6 +222,28 @@ const Auth = () => {
   );
 
   const renderContent = () => {
+    if (view === "alreadyRegistered") {
+      return (
+        <div className="bg-surface-2/80 backdrop-blur-xl rounded-2xl border border-gold/20 p-8 shadow-2xl">
+          <div className="flex flex-col items-center text-center space-y-4">
+            <span className="text-5xl">📧</span>
+            <h2 className="font-display text-2xl text-foreground">Email đã được đăng ký</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              Email <span className="font-semibold text-foreground">{alreadyRegisteredEmail}</span> đã có tài khoản. Bạn có muốn đăng nhập không?
+            </p>
+            <div className="flex flex-col gap-2 w-full">
+              <Button variant="gold" size="lg" className="w-full" onClick={() => { setEmail(alreadyRegisteredEmail); setView("login"); }}>
+                Đăng nhập
+              </Button>
+              <Button variant="goldOutline" size="lg" className="w-full" onClick={() => { setEmail(""); setView("signup"); }}>
+                Thử email khác
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     if (view === "signupSuccess") {
       return renderSuccessCard(
         "check",
