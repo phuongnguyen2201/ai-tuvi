@@ -9,7 +9,7 @@ import Logo from "@/components/Logo";
 import { Mail, Lock, Eye, EyeOff, Sparkles, UserRound, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
-type AuthView = "login" | "signup" | "forgot" | "signupSuccess" | "forgotSuccess" | "resetPassword" | "resetSuccess";
+type AuthView = "login" | "signup" | "forgot" | "signupSuccess" | "forgotSuccess" | "resetPassword" | "resetSuccess" | "alreadyRegistered";
 
 const Auth = () => {
   const initialTab = new URLSearchParams(window.location.search).get('tab');
@@ -23,6 +23,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
+  const [alreadyRegisteredEmail, setAlreadyRegisteredEmail] = useState("");
   const [forgotEmail, setForgotEmail] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
@@ -98,7 +99,12 @@ const Auth = () => {
         },
       });
       if (error) {
-        toast.error(translateError(error.message), { duration: 10000 });
+        if (error.message.toLowerCase().includes("already registered")) {
+          setAlreadyRegisteredEmail(email);
+          setView("alreadyRegistered");
+        } else {
+          toast.error(translateError(error.message), { duration: 10000 });
+        }
       } else {
         if (data.user) {
           await supabase.from("profiles").upsert({
@@ -216,6 +222,28 @@ const Auth = () => {
   );
 
   const renderContent = () => {
+    if (view === "alreadyRegistered") {
+      return (
+        <div className="bg-surface-2/80 backdrop-blur-xl rounded-2xl border border-gold/20 p-8 shadow-2xl">
+          <div className="flex flex-col items-center text-center space-y-4">
+            <span className="text-5xl">📧</span>
+            <h2 className="font-display text-2xl text-foreground">Email đã được đăng ký</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              Email <span className="font-semibold text-foreground">{alreadyRegisteredEmail}</span> đã có tài khoản. Bạn có muốn đăng nhập không?
+            </p>
+            <div className="flex flex-col gap-2 w-full">
+              <Button variant="gold" size="lg" className="w-full" onClick={() => { setEmail(alreadyRegisteredEmail); setView("login"); }}>
+                Đăng nhập
+              </Button>
+              <Button variant="goldOutline" size="lg" className="w-full" onClick={() => { setEmail(""); setView("signup"); }}>
+                Thử email khác
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     if (view === "signupSuccess") {
       return renderSuccessCard(
         "check",
@@ -317,6 +345,24 @@ const Auth = () => {
     const isLogin = view === "login";
     return (
       <div className="bg-surface-2/80 backdrop-blur-xl rounded-2xl border border-gold/20 p-8 shadow-2xl">
+        {/* Tab switcher */}
+        <div className="flex rounded-xl bg-surface-3 p-1 mb-6">
+          <button
+            type="button"
+            onClick={() => { setView("login"); clearInlineErrors(); }}
+            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${isLogin ? "bg-gold text-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Đăng nhập
+          </button>
+          <button
+            type="button"
+            onClick={() => { setView("signup"); clearInlineErrors(); }}
+            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${!isLogin ? "bg-gold text-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Đăng ký
+          </button>
+        </div>
+
         <div className="text-center mb-6">
           <h1 className="font-display text-2xl text-foreground mb-2">
             {isLogin ? "Đăng Nhập" : "Đăng Ký"}
@@ -370,15 +416,6 @@ const Auth = () => {
             {loading ? <Sparkles className="w-5 h-5 animate-spin" /> : isLogin ? "Đăng Nhập" : "Đăng Ký"}
           </Button>
         </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-muted-foreground text-sm">
-            {isLogin ? "Chưa có tài khoản?" : "Đã có tài khoản?"}{" "}
-            <button onClick={() => { setView(isLogin ? "signup" : "login"); clearInlineErrors(); }} className="text-gold hover:text-gold/80 font-medium transition-colors">
-              {isLogin ? "Đăng ký ngay" : "Đăng nhập"}
-            </button>
-          </p>
-        </div>
 
         <div className="mt-4 text-center">
           <button onClick={() => navigate("/")} className="text-muted-foreground text-sm hover:text-foreground transition-colors">
