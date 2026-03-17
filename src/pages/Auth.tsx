@@ -345,6 +345,24 @@ const Auth = () => {
     const isLogin = view === "login";
     return (
       <div className="bg-surface-2/80 backdrop-blur-xl rounded-2xl border border-gold/20 p-8 shadow-2xl">
+        {/* Tab switcher */}
+        <div className="flex rounded-xl bg-surface-3 p-1 mb-6">
+          <button
+            type="button"
+            onClick={() => { setView("login"); clearInlineErrors(); }}
+            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${isLogin ? "bg-gold text-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Đăng nhập
+          </button>
+          <button
+            type="button"
+            onClick={() => { setView("signup"); clearInlineErrors(); }}
+            className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${!isLogin ? "bg-gold text-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Đăng ký
+          </button>
+        </div>
+
         <div className="text-center mb-6">
           <h1 className="font-display text-2xl text-foreground mb-2">
             {isLogin ? "Đăng Nhập" : "Đăng Ký"}
