@@ -417,15 +417,6 @@ const Auth = () => {
           </Button>
         </form>
 
-        <div className="mt-6 text-center">
-          <p className="text-muted-foreground text-sm">
-            {isLogin ? "Chưa có tài khoản?" : "Đã có tài khoản?"}{" "}
-            <button onClick={() => { setView(isLogin ? "signup" : "login"); clearInlineErrors(); }} className="text-gold hover:text-gold/80 font-medium transition-colors">
-              {isLogin ? "Đăng ký ngay" : "Đăng nhập"}
-            </button>
-          </p>
-        </div>
-
         <div className="mt-4 text-center">
           <button onClick={() => navigate("/")} className="text-muted-foreground text-sm hover:text-foreground transition-colors">
             ← Quay lại trang chủ
