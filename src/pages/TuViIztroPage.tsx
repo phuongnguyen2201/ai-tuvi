@@ -1055,6 +1055,14 @@ export default function TuViIztroPage() {
           <div className="space-y-6">
             <TuViChartIztro chart={chart} />
 
+            {!user && (
+              <AuthPromptCard
+                variant="banner"
+                title="Nhận 1 lần luận giải AI miễn phí!"
+                description="Đăng ký tài khoản để AI phân tích chi tiết lá số của bạn"
+              />
+            )}
+
             {renderAnalysisSection()}
 
             {/* Debug info - only for admin */}
