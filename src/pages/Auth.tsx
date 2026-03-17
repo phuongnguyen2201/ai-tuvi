@@ -99,7 +99,12 @@ const Auth = () => {
         },
       });
       if (error) {
-        toast.error(translateError(error.message), { duration: 10000 });
+        if (error.message.toLowerCase().includes("already registered")) {
+          setAlreadyRegisteredEmail(email);
+          setView("alreadyRegistered");
+        } else {
+          toast.error(translateError(error.message), { duration: 10000 });
+        }
       } else {
         if (data.user) {
           await supabase.from("profiles").upsert({
