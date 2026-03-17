@@ -26,6 +26,7 @@ import { useLuanGiaiAccess, decrementLuanGiaiUses } from "@/hooks/useLuanGiaiAcc
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import AuthPromptCard from "@/components/AuthPromptCard";
 
 // ── Helpers ──
 
