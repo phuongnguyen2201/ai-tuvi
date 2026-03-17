@@ -339,8 +339,8 @@ function PalaceCell({ palace, isActiveDaiHan, onClick }: PalaceCellProps) {
     <div 
       onClick={onClick}
       className={`
-        relative p-2 border rounded-lg min-h-[140px] flex flex-col cursor-pointer
-        transition-all duration-200 hover:scale-[1.02]
+        relative p-1 sm:p-2 border rounded-lg min-h-[100px] sm:min-h-[140px] flex flex-col cursor-pointer
+        transition-all duration-200 hover:scale-[1.02] overflow-hidden
         ${palace.isSoulPalace 
           ? 'border-yellow-400 border-2 bg-gradient-to-br from-yellow-900/40 to-amber-900/30' 
           : palace.isBodyPalace
@@ -355,7 +355,7 @@ function PalaceCell({ palace, isActiveDaiHan, onClick }: PalaceCellProps) {
     >
       {/* Đại Hạn */}
       {palace.stage && (
-        <div className={`text-[10px] text-center rounded px-1 py-0.5 mb-1 ${
+        <div className={`text-[8px] sm:text-[10px] text-center rounded px-0.5 sm:px-1 py-0.5 mb-0.5 sm:mb-1 truncate ${
           isActiveDaiHan
             ? 'bg-teal-500/30 text-teal-200 font-semibold'
             : 'text-muted-foreground bg-muted/50'
@@ -366,16 +366,16 @@ function PalaceCell({ palace, isActiveDaiHan, onClick }: PalaceCellProps) {
       )}
 
       {/* Header */}
-      <div className="flex justify-between items-start mb-1">
-        <span className="text-xs text-amber-300/80 font-medium">{palace.earthlyBranch}</span>
-        <div className="flex gap-1">
+      <div className="flex justify-between items-start mb-0.5 sm:mb-1">
+        <span className="text-[9px] sm:text-xs text-amber-300/80 font-medium">{palace.earthlyBranch}</span>
+        <div className="flex gap-0.5">
           {palace.isSoulPalace && (
-            <Badge variant="outline" className="px-1 py-0 text-[9px] bg-yellow-500/30 text-yellow-200 border-yellow-500/50">
+            <Badge variant="outline" className="px-0.5 sm:px-1 py-0 text-[7px] sm:text-[9px] bg-yellow-500/30 text-yellow-200 border-yellow-500/50">
               MỆNH
             </Badge>
           )}
           {palace.isBodyPalace && (
-            <Badge variant="outline" className="px-1 py-0 text-[9px] bg-cyan-500/30 text-cyan-200 border-cyan-500/50">
+            <Badge variant="outline" className="px-0.5 sm:px-1 py-0 text-[7px] sm:text-[9px] bg-cyan-500/30 text-cyan-200 border-cyan-500/50">
               THÂN
             </Badge>
           )}
@@ -383,39 +383,39 @@ function PalaceCell({ palace, isActiveDaiHan, onClick }: PalaceCellProps) {
       </div>
       
       {/* Palace name */}
-      <div className={`text-sm font-semibold text-center mb-1 ${
+      <div className={`text-[13px] sm:text-sm font-bold sm:font-semibold text-center mb-0.5 sm:mb-1 truncate ${
         palace.isSoulPalace ? 'text-yellow-300' : palace.isBodyPalace ? 'text-cyan-300' : 'text-amber-200'
       }`}>
         {palace.name}
       </div>
       
       {/* Major stars */}
-      <div className="flex flex-col gap-0.5 mb-1">
+      <div className="flex flex-col gap-0.5 mb-0.5 sm:mb-1">
         {palace.majorStars.length > 0 ? (
           palace.majorStars.map((star, i) => (
-            <div key={i} className="text-xs font-bold text-center py-0.5 px-1 rounded bg-purple-900/40 text-purple-300">
+            <div key={i} className="text-[11px] sm:text-xs font-bold text-center py-0.5 px-0.5 sm:px-1 rounded bg-purple-900/40 text-purple-300 truncate">
               {star.name}
               {star.mutagen && (
-                <span className={`ml-1 text-[10px] ${getMutagenColor(star.mutagen)}`}>
+                <span className={`ml-0.5 sm:ml-1 text-[8px] sm:text-[10px] ${getMutagenColor(star.mutagen)}`}>
                   ({star.mutagen})
                 </span>
               )}
             </div>
           ))
         ) : (
-          <div className="text-[10px] text-gray-500 text-center italic">
+          <div className="text-[8px] sm:text-[10px] text-gray-500 text-center italic">
             (Vô chính diệu)
           </div>
         )}
       </div>
       
       {/* Minor stars + Adjective stars */}
-      <div className="flex-1 text-[9px] overflow-y-auto border-t border-amber-600/20 pt-1 mt-1 space-y-0.5">
+      <div className="flex-1 text-[7px] sm:text-[9px] overflow-hidden border-t border-amber-600/20 pt-0.5 sm:pt-1 mt-0.5 sm:mt-1 space-y-0.5">
         {/* Phụ tinh - màu xanh lá */}
         {palace.minorStars.length > 0 && (
-          <div className="flex flex-wrap gap-x-1 gap-y-0.5 justify-center">
+          <div className="flex flex-wrap gap-x-0.5 sm:gap-x-1 gap-y-0 justify-center">
             {palace.minorStars.slice(0, 4).map((star, i) => (
-              <span key={`minor-${i}`} className="whitespace-nowrap text-green-400">
+              <span key={`minor-${i}`} className="truncate max-w-full text-green-400">
                 {star.name}
                 {star.mutagen && (
                   <span className={`ml-0.5 ${getMutagenColor(star.mutagen)}`}>
@@ -432,9 +432,9 @@ function PalaceCell({ palace, isActiveDaiHan, onClick }: PalaceCellProps) {
         
         {/* Tạp diệu - màu cam/đỏ */}
         {palace.adjectiveStars && palace.adjectiveStars.length > 0 && (
-          <div className="flex flex-wrap gap-x-1 gap-y-0.5 justify-center">
+          <div className="flex flex-wrap gap-x-0.5 sm:gap-x-1 gap-y-0 justify-center">
             {palace.adjectiveStars.slice(0, 3).map((star, i) => (
-              <span key={`adj-${i}`} className="whitespace-nowrap text-orange-400">
+              <span key={`adj-${i}`} className="truncate max-w-full text-orange-400">
                 {star.name}
               </span>
             ))}
