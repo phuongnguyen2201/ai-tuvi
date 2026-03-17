@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 import { useAuth } from "@/contexts/AuthContext";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
+import AuthPromptCard from "@/components/AuthPromptCard";
 
 const QUE_DATA = [
   {
