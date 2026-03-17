@@ -12,7 +12,8 @@ import { toast } from "sonner";
 type AuthView = "login" | "signup" | "forgot" | "signupSuccess" | "forgotSuccess" | "resetPassword" | "resetSuccess";
 
 const Auth = () => {
-  const [view, setView] = useState<AuthView>("login");
+  const initialTab = new URLSearchParams(window.location.search).get('tab');
+  const [view, setView] = useState<AuthView>(initialTab === 'register' ? 'signup' : 'login');
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");

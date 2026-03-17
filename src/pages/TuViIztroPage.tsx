@@ -26,6 +26,7 @@ import { useLuanGiaiAccess, decrementLuanGiaiUses } from "@/hooks/useLuanGiaiAcc
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import AuthPromptCard from "@/components/AuthPromptCard";
 
 // ── Helpers ──
 
@@ -1053,6 +1054,14 @@ export default function TuViIztroPage() {
         {chart && (
           <div className="space-y-6">
             <TuViChartIztro chart={chart} />
+
+            {!user && (
+              <AuthPromptCard
+                variant="banner"
+                title="Nhận 1 lần luận giải AI miễn phí!"
+                description="Đăng ký tài khoản để AI phân tích chi tiết lá số của bạn"
+              />
+            )}
 
             {renderAnalysisSection()}
 
