@@ -9,7 +9,7 @@ import Logo from "@/components/Logo";
 import { Mail, Lock, Eye, EyeOff, Sparkles, UserRound, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
-type AuthView = "login" | "signup" | "forgot" | "signupSuccess" | "forgotSuccess" | "resetPassword" | "resetSuccess";
+type AuthView = "login" | "signup" | "forgot" | "signupSuccess" | "forgotSuccess" | "resetPassword" | "resetSuccess" | "alreadyRegistered";
 
 const Auth = () => {
   const initialTab = new URLSearchParams(window.location.search).get('tab');
