@@ -46,6 +46,7 @@ const AppRoutes = () => {
       <Route path="/profile" element={<Profile />} />
       <Route path="/chinh-sach-bao-mat" element={<PrivacyPolicy />} />
       <Route path="/dieu-khoan-su-dung" element={<DieuKhoanSuDung />} />
+      <Route path="/xoa-tai-khoan" element={<DeleteAccount />} />
       <Route path="/test-nguhanh" element={<NguHanhTest />} />
       <Route path="/test-compatibility" element={<CompatibilityTest />} />
       <Route path="/test" element={<Test />} />
