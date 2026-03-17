@@ -559,17 +559,17 @@ export function TuViChartIztro({ chart }: Props) {
   
   return (
     <>
-      <Card className="w-full max-w-4xl mx-auto bg-slate-900/90 border-amber-600/30">
-        <CardHeader className="text-center pb-2">
-          <CardTitle className="text-xl text-amber-400">
+      <Card className="w-full max-w-4xl mx-auto bg-slate-900/90 border-amber-600/30 overflow-hidden">
+        <CardHeader className="text-center pb-2 px-2 sm:px-6">
+          <CardTitle className="text-base sm:text-xl text-amber-400">
             Lá Số Tử Vi - {chart.lunarYear}
           </CardTitle>
-          <p className="text-sm text-gray-400">
+          <p className="text-xs sm:text-sm text-gray-400">
             {chart.solarDate} (DL) | {chart.lunarDate} (ÂL) • Click vào cung để xem chi tiết
           </p>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-4 gap-2">
+        <CardContent className="px-1 sm:px-6">
+          <div className="grid grid-cols-4 gap-0.5 sm:gap-2">
             {GRID_LAYOUT.map((row, rowIndex) => (
               row.map((branch, colIndex) => {
                 // Center cells
