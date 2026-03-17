@@ -20,6 +20,7 @@ import Admin from "./pages/Admin";
 import Profile from "./pages/Profile";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import DieuKhoanSuDung from "./pages/DieuKhoanSuDung";
+import DeleteAccount from "./pages/DeleteAccount";
 import NguHanhTest from "./components/NguHanhTest";
 import CompatibilityTest from "./components/CompatibilityTest";
 import Test from "./pages/Test";
