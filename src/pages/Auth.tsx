@@ -23,6 +23,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
+  const [alreadyRegisteredEmail, setAlreadyRegisteredEmail] = useState("");
   const [forgotEmail, setForgotEmail] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
