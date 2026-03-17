@@ -12,6 +12,7 @@ const ALLOWED_ORIGINS = [
   "https://www.tuviapp.vn",
   "capacitor://localhost",
   "http://localhost",
+  "https://localhost",
 ];
 
 function getCorsHeaders(req: Request) {
@@ -1035,8 +1036,11 @@ function buildChartContext(chartData: any): string {
       parts.push(`\n▸ ${p.name}${markerStr} — ${p.heavenlyStem || ""}${p.earthlyBranch || ""}`);
 
       // Đại Hạn
+      if (p.stage?.range) {
+        parts.push(`  Đại Hạn (大限): ${p.stage.heavenlyStem || ""} tuổi ${p.stage.range[0]}–${p.stage.range[1]}`);
+      }
       if (p.ages?.length) {
-        parts.push(`  Đại Hạn (大限): ${p.ages.slice(0, 5).join(", ")}...`);
+        parts.push(`  Tiểu Hạn (小限): tuổi ${p.ages.slice(0, 6).join(", ")}...`);
       }
 
       // Trường Sinh 12 cung
@@ -1214,10 +1218,11 @@ function buildLuanGiaiChartContext(cd: any, personName?: string, birthData?: any
       parts.push(`\n**Cung ${p.name}${markerStr}** (${p.heavenlyStem || ""}${p.earthlyBranch || ""})`);
 
       // Đại Hạn
+      if (p.stage?.range) {
+        parts.push(`- Đại Hạn (大限): ${p.stage.heavenlyStem || ""} tuổi ${p.stage.range[0]}–${p.stage.range[1]}`);
+      }
       if (p.ages?.length) {
-        const firstAge = p.ages[0];
-        const lastAge = p.ages[p.ages.length - 1];
-        parts.push(`- Đại Hạn (大限): tuổi ${firstAge}–${firstAge + 9} (rồi lặp: ${p.ages.slice(0, 4).join(", ")}...)`);
+        parts.push(`- Tiểu Hạn (小限): tuổi ${p.ages.slice(0, 6).join(", ")}...`);
       }
 
       // Trường Sinh

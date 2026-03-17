@@ -330,10 +330,11 @@ function PalaceDetailModal({ palace, open, onClose }: PalaceDetailModalProps) {
 
 interface PalaceCellProps {
   palace: PalaceInfo;
+  isActiveDaiHan?: boolean;
   onClick: () => void;
 }
 
-function PalaceCell({ palace, onClick }: PalaceCellProps) {
+function PalaceCell({ palace, isActiveDaiHan, onClick }: PalaceCellProps) {
   return (
     <div 
       onClick={onClick}
@@ -344,11 +345,26 @@ function PalaceCell({ palace, onClick }: PalaceCellProps) {
           ? 'border-yellow-400 border-2 bg-gradient-to-br from-yellow-900/40 to-amber-900/30' 
           : palace.isBodyPalace
             ? 'border-cyan-400 border-2 bg-gradient-to-br from-cyan-900/30 to-blue-900/20'
-            : 'border-amber-600/50 bg-gradient-to-br from-slate-800/80 to-slate-900/80'
+            : isActiveDaiHan
+              ? 'border-teal-400 border-2 bg-gradient-to-br from-teal-900/30 to-emerald-900/20'
+              : 'border-amber-600/50 bg-gradient-to-br from-slate-800/80 to-slate-900/80'
         }
         hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/10
+        ${isActiveDaiHan ? 'ring-1 ring-teal-400/30' : ''}
       `}
     >
+      {/* Đại Hạn */}
+      {palace.stage && (
+        <div className={`text-[10px] text-center rounded px-1 py-0.5 mb-1 ${
+          isActiveDaiHan
+            ? 'bg-teal-500/30 text-teal-200 font-semibold'
+            : 'text-muted-foreground bg-muted/50'
+        }`}>
+          {palace.stage.heavenlyStem} {palace.stage.range[0]}-{palace.stage.range[1]}
+          {isActiveDaiHan && ' ◀'}
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-start mb-1">
         <span className="text-xs text-amber-300/80 font-medium">{palace.earthlyBranch}</span>
@@ -533,6 +549,10 @@ function CenterInfo({ chart }: { chart: TuViChartData }) {
 export function TuViChartIztro({ chart }: Props) {
   const [selectedPalace, setSelectedPalace] = useState<PalaceInfo | null>(null);
 
+  // Calculate current age (tuổi âm lịch ≈ year diff + 1) from solarDate
+  const birthYear = parseInt(chart.solarDate?.split('-')[0] || chart.solarDate?.split('/')[0] || '0');
+  const currentAge = birthYear > 0 ? new Date().getFullYear() - birthYear + 1 : 0;
+
   // Map earthly branch to palace
   const palaceMap = new Map<string, PalaceInfo>();
   chart.palaces.forEach(p => palaceMap.set(p.earthlyBranch, p));
@@ -572,10 +592,13 @@ export function TuViChartIztro({ chart }: Props) {
                   );
                 }
                 
+                const isActive = !!(palace.stage && currentAge >= palace.stage.range[0] && currentAge <= palace.stage.range[1]);
+                
                 return (
                   <PalaceCell 
                     key={`palace-${branch}`} 
-                    palace={palace} 
+                    palace={palace}
+                    isActiveDaiHan={isActive}
                     onClick={() => setSelectedPalace(palace)}
                   />
                 );
@@ -604,6 +627,10 @@ export function TuViChartIztro({ chart }: Props) {
             <div className="flex items-center gap-1">
               <span className="w-3 h-3 rounded border-2 border-cyan-400 bg-cyan-900/30"></span>
               <span className="text-gray-400">Cung Thân</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded border-2 border-teal-400 bg-teal-900/30"></span>
+              <span className="text-gray-400">Đại Hạn hiện tại</span>
             </div>
           </div>
           
