@@ -626,6 +626,11 @@ const BoiKieu = () => {
 
         {canGieoQue || displayText || everPurchased ? (
           mainContent
+        ) : !user ? (
+          <AuthPromptCard
+            title="Đăng nhập để tiếp tục"
+            description="Đăng ký tài khoản miễn phí để nhận 1 lần luận giải Bói Kiều miễn phí!"
+          />
         ) : (
           <PaymentGate
             feature="boi_kieu"
