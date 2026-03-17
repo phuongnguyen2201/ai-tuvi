@@ -24,11 +24,11 @@ const AuthPromptCard = ({
           <h3 className="font-display text-lg text-gold font-semibold">{title}</h3>
         </div>
         <p className="text-sm text-muted-foreground">{description}</p>
-        <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex flex-col gap-2">
           <Button
             variant="gold"
             size="lg"
-            className="flex-1"
+            className="w-full"
             onClick={() => navigate(`/auth?tab=register&redirect=${encodeURIComponent(currentPath)}`)}
           >
             <Sparkles className="w-4 h-4 mr-2" />
@@ -37,7 +37,7 @@ const AuthPromptCard = ({
           <Button
             variant="goldOutline"
             size="lg"
-            className="flex-1"
+            className="w-full"
             onClick={() => navigate(`/auth?tab=login&redirect=${encodeURIComponent(currentPath)}`)}
           >
             <LogIn className="w-4 h-4 mr-2" />

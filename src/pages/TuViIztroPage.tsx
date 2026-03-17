@@ -1063,7 +1063,7 @@ export default function TuViIztroPage() {
               />
             )}
 
-            {renderAnalysisSection()}
+            {user && renderAnalysisSection()}
 
             {/* Debug info - only for admin */}
             {user?.email === "phuongnguyen2201@gmail.com" && (
