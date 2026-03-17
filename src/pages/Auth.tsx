@@ -106,19 +106,25 @@ const Auth = () => {
           toast.error(translateError(error.message), { duration: 10000 });
         }
       } else {
-        if (data.user) {
-          await supabase.from("profiles").upsert({
-            id: data.user.id,
-            email,
-            display_name: fullName.trim(),
-          } as any);
+        // Check fake success: email already exists but Supabase returns no error
+        if (data.user && data.user.identities && data.user.identities.length === 0) {
+          setAlreadyRegisteredEmail(email);
+          setView("alreadyRegistered");
+        } else {
+          if (data.user) {
+            await supabase.from("profiles").upsert({
+              id: data.user.id,
+              email,
+              display_name: fullName.trim(),
+            } as any);
+          }
+          toast.success("Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.", { duration: 10000 });
+          setSignupEmail(email);
+          setView("signupSuccess");
+          setEmail("");
+          setPassword("");
+          setFullName("");
         }
-        toast.success("Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.", { duration: 10000 });
-        setSignupEmail(email);
-        setView("signupSuccess");
-        setEmail("");
-        setPassword("");
-        setFullName("");
       }
     } catch (err: any) {
       toast.error(translateError(err?.message) || "Đã có lỗi xảy ra", { duration: 10000 });
