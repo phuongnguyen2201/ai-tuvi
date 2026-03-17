@@ -1230,6 +1230,11 @@ const BoiQue = () => {
                 </Button>
                 <p className="text-center text-xs text-muted-foreground">{usesLabel}</p>
               </>
+            ) : !user ? (
+              <AuthPromptCard
+                title="Đăng nhập để tiếp tục"
+                description="Đăng ký tài khoản miễn phí để nhận 1 lần luận giải Bói Quẻ miễn phí!"
+              />
             ) : !everPurchased ? (
               <PaymentGate
                 feature="boi_que"
