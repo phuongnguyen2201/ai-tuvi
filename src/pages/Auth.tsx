@@ -124,6 +124,7 @@ const Auth = () => {
           setView("signupSuccess");
           setEmail("");
           setPassword("");
+          setConfirmPassword("");
           setFullName("");
         }
       }
