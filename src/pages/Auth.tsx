@@ -88,6 +88,7 @@ const Auth = () => {
     const eErr = validateEmail(email);
     if (eErr) { setEmailError(eErr); return; }
     if (password.length < 6) { setPasswordError("Mật khẩu phải có ít nhất 6 ký tự"); return; }
+    if (password !== confirmPassword) { setConfirmPasswordError("Mật khẩu không khớp"); return; }
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
