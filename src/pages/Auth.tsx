@@ -432,14 +432,20 @@ const Auth = () => {
     );
   };
 
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    setTimeout(() => {
+      e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
+  };
+
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center">
+    <div className="min-h-[100dvh] bg-background relative overflow-x-hidden overflow-y-auto flex items-start sm:items-center justify-center pb-[300px] sm:pb-0">
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-20 left-1/4 w-96 h-96 bg-purple-deep/10 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-1/4 right-0 w-80 h-80 bg-gold/5 rounded-full blur-3xl" />
         <div className="absolute top-1/2 -left-20 w-64 h-64 bg-gold/5 rounded-full blur-3xl" />
       </div>
-      <div className="relative z-10 w-full max-w-md px-4">
+      <div className="relative z-10 w-full max-w-md px-4 py-8 sm:py-0" onFocus={(e) => { if (e.target instanceof HTMLInputElement) handleInputFocus(e as any); }}>
         <div className="flex justify-center mb-8">
           <Logo size="lg" />
         </div>
