@@ -88,6 +88,7 @@ const Auth = () => {
     const eErr = validateEmail(email);
     if (eErr) { setEmailError(eErr); return; }
     if (password.length < 6) { setPasswordError("Mật khẩu phải có ít nhất 6 ký tự"); return; }
+    if (password !== confirmPassword) { setConfirmPasswordError("Mật khẩu không khớp"); return; }
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -123,6 +124,7 @@ const Auth = () => {
           setView("signupSuccess");
           setEmail("");
           setPassword("");
+          setConfirmPassword("");
           setFullName("");
         }
       }
@@ -136,8 +138,9 @@ const Auth = () => {
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     clearInlineErrors();
+    if (!email.trim()) { setEmailError("Vui lòng nhập email hợp lệ"); return; }
     const eErr = validateEmail(email);
-    if (eErr) { setEmailError(eErr); return; }
+    if (eErr) { setEmailError("Vui lòng nhập email hợp lệ"); return; }
     setLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -263,8 +266,8 @@ const Auth = () => {
     if (view === "forgotSuccess") {
       return renderSuccessCard(
         "📧",
-        "Đã gửi link đặt lại mật khẩu!",
-        <>Đã gửi link đặt lại mật khẩu đến <span className="font-semibold text-foreground">{forgotEmail}</span>. Vui lòng kiểm tra hộp thư (và thư mục Spam).</>,
+        "Kiểm tra hộp thư của bạn",
+        <>Nếu email <span className="font-semibold text-foreground">{forgotEmail}</span> đã được đăng ký, bạn sẽ nhận được link đặt lại mật khẩu. Vui lòng kiểm tra hộp thư (kể cả mục Spam).</>,
         "Quay lại đăng nhập",
         () => setView("login")
       );
@@ -418,7 +421,21 @@ const Auth = () => {
             )}
           </div>
 
-          <Button type="submit" variant="gold" size="lg" className="w-full" disabled={loading}>
+          {!isLogin && (
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword" className="text-foreground">Xác nhận mật khẩu</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="••••••••" value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setConfirmPasswordError(""); }} className={`pl-10 pr-10 bg-surface-3 border-gold/20 focus:border-gold ${confirmPasswordError ? "border-destructive" : ""}`} required />
+                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+              <InlineError message={confirmPasswordError} />
+            </div>
+          )}
+
+          <Button type="submit" variant="gold" size="lg" className="w-full" disabled={loading || (!isLogin && password.length > 0 && confirmPassword.length > 0 && password !== confirmPassword)}>
             {loading ? <Sparkles className="w-5 h-5 animate-spin" /> : isLogin ? "Đăng Nhập" : "Đăng Ký"}
           </Button>
         </form>
