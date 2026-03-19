@@ -137,8 +137,9 @@ const Auth = () => {
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     clearInlineErrors();
+    if (!email.trim()) { setEmailError("Vui lòng nhập email hợp lệ"); return; }
     const eErr = validateEmail(email);
-    if (eErr) { setEmailError(eErr); return; }
+    if (eErr) { setEmailError("Vui lòng nhập email hợp lệ"); return; }
     setLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
