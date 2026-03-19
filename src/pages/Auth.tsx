@@ -420,7 +420,21 @@ const Auth = () => {
             )}
           </div>
 
-          <Button type="submit" variant="gold" size="lg" className="w-full" disabled={loading}>
+          {!isLogin && (
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword" className="text-foreground">Xác nhận mật khẩu</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="••••••••" value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setConfirmPasswordError(""); }} className={`pl-10 pr-10 bg-surface-3 border-gold/20 focus:border-gold ${confirmPasswordError ? "border-destructive" : ""}`} required />
+                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+              <InlineError message={confirmPasswordError} />
+            </div>
+          )}
+
+          <Button type="submit" variant="gold" size="lg" className="w-full" disabled={loading || (!isLogin && password.length > 0 && confirmPassword.length > 0 && password !== confirmPassword)}>
             {loading ? <Sparkles className="w-5 h-5 animate-spin" /> : isLogin ? "Đăng Nhập" : "Đăng Ký"}
           </Button>
         </form>
