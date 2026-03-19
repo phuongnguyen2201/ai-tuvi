@@ -406,7 +406,17 @@ const Auth = () => {
             <Label htmlFor="password" className="text-foreground">Mật khẩu</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => { setPassword(e.target.value); setPasswordError(""); }} className={`pl-10 pr-10 bg-surface-3 border-gold/20 focus:border-gold ${passwordError ? "border-destructive" : ""}`} required />
+              <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => {
+                const val = e.target.value;
+                setPassword(val);
+                setPasswordError("");
+                if (!isLogin && val.length > 0 && val.length < 6) {
+                  setPasswordError("Mật khẩu cần ít nhất 6 ký tự");
+                }
+                if (!isLogin && confirmPassword.length > 0) {
+                  setConfirmPasswordError(val !== confirmPassword ? "Mật khẩu không khớp" : "");
+                }
+              }} className={`pl-10 pr-10 bg-surface-3 border-gold/20 focus:border-gold ${passwordError ? "border-destructive" : ""}`} required />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
@@ -426,7 +436,14 @@ const Auth = () => {
               <Label htmlFor="confirmPassword" className="text-foreground">Xác nhận mật khẩu</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="••••••••" value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setConfirmPasswordError(""); }} className={`pl-10 pr-10 bg-surface-3 border-gold/20 focus:border-gold ${confirmPasswordError ? "border-destructive" : ""}`} required />
+                <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="••••••••" value={confirmPassword} onChange={(e) => {
+                  const val = e.target.value;
+                  setConfirmPassword(val);
+                  setConfirmPasswordError(val.length > 0 && password !== val ? "Mật khẩu không khớp" : "");
+                }} className={`pl-10 pr-10 bg-surface-3 border-gold/20 focus:border-gold ${confirmPasswordError ? "border-destructive" : ""} ${confirmPassword.length > 0 && password === confirmPassword ? "border-green-500" : ""}`} required />
+                {confirmPassword.length > 0 && password === confirmPassword ? (
+                  <Check className="absolute right-10 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
+                ) : null}
                 <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                   {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
