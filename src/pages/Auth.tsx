@@ -265,8 +265,8 @@ const Auth = () => {
     if (view === "forgotSuccess") {
       return renderSuccessCard(
         "📧",
-        "Đã gửi link đặt lại mật khẩu!",
-        <>Đã gửi link đặt lại mật khẩu đến <span className="font-semibold text-foreground">{forgotEmail}</span>. Vui lòng kiểm tra hộp thư (và thư mục Spam).</>,
+        "Kiểm tra hộp thư của bạn",
+        <>Nếu email <span className="font-semibold text-foreground">{forgotEmail}</span> đã được đăng ký, bạn sẽ nhận được link đặt lại mật khẩu. Vui lòng kiểm tra hộp thư (kể cả mục Spam).</>,
         "Quay lại đăng nhập",
         () => setView("login")
       );
