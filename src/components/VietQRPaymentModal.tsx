@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -858,16 +860,50 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
     blocked: "Vui lòng liên hệ hỗ trợ",
   };
 
+  const isMobile = useIsMobile();
+
+  const modalContent = (
+    <>
+      {initialLoading ? renderInitialLoading() : stepContent[step]()}
+      {step !== "success" && step !== "blocked" && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full text-muted-foreground mt-2"
+          onClick={handleClose}
+        >
+          Đóng
+        </Button>
+      )}
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={(o) => { if (!o) handleClose(); else onOpenChange(o); }}>
+        <DrawerContent className="border-border bg-card max-h-[95dvh] overflow-y-auto px-4 pb-6">
+          <DrawerHeader className="text-center">
+            <DrawerTitle className="font-display">{stepTitle[step]}</DrawerTitle>
+            <DrawerDescription>{stepDesc[step]}</DrawerDescription>
+          </DrawerHeader>
+          {modalContent}
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent
-        className={`border-border bg-card ${step === "success" && analysisResult ? "max-w-2xl" : "max-w-md"}`}
+        className={`border-border bg-card overflow-y-auto max-h-[85vh] ${
+          step === "success" && analysisResult ? "max-w-2xl" : "max-w-md"
+        }`}
       >
         <DialogHeader>
           <DialogTitle className="text-center font-display">{stepTitle[step]}</DialogTitle>
           <DialogDescription className="text-center">{stepDesc[step]}</DialogDescription>
         </DialogHeader>
-        {initialLoading ? renderInitialLoading() : stepContent[step]()}
+        {modalContent}
       </DialogContent>
     </Dialog>
   );

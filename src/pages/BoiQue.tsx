@@ -25,6 +25,7 @@ import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 import { useAuth } from "@/contexts/AuthContext";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import AuthPromptCard from "@/components/AuthPromptCard";
+import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
 
 const QUE_DATA = [
   {
@@ -1077,6 +1078,7 @@ const BoiQue = () => {
     return (
       <div className={cn("rounded-2xl p-5 bg-gradient-to-br from-surface-3 to-surface-2 border border-gold/20")}>
         <div className="space-y-1">{renderMarkdown(displayText)}</div>
+        <AnalysisDisclaimer variant="hexagram" />
       </div>
     );
   };

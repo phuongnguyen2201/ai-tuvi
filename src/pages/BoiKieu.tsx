@@ -11,6 +11,7 @@ import { hapticImpact, hapticSuccess } from "@/utils/native";
 import { useAuth } from "@/contexts/AuthContext";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import AuthPromptCard from "@/components/AuthPromptCard";
+import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
 
 const fortuneStyles: Record<string, { bg: string; border: string; badge: string; badgeText: string }> = {
   excellent: {
@@ -438,6 +439,7 @@ const BoiKieu = () => {
           <h3 className="font-display text-lg text-secondary">Luận Giải AI</h3>
         </div>
         <div className="space-y-1">{renderMarkdown(displayText)}</div>
+        <AnalysisDisclaimer variant="boi_kieu" />
         <div className="flex gap-2 mt-5">
           <Button variant="ghost" size="sm" onClick={() => handleShare("verse")} className="flex-1 text-xs">
             <Share2 className="w-3.5 h-3.5 mr-1" />
