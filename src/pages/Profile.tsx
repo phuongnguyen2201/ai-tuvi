@@ -200,8 +200,9 @@ const Profile = () => {
         {/* Banner pending */}
         {pendingPayments.length > 0 && (
           <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-4 text-sm">
-            <p className="text-yellow-200">
-              🕐 Bạn có {pendingPayments.length} giao dịch đang chờ xác nhận. Thường mất 5-30 phút trong giờ hành chính.
+            <p className="text-yellow-200 flex items-center gap-2">
+              <Clock className="w-4 h-4 shrink-0" />
+              Bạn có {pendingPayments.length} giao dịch đang chờ xác nhận. Thường mất 5-30 phút trong giờ hành chính.
             </p>
           </div>
         )}
