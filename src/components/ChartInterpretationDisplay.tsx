@@ -7,6 +7,7 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/component
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { TuViChartData } from '@/services/TuViService';
 import { interpretChart, ChartInterpretation, InterpretationSection } from '@/lib/tuvi/chartInterpretation';
+import { AnalysisDisclaimer } from '@/components/AnalysisDisclaimer';
 
 interface Props {
   chart: TuViChartData;
