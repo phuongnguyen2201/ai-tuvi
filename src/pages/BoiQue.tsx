@@ -985,7 +985,7 @@ const BoiQue = () => {
   const usesLabel = quePackage
     ? `Còn ${quePackage.uses_remaining}/${quePackage.uses_total} lần trong gói`
     : canUseFreeTrial
-      ? "✨ 1 lần miễn phí"
+      ? "1 lần miễn phí"
       : everPurchased
         ? "Đã hết lượt trong gói"
         : "Hết lượt miễn phí";
@@ -1094,7 +1094,7 @@ const BoiQue = () => {
           >
             {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
-          <div className="text-5xl mb-3">🎴</div>
+          <Sparkles className="w-10 h-10 text-gold mx-auto mb-3" />
           <h2 className="font-display text-xl text-foreground mb-2">Bói Quẻ 卦</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
             Gieo quẻ Kinh Dịch — Hỏi về một điều bạn muốn biết
@@ -1231,7 +1231,7 @@ const BoiQue = () => {
                   onClick={handleGieoQue}
                   disabled={isAnimating || isStreamingAI || !question.trim()}
                 >
-                  {isAnimating ? "Đang gieo quẻ..." : "Gieo Quẻ 🎴"}
+                  {isAnimating ? "Đang gieo quẻ..." : "Gieo Quẻ"}
                 </Button>
                 <p className="text-center text-xs text-muted-foreground">{usesLabel}</p>
               </>
@@ -1250,9 +1250,9 @@ const BoiQue = () => {
                   loadFreeTrialCount();
                 }}
               >
-                <Button disabled variant="gold" size="lg" className="w-full">
-                  Gieo Quẻ 🎴
-                </Button>
+                 <Button disabled variant="gold" size="lg" className="w-full">
+                   Gieo Quẻ
+                 </Button>
               </PaymentGate>
             ) : null)}
         </div>

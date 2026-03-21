@@ -4,7 +4,7 @@ import { ZodiacPicker, zodiacSigns } from "@/components/ZodiacPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Heart, Share2, Sparkles } from "lucide-react";
+import { Heart, Share2, Sparkles, Calendar, PawPrint, Check, Swords, AlertTriangle, Triangle, Zap, Minus, Lightbulb, ShieldCheck, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import {
   calculateCompatibility,
@@ -50,7 +50,7 @@ const GenderPicker = ({
             : "bg-surface-3 text-muted-foreground border border-border hover:border-gold/30"
         )}
       >
-        {g === "Nam" ? "👨 Nam" : "👩 Nữ"}
+        {g}
       </button>
     ))}
   </div>
@@ -97,10 +97,6 @@ const Compatibility = () => {
     toast.success("Đã sao chép kết quả!");
   };
 
-  const getZodiacEmoji = (name: string) => {
-    return zodiacSigns.find((z) => z.name === name)?.emoji || getZodiacInfo(name as ZodiacChi)?.emoji || "";
-  };
-
   const bestMatches1 = useMemo(() => zodiac1 ? findBestMatches(zodiac1) : [], [zodiac1]);
   const worstMatches1 = useMemo(() => zodiac1 ? findWorstMatches(zodiac1) : [], [zodiac1]);
   const bestMatches2 = useMemo(() => zodiac2 ? findBestMatches(zodiac2) : [], [zodiac2]);
@@ -122,25 +118,27 @@ const Compatibility = () => {
             type="button"
             onClick={() => setMode("zodiac")}
             className={cn(
-              "px-4 py-2 rounded-xl text-sm font-medium transition-all",
+              "px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5",
               mode === "zodiac"
                 ? "bg-gold/20 text-gold border border-gold/40"
                 : "bg-surface-3 text-muted-foreground border border-border hover:border-gold/30"
             )}
           >
-            🐉 Chọn con giáp
+            <PawPrint className="w-4 h-4" />
+            Chọn con giáp
           </button>
           <button
             type="button"
             onClick={() => setMode("year")}
             className={cn(
-              "px-4 py-2 rounded-xl text-sm font-medium transition-all",
+              "px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5",
               mode === "year"
                 ? "bg-gold/20 text-gold border border-gold/40"
                 : "bg-surface-3 text-muted-foreground border border-border hover:border-gold/30"
             )}
           >
-            📅 Nhập năm sinh
+            <Calendar className="w-4 h-4" />
+            Nhập năm sinh
           </button>
         </div>
 
@@ -165,7 +163,7 @@ const Compatibility = () => {
               />
               {zodiac1 && mode === "year" && year1 && (
                 <p className="text-sm text-gold flex items-center gap-1">
-                  {year1} → {zodiac1} {getZodiacEmoji(zodiac1)}
+                  {year1} → {zodiac1}
                 </p>
               )}
             </div>
@@ -200,7 +198,7 @@ const Compatibility = () => {
               />
               {zodiac2 && mode === "year" && year2 && (
                 <p className="text-sm text-gold flex items-center gap-1">
-                  {year2} → {zodiac2} {getZodiacEmoji(zodiac2)}
+                  {year2} → {zodiac2}
                 </p>
               )}
             </div>
@@ -231,14 +229,12 @@ const Compatibility = () => {
             {/* Zodiac pair display */}
             <div className="flex items-center justify-center gap-4 mb-6">
               <div className="text-center">
-                <span className="text-4xl">{getZodiacEmoji(zodiac1)}</span>
-                <p className="text-sm text-gold mt-1">{zodiac1}</p>
+                <p className="text-lg font-bold text-gold">{zodiac1}</p>
                 <p className="text-xs text-muted-foreground">{gender1}</p>
               </div>
-              <div className="text-2xl text-gold">💕</div>
+              <Heart className="w-6 h-6 text-gold fill-gold/30" />
               <div className="text-center">
-                <span className="text-4xl">{getZodiacEmoji(zodiac2)}</span>
-                <p className="text-sm text-gold mt-1">{zodiac2}</p>
+                <p className="text-lg font-bold text-gold">{zodiac2}</p>
                 <p className="text-xs text-muted-foreground">{gender2}</p>
               </div>
             </div>
@@ -290,37 +286,37 @@ const Compatibility = () => {
 
               {result.details.isLucHop && (
                 <div className="flex items-center gap-2 text-sm text-green-400">
-                  <span>✅</span>
+                  <Check className="w-4 h-4" />
                   <span>Lục Hợp - Cặp đôi thiên định</span>
                 </div>
               )}
               {result.details.isTamHop && (
                 <div className="flex items-center gap-2 text-sm text-gold">
-                  <span>✨</span>
+                  <Sparkles className="w-4 h-4" />
                   <span>Tam Hợp - Tương trợ lẫn nhau</span>
                 </div>
               )}
               {result.details.isTuongXung && (
                 <div className="flex items-center gap-2 text-sm text-destructive">
-                  <span>⚔️</span>
+                  <Swords className="w-4 h-4" />
                   <span>Lục Xung - Dễ xung đột mâu thuẫn</span>
                 </div>
               )}
               {result.details.isTuongHai && (
                 <div className="flex items-center gap-2 text-sm text-orange-400">
-                  <span>⚠️</span>
+                  <AlertTriangle className="w-4 h-4" />
                   <span>Lục Hại - Gây hại cho nhau</span>
                 </div>
               )}
               {result.details.isTuongHinh && (
                 <div className="flex items-center gap-2 text-sm text-orange-400">
-                  <span>🔺</span>
+                  <Triangle className="w-4 h-4" />
                   <span>Tam Hình - Dễ gây bất hòa</span>
                 </div>
               )}
               {result.details.isTuongPha && (
                 <div className="flex items-center gap-2 text-sm text-yellow-400">
-                  <span>💥</span>
+                  <Zap className="w-4 h-4" />
                   <span>Lục Phá - Gây cản trở nhau</span>
                 </div>
               )}
@@ -332,14 +328,17 @@ const Compatibility = () => {
                 !result.details.isTuongHinh &&
                 !result.details.isTuongPha && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span>➖</span>
+                    <Minus className="w-4 h-4" />
                     <span>Không có quan hệ đặc biệt - phụ thuộc vào nỗ lực</span>
                   </div>
                 )}
 
               {/* Lời khuyên */}
               <div className="mt-3 p-3 rounded-lg bg-surface-3/50 border border-gold/10">
-                <p className="text-xs text-gold font-medium mb-1">💡 Lời khuyên</p>
+                <p className="text-xs text-gold font-medium mb-1 flex items-center gap-1">
+                  <Lightbulb className="w-3.5 h-3.5" />
+                  Lời khuyên
+                </p>
                 <p className="text-xs text-muted-foreground">{result.advice}</p>
               </div>
             </div>
@@ -366,24 +365,28 @@ const Compatibility = () => {
                   className="rounded-2xl p-4 bg-surface-3/50 border border-border"
                 >
                   <p className="text-sm font-medium text-foreground mb-3">
-                    {getZodiacEmoji(item.zodiac!)} {item.zodiac}
+                    {item.zodiac}
                   </p>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-xs text-green-400 font-medium mb-2">✅ Hợp nhất</p>
+                      <p className="text-xs text-green-400 font-medium mb-2 flex items-center gap-1">
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        Hợp nhất
+                      </p>
                       {item.best.map((m) => (
                         <div key={m.chi} className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
-                          <span>{getZodiacEmoji(m.chi)}</span>
                           <span>{m.chi}</span>
                           <span className={cn("ml-auto", getLevelColor(m.level))}>{m.score}%</span>
                         </div>
                       ))}
                     </div>
                     <div>
-                      <p className="text-xs text-destructive font-medium mb-2">⚠️ Kỵ nhất</p>
+                      <p className="text-xs text-destructive font-medium mb-2 flex items-center gap-1">
+                        <ShieldAlert className="w-3.5 h-3.5" />
+                        Kỵ nhất
+                      </p>
                       {item.worst.map((m) => (
                         <div key={m.chi} className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
-                          <span>{getZodiacEmoji(m.chi)}</span>
                           <span>{m.chi}</span>
                           <span className={cn("ml-auto", getLevelColor(m.level))}>{m.score}%</span>
                         </div>

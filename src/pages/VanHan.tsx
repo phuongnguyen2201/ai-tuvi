@@ -19,6 +19,9 @@ import {
   CreditCard,
   X,
   Lock,
+  Calendar,
+  Moon,
+  Star,
 } from "lucide-react";
 // ── CHANGE 1: Import streaming hook ──
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
@@ -33,14 +36,14 @@ type TimeFrame = "week" | "month" | "year";
 interface TabConfig {
   key: TimeFrame;
   label: string;
-  icon: string;
+  icon: typeof Calendar;
   featureKey: string;
 }
 
 const TABS: TabConfig[] = [
-  { key: "week", label: "Theo Tuần", icon: "📅", featureKey: "van_han_week" },
-  { key: "month", label: "Theo Tháng", icon: "🌙", featureKey: "van_han_month" },
-  { key: "year", label: "Theo Năm", icon: "⭐", featureKey: "van_han_year" },
+  { key: "week", label: "Theo Tuần", icon: Calendar, featureKey: "van_han_week" },
+  { key: "month", label: "Theo Tháng", icon: Moon, featureKey: "van_han_month" },
+  { key: "year", label: "Theo Năm", icon: Star, featureKey: "van_han_year" },
 ];
 
 // ── Helpers ──
@@ -841,7 +844,7 @@ const VanHan = () => {
         <div id="van-han-result" className="text-center py-6">
           <Button variant="gold" size="lg" onClick={handleAnalyze} disabled={!canAnalyze}>
             <Sparkles className="w-5 h-5 mr-2" />
-            {canUseFreeTrial ? "✨ Thử miễn phí" : `Luận Giải AI ${timeInfo.label}`}
+            {canUseFreeTrial ? "Thử miễn phí" : `Luận Giải AI ${timeInfo.label}`}
           </Button>
           <p className="text-xs text-muted-foreground mt-2">
             {canUseFreeTrial
@@ -974,7 +977,7 @@ const VanHan = () => {
             onClick={handleRetryAnalyze}
             className="w-full mt-2 text-xs text-muted-foreground"
           >
-            🔄 Luận giải lại ({vanHanPackage.uses_remaining} lần còn lại)
+            Luận giải lại ({vanHanPackage.uses_remaining} lần còn lại)
           </Button>
         )}
       </div>
@@ -1083,7 +1086,7 @@ const VanHan = () => {
             "border border-border",
           )}
         >
-          <div className="text-4xl mb-3">🔮</div>
+          <Sparkles className="w-10 h-10 text-primary mx-auto mb-3" />
           <h3 className="font-display text-lg text-foreground mb-2">Chưa có lá số</h3>
           <p className="text-sm text-muted-foreground mb-4">Bạn cần lập lá số tử vi trước để xem vận hạn chi tiết</p>
           <Button variant="gold" size="lg" onClick={() => navigate("/lap-la-so")}>
@@ -1193,7 +1196,7 @@ const VanHan = () => {
                   : "text-muted-foreground hover:text-foreground hover:bg-surface-4",
               )}
             >
-              <span>{tab.icon}</span>
+              <tab.icon className="w-4 h-4" />
               <span className="hidden sm:inline">{tab.label}</span>
               <span className="sm:hidden">{tab.key === "week" ? "Tuần" : tab.key === "month" ? "Tháng" : "Năm"}</span>
             </button>

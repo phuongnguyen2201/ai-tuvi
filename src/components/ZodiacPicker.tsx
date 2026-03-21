@@ -1,18 +1,18 @@
 import { cn } from "@/lib/utils";
 
 const zodiacSigns = [
-  { name: "Tý", emoji: "🐀", element: "Thủy" },
-  { name: "Sửu", emoji: "🐂", element: "Thổ" },
-  { name: "Dần", emoji: "🐅", element: "Mộc" },
-  { name: "Mão", emoji: "🐱", element: "Mộc" },
-  { name: "Thìn", emoji: "🐉", element: "Thổ" },
-  { name: "Tỵ", emoji: "🐍", element: "Hỏa" },
-  { name: "Ngọ", emoji: "🐴", element: "Hỏa" },
-  { name: "Mùi", emoji: "🐑", element: "Thổ" },
-  { name: "Thân", emoji: "🐵", element: "Kim" },
-  { name: "Dậu", emoji: "🐔", element: "Kim" },
-  { name: "Tuất", emoji: "🐕", element: "Thổ" },
-  { name: "Hợi", emoji: "🐷", element: "Thủy" },
+  { name: "Tý", label: "🐀", element: "Thủy" },
+  { name: "Sửu", label: "🐂", element: "Thổ" },
+  { name: "Dần", label: "🐅", element: "Mộc" },
+  { name: "Mão", label: "🐇", element: "Mộc" },
+  { name: "Thìn", label: "🐉", element: "Thổ" },
+  { name: "Tỵ", label: "🐍", element: "Hỏa" },
+  { name: "Ngọ", label: "🐎", element: "Hỏa" },
+  { name: "Mùi", label: "🐐", element: "Thổ" },
+  { name: "Thân", label: "🐒", element: "Kim" },
+  { name: "Dậu", label: "🐓", element: "Kim" },
+  { name: "Tuất", label: "🐕", element: "Thổ" },
+  { name: "Hợi", label: "🐖", element: "Thủy" },
 ];
 
 interface ZodiacPickerProps {
@@ -44,10 +44,10 @@ const ZodiacPicker = ({ value, onChange, label }: ZodiacPickerProps) => {
                 : "bg-surface-3 border-border hover:border-gold/30"
             )}
           >
-            <span className="text-2xl">{zodiac.emoji}</span>
+            <span className="text-2xl">{zodiac.label}</span>
             <span className={cn(
-              "text-xs font-medium",
-              value === zodiac.name ? "text-gold" : "text-muted-foreground"
+              "text-sm font-bold",
+              value === zodiac.name ? "text-gold" : "text-foreground"
             )}>
               {zodiac.name}
             </span>
