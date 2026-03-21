@@ -24,6 +24,7 @@ import {
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 import { useAuth } from "@/contexts/AuthContext";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
+import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
 import { getISOWeek, startOfISOWeek, endOfISOWeek, addWeeks } from "date-fns";
 
 // ── Types ──
@@ -942,6 +943,7 @@ const VanHan = () => {
           </h3>
         </div>
         <div className="space-y-1">{renderMarkdown(fullDisplayText)}</div>
+        <AnalysisDisclaimer />
 
         {/* ── Grey out button — already analyzed ── */}
         <div className="mt-5 pt-4 border-t border-secondary/20">

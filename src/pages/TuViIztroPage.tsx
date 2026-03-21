@@ -6,6 +6,7 @@ import { createTuViChart, TuViChartData, BirthInput } from "@/services/TuViServi
 import TuViChartIztro from "@/components/TuViChartIztro";
 import ChartInterpretationDisplay from "@/components/ChartInterpretationDisplay";
 import TuViAnalysis from "@/components/TuViAnalysis";
+import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -760,6 +761,7 @@ export default function TuViIztroPage() {
               Luận giải chi tiết bởi AI
             </h2>
             <div className="space-y-1">{renderAnalysisMarkdown(displayText)}</div>
+            <AnalysisDisclaimer />
             <div className="mt-8 pt-4 border-t border-primary/20 space-y-3">
               <p className="text-xs text-muted-foreground">Luận giải bởi AI · Dựa trên lá số tử vi</p>
               {hasAccess && remaining > 0 ? (
