@@ -786,32 +786,53 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
     blocked: "Vui lòng liên hệ hỗ trợ",
   };
 
+  const isMobile = useIsMobile();
+
+  const modalContent = (
+    <>
+      {initialLoading ? renderInitialLoading() : stepContent[step]()}
+      {step !== "success" && step !== "blocked" && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full text-muted-foreground mt-2"
+          onClick={handleClose}
+        >
+          Đóng
+        </Button>
+      )}
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={(o) => { if (!o) handleClose(); else onOpenChange(o); }}>
+        <DrawerContent className="border-border bg-card max-h-[95dvh] overflow-y-auto px-4 pb-6">
+          <DrawerHeader className="text-center">
+            <DrawerTitle className="font-display">{stepTitle[step]}</DrawerTitle>
+            <DrawerDescription>{stepDesc[step]}</DrawerDescription>
+          </DrawerHeader>
+          {modalContent}
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent
-        className={`border-border bg-card overflow-y-auto max-h-[90vh] sm:max-h-[85vh] ${
+        className={`border-border bg-card overflow-y-auto max-h-[85vh] ${
           step === "success" && analysisResult ? "max-w-2xl" : "max-w-md"
-        } max-sm:max-w-full max-sm:h-[95dvh] max-sm:rounded-t-2xl max-sm:rounded-b-none max-sm:translate-y-0 max-sm:top-auto max-sm:bottom-0 max-sm:slide-in-from-bottom`}
+        }`}
       >
         <DialogHeader>
           <DialogTitle className="text-center font-display">{stepTitle[step]}</DialogTitle>
           <DialogDescription className="text-center">{stepDesc[step]}</DialogDescription>
         </DialogHeader>
-        {initialLoading ? renderInitialLoading() : stepContent[step]()}
-        {step !== "success" && step !== "blocked" && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full text-muted-foreground mt-2"
-            onClick={handleClose}
-          >
-            Đóng
-          </Button>
-        )}
+        {modalContent}
       </DialogContent>
     </Dialog>
   );
-};
 
 function renderMarkdownHTML(md: string): string {
   return md
