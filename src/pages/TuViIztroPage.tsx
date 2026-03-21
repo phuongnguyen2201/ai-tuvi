@@ -678,7 +678,7 @@ export default function TuViIztroPage() {
               loadAnalysis();
             }}
           >
-            🔄 Thử lại ngay
+                   🔄 Thử lại ngay
           </Button>
         </Card>
       );
