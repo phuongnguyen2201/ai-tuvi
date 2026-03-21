@@ -904,7 +904,7 @@ export default function TuViIztroPage() {
             ) : canUseFreeTrial ? (
               <div className="flex justify-center">
                 <Badge variant="outline" className="border-green-500/50 text-green-400 bg-green-500/10 px-4 py-1">
-                  ✨ Bạn có 1 lần luận giải miễn phí
+                  Bạn có 1 lần luận giải miễn phí
                 </Badge>
               </div>
             ) : null}
