@@ -79,7 +79,7 @@ const Index = () => {
             {user ? (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">
-                  ✨ Xin chào, <span className="text-foreground font-medium">{displayName}</span>!
+                  Xin chào, <span className="text-foreground font-medium">{displayName}</span>!
                 </span>
               </div>
             ) : (

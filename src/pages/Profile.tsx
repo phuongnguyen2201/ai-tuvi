@@ -135,7 +135,7 @@ const Profile = () => {
   if (loading || initializing) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin text-4xl">✨</div>
+        <Sparkles className="w-8 h-8 animate-spin text-gold" />
       </div>
     );
   }
@@ -200,8 +200,9 @@ const Profile = () => {
         {/* Banner pending */}
         {pendingPayments.length > 0 && (
           <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-4 text-sm">
-            <p className="text-yellow-200">
-              🕐 Bạn có {pendingPayments.length} giao dịch đang chờ xác nhận. Thường mất 5-30 phút trong giờ hành chính.
+            <p className="text-yellow-200 flex items-center gap-2">
+              <Clock className="w-4 h-4 shrink-0" />
+              Bạn có {pendingPayments.length} giao dịch đang chờ xác nhận. Thường mất 5-30 phút trong giờ hành chính.
             </p>
           </div>
         )}
@@ -303,7 +304,7 @@ const Profile = () => {
                             : "border-muted-foreground/30 text-muted-foreground text-[10px]"
                           }
                         >
-                          {isInterpreted ? "✅ Đã luận giải" : "⬜ Chưa luận giải"}
+                          {isInterpreted ? "Đã luận giải" : "Chưa luận giải"}
                         </Badge>
                       </div>
                     </div>
@@ -360,7 +361,7 @@ const Profile = () => {
                             : "border-yellow-500/50 text-yellow-400 bg-yellow-500/10"
                         }
                       >
-                        {p.status === "verified" ? "✅ Đã kích hoạt" : p.status === "rejected" ? "❌ Từ chối" : "🕐 Chờ xác nhận"}
+                        {p.status === "verified" ? "Đã kích hoạt" : p.status === "rejected" ? "Từ chối" : "Chờ xác nhận"}
                       </Badge>
                     </div>
                   </div>

@@ -594,7 +594,7 @@ export default function TuViIztroPage() {
                       <div className="flex items-center gap-2 shrink-0">
                         {hasAnalysis ? (
                           <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-medium">
-                            ✨ Đã luận giải
+                            Đã luận giải
                           </span>
                         ) : (
                           <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 font-medium">
@@ -655,7 +655,7 @@ export default function TuViIztroPage() {
             ) : (
               <div className="flex flex-col items-center gap-3 py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-gold" />
-                <p className="text-foreground font-semibold">✨ Đang kết nối AI...</p>
+                <p className="text-foreground font-semibold">Đang kết nối AI...</p>
                 <p className="text-muted-foreground text-sm">Kết quả sẽ hiện ra từng phần trong giây lát.</p>
               </div>
             )}
@@ -668,7 +668,7 @@ export default function TuViIztroPage() {
     if (analysisError && !displayText) {
       return (
         <Card className="p-6 bg-surface-3 border-primary/30 text-center space-y-3">
-          <div className="text-4xl">🔮</div>
+          <Sparkles className="w-10 h-10 text-primary mx-auto mb-3" />
           <p className="text-primary font-semibold">Hệ thống AI đang bận</p>
           <p className="text-muted-foreground text-sm">Vui lòng thử lại sau ít phút.</p>
           <Button
@@ -678,7 +678,7 @@ export default function TuViIztroPage() {
               loadAnalysis();
             }}
           >
-            🔄 Thử lại ngay
+                   🔄 Thử lại ngay
           </Button>
         </Card>
       );
@@ -781,7 +781,7 @@ export default function TuViIztroPage() {
                     loadAnalysis(false, true);
                   }}
                 >
-                  🔄 Luận giải lại ({remaining} lượt còn lại)
+                   🔄 Luận giải lại ({remaining} lượt còn lại)
                 </Button>
               ) : everPurchased && !hasAccess ? (
                 <Button variant="gold" size="sm" className="w-full text-xs" onClick={() => setShowPayment(true)}>
@@ -802,7 +802,7 @@ export default function TuViIztroPage() {
         </div>
         <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-sm rounded-lg">
           <Card className="max-w-sm w-full mx-4 p-6 text-center border-border bg-card shadow-xl">
-            <div className="text-4xl mb-3">🔮</div>
+            <Sparkles className="w-10 h-10 text-primary mx-auto mb-3" />
             <h3 className="text-lg font-bold text-foreground mb-1">Luận giải chi tiết lá số</h3>
 
             {canUseFreeTrial ? (
@@ -815,7 +815,7 @@ export default function TuViIztroPage() {
                   <span className="text-xs font-medium text-green-400">Miễn phí lần đầu</span>
                 </div>
                 <Button variant="gold" size="lg" className="w-full" onClick={handleInterpret}>
-                  <Sparkles className="w-4 h-4 mr-2" />✨ Luận giải miễn phí
+                  <Sparkles className="w-4 h-4 mr-2" /> Luận giải miễn phí
                 </Button>
                 <p className="text-xs text-muted-foreground mt-2">Xem bản rút gọn miễn phí · Mua gói để xem đầy đủ</p>
               </>
@@ -866,7 +866,7 @@ export default function TuViIztroPage() {
     <PageLayout>
       <div className="max-w-5xl mx-auto space-y-6 p-4">
         <h1 className="text-3xl font-bold text-center text-amber-400">
-          {chart && personName ? `🔮 Lá số của ${personName}` : "🔮 Lập Lá Số Tử Vi"}
+          {chart && personName ? `Lá số của ${personName}` : "Lập Lá Số Tử Vi"}
         </h1>
         {!chart && (
           <p className="text-center text-gray-400 text-sm">Nhập thông tin ngày sinh để xem lá số tử vi của bạn</p>
@@ -878,7 +878,7 @@ export default function TuViIztroPage() {
             {hasAccess ? (
               <div className="flex justify-center">
                 <Badge variant="outline" className="border-primary/50 text-primary bg-primary/10 px-4 py-1">
-                  🔮 Bạn còn {remaining}/{total} lần luận giải
+                  Bạn còn {remaining}/{total} lần luận giải
                 </Badge>
               </div>
             ) : everPurchased && !hasAccess ? (
@@ -904,7 +904,7 @@ export default function TuViIztroPage() {
             ) : canUseFreeTrial ? (
               <div className="flex justify-center">
                 <Badge variant="outline" className="border-green-500/50 text-green-400 bg-green-500/10 px-4 py-1">
-                  ✨ Bạn có 1 lần luận giải miễn phí
+                  Bạn có 1 lần luận giải miễn phí
                 </Badge>
               </div>
             ) : null}
@@ -1046,7 +1046,7 @@ export default function TuViIztroPage() {
                   ? "Đang tính toán..."
                   : !isFormDirty
                     ? "✓ Đã lập lá số — Sửa thông tin để lập mới"
-                    : "🔮 Lập Lá Số"}
+                    : "Lập Lá Số"}
               </Button>
             </form>
           </CardContent>

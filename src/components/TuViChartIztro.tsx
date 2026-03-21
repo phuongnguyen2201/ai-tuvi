@@ -96,7 +96,7 @@ function StarItem({ star, colorClass, palaceName }: { star: StarInfo; colorClass
               meaning.nature === 'hung' ? 'bg-red-900/50 text-red-300 border-red-500/50' :
               'bg-gray-900/50 text-gray-300 border-gray-500/50'
             }`}>
-              {meaning.nature === 'cát' ? '✨ Cát tinh' : meaning.nature === 'hung' ? '⚠️ Hung tinh' : '⚖️ Trung tính'}
+              {meaning.nature === 'cát' ? 'Cát tinh' : meaning.nature === 'hung' ? 'Hung tinh' : 'Trung tính'}
             </Badge>
             {meaning.element && (
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-slate-800 text-gray-300 border-slate-600">
@@ -523,7 +523,7 @@ function CenterInfo({ chart }: { chart: TuViChartData }) {
         {chart.cucMenhRelation && (
           <div className={`mt-0.5 sm:mt-1 p-1 sm:p-1.5 rounded text-[8px] sm:text-[10px] ${relationColors[chart.cucMenhRelation.relation] || ''}`}>
             <p className="font-medium truncate">
-              Mệnh {chart.cucMenhRelation.menhElement} {chart.cucMenhRelation.relation === 'tuong_khac' ? '⚔️' : chart.cucMenhRelation.relation === 'tuong_sinh' ? '✨' : '⚖️'} Cục {chart.cucMenhRelation.cucElement}
+              Mệnh {chart.cucMenhRelation.menhElement} {chart.cucMenhRelation.relation === 'tuong_khac' ? '×' : chart.cucMenhRelation.relation === 'tuong_sinh' ? '+' : '='} Cục {chart.cucMenhRelation.cucElement}
             </p>
             <p className="text-[7px] sm:text-[9px] opacity-80 truncate">{chart.cucMenhRelation.description}</p>
           </div>
