@@ -1091,7 +1091,7 @@ const BoiQue = () => {
           >
             {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
-          <div className="text-5xl mb-3">🎴</div>
+          <Sparkles className="w-10 h-10 text-gold mx-auto mb-3" />
           <h2 className="font-display text-xl text-foreground mb-2">Bói Quẻ 卦</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
             Gieo quẻ Kinh Dịch — Hỏi về một điều bạn muốn biết
