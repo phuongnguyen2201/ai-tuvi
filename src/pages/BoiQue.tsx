@@ -982,7 +982,7 @@ const BoiQue = () => {
   const usesLabel = quePackage
     ? `Còn ${quePackage.uses_remaining}/${quePackage.uses_total} lần trong gói`
     : canUseFreeTrial
-      ? "✨ 1 lần miễn phí"
+      ? "1 lần miễn phí"
       : everPurchased
         ? "Đã hết lượt trong gói"
         : "Hết lượt miễn phí";
