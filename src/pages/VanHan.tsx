@@ -1196,7 +1196,7 @@ const VanHan = () => {
                   : "text-muted-foreground hover:text-foreground hover:bg-surface-4",
               )}
             >
-              <span>{tab.icon}</span>
+              <tab.icon className="w-4 h-4" />
               <span className="hidden sm:inline">{tab.label}</span>
               <span className="sm:hidden">{tab.key === "week" ? "Tuần" : tab.key === "month" ? "Tháng" : "Năm"}</span>
             </button>
