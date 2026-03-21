@@ -36,7 +36,7 @@ type TimeFrame = "week" | "month" | "year";
 interface TabConfig {
   key: TimeFrame;
   label: string;
-  icon: string;
+  icon: typeof Calendar;
   featureKey: string;
 }
 
