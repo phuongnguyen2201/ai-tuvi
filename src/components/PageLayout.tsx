@@ -75,7 +75,7 @@ const PageLayout = ({ children, title, showBack = true, className }: PageLayoutP
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
                       <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                        Xin chào, {displayName}! ✨
+                        Xin chào, {displayName}!
                       </div>
                       <DropdownMenuItem onClick={() => navigate("/profile")}>
                         <UserIcon className="mr-2 h-4 w-4" />

@@ -361,7 +361,7 @@ const Profile = () => {
                             : "border-yellow-500/50 text-yellow-400 bg-yellow-500/10"
                         }
                       >
-                        {p.status === "verified" ? "✅ Đã kích hoạt" : p.status === "rejected" ? "❌ Từ chối" : "🕐 Chờ xác nhận"}
+                        {p.status === "verified" ? "Đã kích hoạt" : p.status === "rejected" ? "Từ chối" : "Chờ xác nhận"}
                       </Badge>
                     </div>
                   </div>
