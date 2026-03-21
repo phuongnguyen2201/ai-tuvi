@@ -866,7 +866,7 @@ export default function TuViIztroPage() {
     <PageLayout>
       <div className="max-w-5xl mx-auto space-y-6 p-4">
         <h1 className="text-3xl font-bold text-center text-amber-400">
-          {chart && personName ? `🔮 Lá số của ${personName}` : "🔮 Lập Lá Số Tử Vi"}
+          {chart && personName ? `Lá số của ${personName}` : "Lập Lá Số Tử Vi"}
         </h1>
         {!chart && (
           <p className="text-center text-gray-400 text-sm">Nhập thông tin ngày sinh để xem lá số tử vi của bạn</p>
