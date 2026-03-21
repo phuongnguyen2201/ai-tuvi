@@ -760,6 +760,7 @@ export default function TuViIztroPage() {
               Luận giải chi tiết bởi AI
             </h2>
             <div className="space-y-1">{renderAnalysisMarkdown(displayText)}</div>
+            <AnalysisDisclaimer />
             <div className="mt-8 pt-4 border-t border-primary/20 space-y-3">
               <p className="text-xs text-muted-foreground">Luận giải bởi AI · Dựa trên lá số tử vi</p>
               {hasAccess && remaining > 0 ? (

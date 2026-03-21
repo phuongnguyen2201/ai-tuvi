@@ -1074,6 +1074,7 @@ const BoiQue = () => {
     return (
       <div className={cn("rounded-2xl p-5 bg-gradient-to-br from-surface-3 to-surface-2 border border-gold/20")}>
         <div className="space-y-1">{renderMarkdown(displayText)}</div>
+        <AnalysisDisclaimer />
       </div>
     );
   };
