@@ -974,7 +974,7 @@ const VanHan = () => {
             onClick={handleRetryAnalyze}
             className="w-full mt-2 text-xs text-muted-foreground"
           >
-            🔄 Luận giải lại ({vanHanPackage.uses_remaining} lần còn lại)
+            Luận giải lại ({vanHanPackage.uses_remaining} lần còn lại)
           </Button>
         )}
       </div>
