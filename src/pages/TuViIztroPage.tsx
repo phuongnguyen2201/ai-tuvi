@@ -668,7 +668,7 @@ export default function TuViIztroPage() {
     if (analysisError && !displayText) {
       return (
         <Card className="p-6 bg-surface-3 border-primary/30 text-center space-y-3">
-          <div className="text-4xl">🔮</div>
+          <Sparkles className="w-10 h-10 text-primary mx-auto mb-3" />
           <p className="text-primary font-semibold">Hệ thống AI đang bận</p>
           <p className="text-muted-foreground text-sm">Vui lòng thử lại sau ít phút.</p>
           <Button
