@@ -943,7 +943,7 @@ const VanHan = () => {
           </h3>
         </div>
         <div className="space-y-1">{renderMarkdown(fullDisplayText)}</div>
-        <AnalysisDisclaimer />
+        <AnalysisDisclaimer variant="van_han" />
 
         {/* ── Grey out button — already analyzed ── */}
         <div className="mt-5 pt-4 border-t border-secondary/20">
