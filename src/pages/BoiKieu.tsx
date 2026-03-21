@@ -333,7 +333,7 @@ const BoiKieu = () => {
   const usesLabel = kieuPackage
     ? `Còn ${kieuPackage.uses_remaining}/${kieuPackage.uses_total} lần trong gói`
     : canUseFreeTrial
-      ? "✨ 1 lần miễn phí"
+      ? "1 lần miễn phí"
       : everPurchased
         ? "Đã hết lượt trong gói"
         : "Hết lượt miễn phí";

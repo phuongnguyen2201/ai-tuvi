@@ -1247,9 +1247,9 @@ const BoiQue = () => {
                   loadFreeTrialCount();
                 }}
               >
-                <Button disabled variant="gold" size="lg" className="w-full">
-                  Gieo Quẻ 🎴
-                </Button>
+                 <Button disabled variant="gold" size="lg" className="w-full">
+                   Gieo Quẻ
+                 </Button>
               </PaymentGate>
             ) : null)}
         </div>

@@ -523,7 +523,7 @@ function CenterInfo({ chart }: { chart: TuViChartData }) {
         {chart.cucMenhRelation && (
           <div className={`mt-0.5 sm:mt-1 p-1 sm:p-1.5 rounded text-[8px] sm:text-[10px] ${relationColors[chart.cucMenhRelation.relation] || ''}`}>
             <p className="font-medium truncate">
-              Mệnh {chart.cucMenhRelation.menhElement} {chart.cucMenhRelation.relation === 'tuong_khac' ? '⚔️' : chart.cucMenhRelation.relation === 'tuong_sinh' ? '✨' : '⚖️'} Cục {chart.cucMenhRelation.cucElement}
+              Mệnh {chart.cucMenhRelation.menhElement} {chart.cucMenhRelation.relation === 'tuong_khac' ? '×' : chart.cucMenhRelation.relation === 'tuong_sinh' ? '+' : '='} Cục {chart.cucMenhRelation.cucElement}
             </p>
             <p className="text-[7px] sm:text-[9px] opacity-80 truncate">{chart.cucMenhRelation.description}</p>
           </div>

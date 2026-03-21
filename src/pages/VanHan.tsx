@@ -1083,7 +1083,7 @@ const VanHan = () => {
             "border border-border",
           )}
         >
-          <div className="text-4xl mb-3">🔮</div>
+          <Sparkles className="w-10 h-10 text-primary mx-auto mb-3" />
           <h3 className="font-display text-lg text-foreground mb-2">Chưa có lá số</h3>
           <p className="text-sm text-muted-foreground mb-4">Bạn cần lập lá số tử vi trước để xem vận hạn chi tiết</p>
           <Button variant="gold" size="lg" onClick={() => navigate("/lap-la-so")}>

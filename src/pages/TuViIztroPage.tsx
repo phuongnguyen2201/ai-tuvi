@@ -1046,7 +1046,7 @@ export default function TuViIztroPage() {
                   ? "Đang tính toán..."
                   : !isFormDirty
                     ? "✓ Đã lập lá số — Sửa thông tin để lập mới"
-                    : "🔮 Lập Lá Số"}
+                    : "Lập Lá Số"}
               </Button>
             </form>
           </CardContent>

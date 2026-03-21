@@ -92,7 +92,7 @@ const NguHanhTest = () => {
           "text-lg font-medium",
           allPassed ? "text-green-500" : "text-red-500"
         )}>
-          {allPassed ? "✅ All tests passed!" : "❌ Some tests failed"}
+          {allPassed ? "All tests passed!" : "Some tests failed"}
         </p>
       </div>
 
