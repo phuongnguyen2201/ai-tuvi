@@ -655,7 +655,7 @@ export default function TuViIztroPage() {
             ) : (
               <div className="flex flex-col items-center gap-3 py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-gold" />
-                <p className="text-foreground font-semibold">✨ Đang kết nối AI...</p>
+                <p className="text-foreground font-semibold">Đang kết nối AI...</p>
                 <p className="text-muted-foreground text-sm">Kết quả sẽ hiện ra từng phần trong giây lát.</p>
               </div>
             )}
