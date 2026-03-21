@@ -1228,7 +1228,7 @@ const BoiQue = () => {
                   onClick={handleGieoQue}
                   disabled={isAnimating || isStreamingAI || !question.trim()}
                 >
-                  {isAnimating ? "Đang gieo quẻ..." : "Gieo Quẻ 🎴"}
+                  {isAnimating ? "Đang gieo quẻ..." : "Gieo Quẻ"}
                 </Button>
                 <p className="text-center text-xs text-muted-foreground">{usesLabel}</p>
               </>
