@@ -1,18 +1,18 @@
 import { cn } from "@/lib/utils";
 
 const zodiacSigns = [
-  { name: "Tý", emoji: "🐀", element: "Thủy" },
-  { name: "Sửu", emoji: "🐂", element: "Thổ" },
-  { name: "Dần", emoji: "🐅", element: "Mộc" },
-  { name: "Mão", emoji: "🐱", element: "Mộc" },
-  { name: "Thìn", emoji: "🐉", element: "Thổ" },
-  { name: "Tỵ", emoji: "🐍", element: "Hỏa" },
-  { name: "Ngọ", emoji: "🐴", element: "Hỏa" },
-  { name: "Mùi", emoji: "🐑", element: "Thổ" },
-  { name: "Thân", emoji: "🐵", element: "Kim" },
-  { name: "Dậu", emoji: "🐔", element: "Kim" },
-  { name: "Tuất", emoji: "🐕", element: "Thổ" },
-  { name: "Hợi", emoji: "🐷", element: "Thủy" },
+  { name: "Tý", label: "Chuột", element: "Thủy" },
+  { name: "Sửu", label: "Trâu", element: "Thổ" },
+  { name: "Dần", label: "Hổ", element: "Mộc" },
+  { name: "Mão", label: "Mèo", element: "Mộc" },
+  { name: "Thìn", label: "Rồng", element: "Thổ" },
+  { name: "Tỵ", label: "Rắn", element: "Hỏa" },
+  { name: "Ngọ", label: "Ngựa", element: "Hỏa" },
+  { name: "Mùi", label: "Dê", element: "Thổ" },
+  { name: "Thân", label: "Khỉ", element: "Kim" },
+  { name: "Dậu", label: "Gà", element: "Kim" },
+  { name: "Tuất", label: "Chó", element: "Thổ" },
+  { name: "Hợi", label: "Heo", element: "Thủy" },
 ];
 
 interface ZodiacPickerProps {
@@ -44,12 +44,17 @@ const ZodiacPicker = ({ value, onChange, label }: ZodiacPickerProps) => {
                 : "bg-surface-3 border-border hover:border-gold/30"
             )}
           >
-            <span className="text-2xl">{zodiac.emoji}</span>
             <span className={cn(
-              "text-xs font-medium",
-              value === zodiac.name ? "text-gold" : "text-muted-foreground"
+              "text-sm font-bold",
+              value === zodiac.name ? "text-gold" : "text-foreground"
             )}>
               {zodiac.name}
+            </span>
+            <span className={cn(
+              "text-[10px]",
+              value === zodiac.name ? "text-gold/70" : "text-muted-foreground"
+            )}>
+              {zodiac.label}
             </span>
           </button>
         ))}

@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-import { CalendarIcon, Sparkles } from "lucide-react";
+import { CalendarIcon, Sparkles, User, UserRound } from "lucide-react";
 import { solarToLunar, CANH_GIO, DIA_CHI } from "@/lib/tuvi/lunarCalendar";
 import { getNguHanhFromYear } from "@/lib/tuvi/nguHanh";
 
@@ -102,9 +102,9 @@ const BirthInput = () => {
               
               {/* Zodiac & Element */}
               <div className="flex items-center gap-2 pl-6">
-                <span className="text-2xl">{zodiacInfo.chi.animal}</span>
+                <span className="text-sm font-semibold text-gold">{zodiacInfo.chi.name}</span>
                 <span className="text-sm text-foreground">
-                  Tuổi <span className="font-semibold text-gold">{zodiacInfo.chi.vietnameseAnimal}</span>
+                  — Tuổi <span className="font-semibold text-gold">{zodiacInfo.chi.vietnameseAnimal}</span>
                   {zodiacInfo.napAm && (
                     <> - Mệnh <span className="font-semibold text-gold">{zodiacInfo.napAm.name}</span>
                       <span className="text-muted-foreground text-xs ml-1">({zodiacInfo.napAm.napAm})</span>
@@ -161,7 +161,7 @@ const BirthInput = () => {
                   gender !== "male" && "bg-surface-3 border-border hover:border-gold/30"
                 )}
               >
-                <span className="text-2xl">👨</span>
+                <User className={cn("w-5 h-5", gender === "male" ? "text-gold" : "text-muted-foreground")} />
                 <span className={cn(
                   "font-medium",
                   gender === "male" ? "text-gold" : "text-foreground"
@@ -182,7 +182,7 @@ const BirthInput = () => {
                   gender !== "female" && "bg-surface-3 border-border hover:border-gold/30"
                 )}
               >
-                <span className="text-2xl">👩</span>
+                <UserRound className={cn("w-5 h-5", gender === "female" ? "text-gold" : "text-muted-foreground")} />
                 <span className={cn(
                   "font-medium",
                   gender === "female" ? "text-gold" : "text-foreground"
