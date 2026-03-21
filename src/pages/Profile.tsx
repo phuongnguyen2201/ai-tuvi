@@ -135,7 +135,7 @@ const Profile = () => {
   if (loading || initializing) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin text-4xl">✨</div>
+        <Sparkles className="w-8 h-8 animate-spin text-gold" />
       </div>
     );
   }
