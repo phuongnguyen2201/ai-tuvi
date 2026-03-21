@@ -24,6 +24,7 @@ import {
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 import { useAuth } from "@/contexts/AuthContext";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
+import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
 import { getISOWeek, startOfISOWeek, endOfISOWeek, addWeeks } from "date-fns";
 
 // ── Types ──

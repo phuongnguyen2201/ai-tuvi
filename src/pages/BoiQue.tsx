@@ -24,6 +24,7 @@ import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 import { useAuth } from "@/contexts/AuthContext";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import AuthPromptCard from "@/components/AuthPromptCard";
+import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
 
 const QUE_DATA = [
   {

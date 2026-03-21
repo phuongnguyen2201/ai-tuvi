@@ -6,6 +6,7 @@ import { createTuViChart, TuViChartData, BirthInput } from "@/services/TuViServi
 import TuViChartIztro from "@/components/TuViChartIztro";
 import ChartInterpretationDisplay from "@/components/ChartInterpretationDisplay";
 import TuViAnalysis from "@/components/TuViAnalysis";
+import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
