@@ -802,7 +802,7 @@ export default function TuViIztroPage() {
         </div>
         <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-sm rounded-lg">
           <Card className="max-w-sm w-full mx-4 p-6 text-center border-border bg-card shadow-xl">
-            <div className="text-4xl mb-3">🔮</div>
+            <Sparkles className="w-10 h-10 text-primary mx-auto mb-3" />
             <h3 className="text-lg font-bold text-foreground mb-1">Luận giải chi tiết lá số</h3>
 
             {canUseFreeTrial ? (
