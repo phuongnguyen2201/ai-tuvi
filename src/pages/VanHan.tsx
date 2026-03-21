@@ -19,6 +19,9 @@ import {
   CreditCard,
   X,
   Lock,
+  Calendar,
+  Moon,
+  Star,
 } from "lucide-react";
 // ── CHANGE 1: Import streaming hook ──
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
