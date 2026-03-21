@@ -833,6 +833,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
       </DialogContent>
     </Dialog>
   );
+};
 
 function renderMarkdownHTML(md: string): string {
   return md
