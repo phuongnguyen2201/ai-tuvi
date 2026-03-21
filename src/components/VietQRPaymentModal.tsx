@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
-import { generateVietQRUrl, generateTransferContent, getFeatureLabel, generateBankDeepLink, PRICING, type FeatureKey } from "@/utils/vietqr";
+import { generateVietQRUrl, generateTransferContent, getFeatureLabel, PRICING, type FeatureKey } from "@/utils/vietqr";
 import { Copy, Check, Loader2, ExternalLink, Sparkles, ShieldAlert } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { openExternalLink } from "@/utils/native";
 import { Capacitor } from "@capacitor/core";
+import { Share } from "@capacitor/share";
+import { Filesystem, Directory } from "@capacitor/filesystem";
 
 type Step = "select_plan" | "show_qr" | "pending" | "processing" | "success" | "blocked";
 
@@ -605,13 +607,74 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
         </div>
       </div>
       {Capacitor.isNativePlatform() && (
-        <Button
-          variant="goldOutline"
-          className="w-full"
-          onClick={() => openExternalLink(generateBankDeepLink(activeFeature, transferContent))}
-        >
-          🏦 Mở app ngân hàng
-        </Button>
+        <div className="space-y-2">
+          <Button
+            variant="gold"
+            className="w-full"
+            onClick={async () => {
+              try {
+                const response = await fetch(qrUrl);
+                const blob = await response.blob();
+                const reader = new FileReader();
+                reader.onloadend = async () => {
+                  const base64Data = (reader.result as string).split(",")[1];
+                  const fileName = `tuvi_qr_${Date.now()}.png`;
+                  const saved = await Filesystem.writeFile({
+                    path: fileName,
+                    data: base64Data,
+                    directory: Directory.Cache,
+                  });
+                  await Share.share({
+                    files: [saved.uri],
+                    title: "Mã QR thanh toán Tử Vi",
+                    text: "Quét mã QR để chuyển khoản",
+                  });
+                };
+                reader.readAsDataURL(blob);
+              } catch (err) {
+                console.error("[QR Share] Error:", err);
+                // Fallback: share URL instead of file
+                await Share.share({
+                  title: "Mã QR thanh toán Tử Vi",
+                  text: "Quét mã QR để chuyển khoản",
+                  url: qrUrl,
+                });
+              }
+            }}
+          >
+            📱 Gửi mã QR qua Zalo
+          </Button>
+          <Button
+            variant="goldOutline"
+            className="w-full"
+            onClick={async () => {
+              try {
+                const response = await fetch(qrUrl);
+                const blob = await response.blob();
+                const reader = new FileReader();
+                reader.onloadend = async () => {
+                  const base64Data = (reader.result as string).split(",")[1];
+                  const fileName = `tuvi_qr_${Date.now()}.png`;
+                  await Filesystem.writeFile({
+                    path: fileName,
+                    data: base64Data,
+                    directory: Directory.Documents,
+                  });
+                  toast({ title: "Đã lưu mã QR vào máy" });
+                };
+                reader.readAsDataURL(blob);
+              } catch (err) {
+                console.error("[QR Save] Error:", err);
+                toast({ title: "Không thể lưu ảnh", variant: "destructive" });
+              }
+            }}
+          >
+            📷 Lưu mã QR vào máy
+          </Button>
+          <p className="text-xs text-center text-muted-foreground">
+            Gửi mã QR qua Zalo → Zalo tự nhận diện → Nhấn Chuyển khoản
+          </p>
+        </div>
       )}
       <div className="rounded-xl bg-muted/50 border border-border p-4 space-y-2 text-sm">
         <div className="flex justify-between">
