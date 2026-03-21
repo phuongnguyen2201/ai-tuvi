@@ -115,12 +115,7 @@ export function ChartInterpretationDisplay({ chart }: Props) {
           />
         ))}
         
-        <div className="mt-4 p-3 bg-amber-900/20 border border-amber-600/30 rounded-lg">
-          <p className="text-xs text-amber-300 text-center italic">
-            ⚠️ Lưu ý: Đây là luận giải tự động dựa trên thuật toán. Để có phân tích chi tiết và chính xác hơn, 
-            bạn nên tham khảo ý kiến của thầy tử vi có kinh nghiệm.
-          </p>
-        </div>
+        <AnalysisDisclaimer />
       </CardContent>
     </Card>
   );
