@@ -235,7 +235,7 @@ const Auth = () => {
       return (
         <div className="bg-surface-2/80 backdrop-blur-xl rounded-2xl border border-gold/20 p-8 shadow-2xl">
           <div className="flex flex-col items-center text-center space-y-4">
-            <span className="text-5xl">📧</span>
+            <Mail className="w-12 h-12 text-gold mx-auto" />
             <h2 className="font-display text-2xl text-foreground">Email đã được đăng ký</h2>
             <p className="text-muted-foreground leading-relaxed">
               Email <span className="font-semibold text-foreground">{alreadyRegisteredEmail}</span> đã có tài khoản. Bạn có muốn đăng nhập không?
