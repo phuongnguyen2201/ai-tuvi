@@ -878,7 +878,7 @@ export default function TuViIztroPage() {
             {hasAccess ? (
               <div className="flex justify-center">
                 <Badge variant="outline" className="border-primary/50 text-primary bg-primary/10 px-4 py-1">
-                  🔮 Bạn còn {remaining}/{total} lần luận giải
+                  Bạn còn {remaining}/{total} lần luận giải
                 </Badge>
               </div>
             ) : everPurchased && !hasAccess ? (
