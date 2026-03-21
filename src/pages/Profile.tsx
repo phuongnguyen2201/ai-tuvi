@@ -304,7 +304,7 @@ const Profile = () => {
                             : "border-muted-foreground/30 text-muted-foreground text-[10px]"
                           }
                         >
-                          {isInterpreted ? "✅ Đã luận giải" : "⬜ Chưa luận giải"}
+                          {isInterpreted ? "Đã luận giải" : "Chưa luận giải"}
                         </Badge>
                       </div>
                     </div>
