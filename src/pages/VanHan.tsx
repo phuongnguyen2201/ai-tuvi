@@ -38,9 +38,9 @@ interface TabConfig {
 }
 
 const TABS: TabConfig[] = [
-  { key: "week", label: "Theo Tuần", icon: "📅", featureKey: "van_han_week" },
-  { key: "month", label: "Theo Tháng", icon: "🌙", featureKey: "van_han_month" },
-  { key: "year", label: "Theo Năm", icon: "⭐", featureKey: "van_han_year" },
+  { key: "week", label: "Theo Tuần", icon: "W", featureKey: "van_han_week" },
+  { key: "month", label: "Theo Tháng", icon: "M", featureKey: "van_han_month" },
+  { key: "year", label: "Theo Năm", icon: "Y", featureKey: "van_han_year" },
 ];
 
 // ── Helpers ──
