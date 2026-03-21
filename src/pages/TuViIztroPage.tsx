@@ -781,7 +781,7 @@ export default function TuViIztroPage() {
                     loadAnalysis(false, true);
                   }}
                 >
-                  🔄 Luận giải lại ({remaining} lượt còn lại)
+                   🔄 Luận giải lại ({remaining} lượt còn lại)
                 </Button>
               ) : everPurchased && !hasAccess ? (
                 <Button variant="gold" size="sm" className="w-full text-xs" onClick={() => setShowPayment(true)}>
