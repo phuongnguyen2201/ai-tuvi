@@ -594,7 +594,7 @@ export default function TuViIztroPage() {
                       <div className="flex items-center gap-2 shrink-0">
                         {hasAnalysis ? (
                           <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-medium">
-                            ✨ Đã luận giải
+                            Đã luận giải
                           </span>
                         ) : (
                           <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 font-medium">
