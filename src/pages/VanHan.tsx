@@ -841,7 +841,7 @@ const VanHan = () => {
         <div id="van-han-result" className="text-center py-6">
           <Button variant="gold" size="lg" onClick={handleAnalyze} disabled={!canAnalyze}>
             <Sparkles className="w-5 h-5 mr-2" />
-            {canUseFreeTrial ? "✨ Thử miễn phí" : `Luận Giải AI ${timeInfo.label}`}
+            {canUseFreeTrial ? "Thử miễn phí" : `Luận Giải AI ${timeInfo.label}`}
           </Button>
           <p className="text-xs text-muted-foreground mt-2">
             {canUseFreeTrial
