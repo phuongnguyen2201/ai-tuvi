@@ -84,7 +84,7 @@ const Profile = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [profileData, setProfileData] = useState<any>(null);
   const [readings, setReadings] = useState<TuViReading[]>([]);
-  const [luanGiaiPkg, setLuanGiaiPkg] = useState<LuanGiaiPkg | null>(null);
+  const [credits, setCredits] = useState<{ remaining: number; total: number } | null>(null);
 
   useEffect(() => {
     if (user) {
