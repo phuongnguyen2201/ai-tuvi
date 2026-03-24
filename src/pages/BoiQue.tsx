@@ -973,12 +973,12 @@ const BoiQue = () => {
 
   const style = result ? fortuneConfig[result.fortune as keyof typeof fortuneConfig] : null;
 
-  const usesLabel = quePackage
-    ? `Còn ${quePackage.uses_remaining}/${quePackage.uses_total} lần trong gói`
+  const usesLabel = hasCredits
+    ? `Còn ${credits} credits`
     : canUseFreeTrial
       ? "1 lần miễn phí"
       : everPurchased
-        ? "Đã hết lượt trong gói"
+        ? "Đã hết credits"
         : "Hết lượt miễn phí";
 
   const renderAiSection = () => {
