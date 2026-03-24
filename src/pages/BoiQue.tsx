@@ -882,14 +882,15 @@ const BoiQue = () => {
         } catch (saveErr) {
           console.warn("[BoiQue] Save error:", saveErr);
         }
-        if (quePackage) {
-          await supabase
-            .from("boi_que_packages")
-            .update({ uses_remaining: quePackage.uses_remaining - 1 })
-            .eq("id", quePackage.id);
+        if (hasCredits) {
+          const { data: creditResult } = await (supabase as any).rpc("use_credit", {
+            p_user_id: u.id,
+            p_feature: "boi_que",
+          });
+          console.log("[BoiQue] use_credit result:", creditResult);
         }
         setFreeTrialCount((prev) => (prev ?? 0) + 1);
-        loadQuePackage();
+        loadCredits();
         loadHistory();
       }
     } catch {
