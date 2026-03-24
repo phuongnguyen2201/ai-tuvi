@@ -1234,10 +1234,10 @@ const BoiQue = () => {
             ) : !everPurchased ? (
               <PaymentGate
                 feature="boi_que"
-                title="Gói Bói Quẻ - 39.000đ"
-                description="3 lần gieo quẻ + luận giải AI chi tiết"
+                title="Mua Credits - 39.000đ"
+                description="3 credits — dùng cho bất kỳ tính năng nào"
                 onUnlocked={() => {
-                  loadQuePackage();
+                  loadCredits();
                   loadFreeTrialCount();
                 }}
               >
