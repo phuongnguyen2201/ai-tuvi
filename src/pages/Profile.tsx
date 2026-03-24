@@ -105,7 +105,7 @@ const Profile = () => {
     setFeatures(featuresRes.data || []);
     setPayments(paymentsRes.data || []);
     setReadings(readingsRes.data || []);
-    setLuanGiaiPkg(lgPkgRes.data || null);
+    setCredits(lgPkgRes.data ? { remaining: lgPkgRes.data.credits_remaining, total: lgPkgRes.data.credits_total } : null);
   };
 
   const handleSaveName = async () => {
