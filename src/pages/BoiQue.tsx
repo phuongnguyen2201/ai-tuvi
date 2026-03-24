@@ -967,7 +967,7 @@ const BoiQue = () => {
   };
   const handlePaymentSuccess = () => {
     setShowPayment(false);
-    loadQuePackage();
+    loadCredits();
     loadFreeTrialCount();
   };
 
