@@ -1170,8 +1170,8 @@ const BoiQue = () => {
                   <CreditCard className="w-5 h-5 text-amber-400" />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-semibold text-amber-300 text-sm">Đã hết lượt bói Quẻ</p>
-                  <p className="text-xs text-amber-200/60">Mua thêm gói để tiếp tục · Lịch sử luận giải vẫn xem được</p>
+                  <p className="font-semibold text-amber-300 text-sm">Đã hết credits</p>
+                  <p className="text-xs text-amber-200/60">Mua thêm credits để tiếp tục · Lịch sử luận giải vẫn xem được</p>
                 </div>
               </div>
               <Button variant="gold" size="sm" onClick={() => setShowPayment(true)} className="shrink-0">
