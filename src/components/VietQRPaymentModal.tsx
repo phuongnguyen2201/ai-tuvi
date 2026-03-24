@@ -26,12 +26,6 @@ export interface VietQRPaymentModalProps {
   metadata?: Record<string, any>;
 }
 
-// ── UNIFIED CREDITS: Map price → credits ──
-const CREDIT_AMOUNTS: Record<number, number> = {
-  99000: 10, // VIP
-  59000: 5, // Phổ biến
-  39000: 3, // Cơ bản
-};
 
 // ══════════════════════════════════════════════════════════════
 // ANTI-SPAM: Max rejected payments per feature before blocking
