@@ -121,7 +121,7 @@ const Admin = () => {
 
   const [pendingPayments, setPendingPayments] = useState<PaymentRow[]>([]);
   const [historyPayments, setHistoryPayments] = useState<PaymentRow[]>([]);
-  const [luanGiaiPackages, setLuanGiaiPackages] = useState<LuanGiaiPackage[]>([]);
+  const [creditInfos, setCreditInfos] = useState<CreditInfo[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
   const [monthRevenue, setMonthRevenue] = useState(0);
   const [activeUsers, setActiveUsers] = useState(0);
