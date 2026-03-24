@@ -492,7 +492,7 @@ const VanHan = () => {
   const handleAnalyze = async () => {
     if (!selectedChart) return;
     // ── FREEMIUM: Allow if has package OR free trial ──
-    if (!vanHanPackage && !canUseFreeTrial) return;
+    if (!hasCredits && !canUseFreeTrial) return;
 
     const {
       data: { user },
