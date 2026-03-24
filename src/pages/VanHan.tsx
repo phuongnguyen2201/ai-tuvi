@@ -375,7 +375,7 @@ const VanHan = () => {
       setCheckedPendingPayment(true);
     };
     check();
-  }, [activeTab, checkedPendingPayment, showPaymentModal, vanHanPackage]);
+  }, [activeTab, checkedPendingPayment, showPaymentModal, hasCredits]);
 
   // Reset offset and streaming state when switching tabs
   useEffect(() => {
