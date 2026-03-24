@@ -99,7 +99,7 @@ const Profile = () => {
       supabase.from("user_features").select("*").eq("user_id", user.id).order("unlocked_at", { ascending: false }),
       supabase.from("payments").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(10),
       supabase.from("tuvi_readings").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("luan_giai_packages").select("remaining_uses, total_uses").eq("user_id", user.id).eq("payment_status", "confirmed").gt("remaining_uses", 0).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      (supabase as any).from("user_credits").select("credits_remaining, credits_total").eq("user_id", user.id).maybeSingle(),
     ]);
     setProfileData(profileRes.data);
     setFeatures(featuresRes.data || []);
