@@ -41,7 +41,7 @@ export function useFeatureAccess(feature: string) {
       }
 
       // ── UNIFIED: Check user_credits ──
-      const { data: creditData, error: creditErr } = await supabase
+      const { data: creditData, error: creditErr } = await (supabase as any)
         .from("user_credits")
         .select("credits_remaining")
         .eq("user_id", user.id)
