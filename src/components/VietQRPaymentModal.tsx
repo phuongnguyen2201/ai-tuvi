@@ -90,31 +90,6 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
   const amount = PRICING[activeFeature] || 0;
   const label = getFeatureLabel(activeFeature);
 
-  // ── UNIFIED CREDITS: Add credits after payment verified ──
-  const addCreditsForPayment = useCallback(
-    async (uid: string, paymentId: string) => {
-      const credits = CREDIT_AMOUNTS[amount] || 3;
-      console.log("[Modal] Adding", credits, "credits for user:", uid);
-
-      const { error } = await (supabase as any).rpc("add_credits", {
-        p_user_id: uid,
-        p_amount: credits,
-        p_source: "vietqr",
-        p_metadata: JSON.stringify({
-          payment_id: paymentId,
-          amount: amount,
-          feature: feature,
-        }),
-      });
-
-      if (error) {
-        console.error("[Modal] add_credits error:", error);
-      } else {
-        console.log("[Modal] ✅ Added", credits, "credits successfully");
-      }
-    },
-    [amount, feature],
-  );
 
   const persistPendingState = useCallback(
     (pendingStep: Step, tc: string, uid: string) => {
