@@ -51,10 +51,6 @@ interface TuViReading {
   interpretation: any;
 }
 
-interface LuanGiaiPkg {
-  remaining_uses: number;
-  total_uses: number;
-}
 
 const formatDate = (dateStr: string | null) => {
   if (!dateStr) return "";
