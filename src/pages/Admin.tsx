@@ -380,7 +380,7 @@ const Admin = () => {
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="luan_giai">Gói Luận Giải 📦</TabsTrigger>
+            <TabsTrigger value="luan_giai">Credits 💰</TabsTrigger>
             <TabsTrigger value="tools">Công cụ 🔧</TabsTrigger>
             <TabsTrigger value="history">Lịch sử ✅</TabsTrigger>
           </TabsList>
