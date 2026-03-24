@@ -102,7 +102,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
       const credits = CREDIT_AMOUNTS[amount] || 3;
       console.log("[Modal] Adding", credits, "credits for user:", uid);
 
-      const { error } = await supabase.rpc("add_credits", {
+      const { error } = await (supabase as any).rpc("add_credits", {
         p_user_id: uid,
         p_amount: credits,
         p_source: "vietqr",
