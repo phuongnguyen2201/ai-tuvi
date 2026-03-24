@@ -751,11 +751,7 @@ const BoiQue = () => {
         .select("id", { count: "exact", head: true })
         .eq("user_id", u.id);
       setFreeTrialCount(count ?? 0);
-      const { count: pkgCount } = await supabase
-        .from("boi_que_packages")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", u.id);
-      setEverPurchased((pkgCount ?? 0) > 0);
+      // everPurchased is now set in loadCredits()
     } catch {
       setFreeTrialCount(0);
     }
