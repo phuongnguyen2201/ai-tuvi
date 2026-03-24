@@ -548,91 +548,41 @@ const Admin = () => {
             </ScrollArea>
           </TabsContent>
 
-          {/* =================== LUAN GIAI PACKAGES =================== */}
+          {/* =================== CREDITS =================== */}
           <TabsContent value="luan_giai">
             <ScrollArea className="w-full">
-              <div className="min-w-[700px]">
+              <div className="min-w-[600px]">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Ngày mua</TableHead>
                       <TableHead>Họ tên</TableHead>
                       <TableHead>Email</TableHead>
-                      <TableHead>Trạng thái</TableHead>
-                      <TableHead>Đã dùng / Tổng</TableHead>
-                      <TableHead>Số tiền</TableHead>
-                      <TableHead>Thao tác</TableHead>
+                      <TableHead>Credits còn lại</TableHead>
+                      <TableHead>Tổng đã mua</TableHead>
+                      <TableHead>Cập nhật lúc</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredPackages.length === 0 ? (
+                    {filteredCredits.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                          {searchTerm ? `Không tìm thấy gói cho "${searchTerm}"` : "Chưa có gói Luận Giải nào"}
+                        <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                          {searchTerm ? `Không tìm thấy user cho "${searchTerm}"` : "Chưa có user nào có credits"}
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredPackages.map((pkg) => {
-                        const used = pkg.total_uses - pkg.remaining_uses;
-                        const isPending = pkg.payment_status === "pending";
-                        const isExhausted = pkg.remaining_uses === 0;
-                        return (
-                          <TableRow key={pkg.id} className="hover:bg-accent/50">
-                            <TableCell className="text-xs">{formatTime(pkg.created_at)}</TableCell>
-                            <TableCell className="text-sm">{pkg.display_name || "—"}</TableCell>
-                            <TableCell className="text-xs text-muted-foreground">{pkg.user_email || "—"}</TableCell>
-                            <TableCell>
-                              {isPending ? (
-                                <Badge variant="outline" className="text-xs text-yellow-500 border-yellow-500">
-                                  ⏳ Chờ xác nhận
-                                </Badge>
-                              ) : isExhausted ? (
-                                <Badge
-                                  variant="outline"
-                                  className="text-xs text-muted-foreground border-muted-foreground/30"
-                                >
-                                  Đã dùng hết
-                                </Badge>
-                              ) : (
-                                <Badge variant="secondary" className="text-xs">
-                                  ✅ Đang active
-                                </Badge>
-                              )}
-                            </TableCell>
-                            <TableCell className="font-medium">
-                              <span className={isExhausted ? "text-muted-foreground" : ""}>
-                                {used}/{pkg.total_uses}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-xs">
-                              {formatCurrency(pkg.amount)}
-                              {pkg.payment_method === "admin_grant" && (
-                                <span className="ml-1 text-muted-foreground">(miễn phí)</span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {isPending && (
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  className="h-7 text-xs"
-                                  disabled={actionLoading === pkg.id}
-                                  onClick={() => handleConfirmLuanGiai(pkg)}
-                                >
-                                  {actionLoading === pkg.id ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                  ) : (
-                                    <>
-                                      <CheckCircle className="h-3 w-3 mr-1" />
-                                      Xác nhận
-                                    </>
-                                  )}
-                                </Button>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
+                      filteredCredits.map((c) => (
+                        <TableRow key={c.id} className="hover:bg-accent/50">
+                          <TableCell className="text-sm">{c.display_name || "—"}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{c.user_email || "—"}</TableCell>
+                          <TableCell>
+                            <span className={c.credits_remaining > 0 ? "font-bold text-primary" : "text-muted-foreground"}>
+                              {c.credits_remaining}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-sm">{c.credits_total}</TableCell>
+                          <TableCell className="text-xs">{formatTime(c.updated_at)}</TableCell>
+                        </TableRow>
+                      ))
                     )}
                   </TableBody>
                 </Table>
