@@ -323,38 +323,16 @@ const VanHan = () => {
     setChartsLoading(false);
   };
 
-  // Load package for current timeframe + detect exhaustion
-  const loadPackage = async (timeFrame: string) => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  const loadCredits = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-
-    // Check for active package (uses > 0)
-    const { data } = await supabase
-      .from("van_han_packages")
-      .select("*")
+    const { data } = await (supabase as any)
+      .from("user_credits")
+      .select("credits_remaining, credits_total")
       .eq("user_id", user.id)
-      .eq("time_frame", timeFrame)
-      .gt("uses_remaining", 0)
-      .order("created_at", { ascending: false })
-      .limit(1)
       .maybeSingle();
-
-    setVanHanPackage(data);
-
-    // If no active package, check if they ever had one (exhausted)
-    if (!data) {
-      const { count } = await supabase
-        .from("van_han_packages")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("time_frame", timeFrame);
-
-      setIsPackageExhausted((count ?? 0) > 0);
-    } else {
-      setIsPackageExhausted(false);
-    }
+    setCredits(data?.credits_remaining ?? 0);
+    setEverPurchased((data?.credits_total ?? 0) > 0);
   };
 
   useEffect(() => {
