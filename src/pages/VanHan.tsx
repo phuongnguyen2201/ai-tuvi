@@ -258,12 +258,13 @@ const VanHan = () => {
   // ══════════════════════════════════════════════════════════════
   // FREEMIUM: Derived state
   // ══════════════════════════════════════════════════════════════
-  const canUseFreeTrial = freeTrialCount === 0 && !vanHanPackage;
+  const hasCredits = credits > 0;
+  const canUseFreeTrial = freeTrialCount === 0 && !hasCredits;
   // FIX: Only show streamedText if it belongs to the current tab
   const activeStreamedText = streamingForTab === activeTab ? streamedText : "";
   const displayText = currentResult || activeStreamedText;
-  const isFreePreview = !!displayText && !vanHanPackage && !isPackageExhausted;
-  const canAnalyze = !!vanHanPackage || canUseFreeTrial;
+  const isFreePreview = !!displayText && !hasCredits && !everPurchased;
+  const canAnalyze = hasCredits || canUseFreeTrial;
 
   // Load user charts from chart_analyses
   useEffect(() => {
