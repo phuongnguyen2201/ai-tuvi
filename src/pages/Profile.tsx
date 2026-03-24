@@ -13,12 +13,15 @@ import { Edit3, Check, X, LogOut, Star, Clock, Crown, ShieldCheck, Package, Scro
 
 const FEATURE_NAMES: Record<string, string> = {
   premium: "Premium toàn diện",
-  van_han_week: "Luận giải vận hạn tuần",
-  van_han_month: "Luận giải vận hạn tháng",
-  van_han_year: "Luận giải vận hạn năm",
-  boi_que: "Bói quẻ không giới hạn",
-  boi_kieu: "Bói Kiều không giới hạn",
-  luan_giai: "Luận giải lá số chi tiết",
+  credits_3: "3 Credits",
+  credits_5: "5 Credits",
+  credits_10: "10 Credits",
+  van_han_week: "3 Credits",
+  van_han_month: "3 Credits",
+  van_han_year: "3 Credits",
+  boi_que: "3 Credits",
+  boi_kieu: "3 Credits",
+  luan_giai: "3 Credits",
 };
 
 interface UserFeature {
@@ -48,10 +51,6 @@ interface TuViReading {
   interpretation: any;
 }
 
-interface LuanGiaiPkg {
-  remaining_uses: number;
-  total_uses: number;
-}
 
 const formatDate = (dateStr: string | null) => {
   if (!dateStr) return "";
@@ -85,7 +84,7 @@ const Profile = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [profileData, setProfileData] = useState<any>(null);
   const [readings, setReadings] = useState<TuViReading[]>([]);
-  const [luanGiaiPkg, setLuanGiaiPkg] = useState<LuanGiaiPkg | null>(null);
+  const [credits, setCredits] = useState<{ remaining: number; total: number } | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -100,13 +99,13 @@ const Profile = () => {
       supabase.from("user_features").select("*").eq("user_id", user.id).order("unlocked_at", { ascending: false }),
       supabase.from("payments").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(10),
       supabase.from("tuvi_readings").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("luan_giai_packages").select("remaining_uses, total_uses").eq("user_id", user.id).eq("payment_status", "confirmed").gt("remaining_uses", 0).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      (supabase as any).from("user_credits").select("credits_remaining, credits_total").eq("user_id", user.id).maybeSingle(),
     ]);
     setProfileData(profileRes.data);
     setFeatures(featuresRes.data || []);
     setPayments(paymentsRes.data || []);
     setReadings(readingsRes.data || []);
-    setLuanGiaiPkg(lgPkgRes.data || null);
+    setCredits(lgPkgRes.data ? { remaining: lgPkgRes.data.credits_remaining, total: lgPkgRes.data.credits_total } : null);
   };
 
   const handleSaveName = async () => {
@@ -207,19 +206,53 @@ const Profile = () => {
           </div>
         )}
 
-        {/* PHẦN 2: Trạng thái thuê bao */}
+        {/* PHẦN 2: Credits */}
         <Card className="border-gold/20 bg-surface-2/80 backdrop-blur">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <Crown className="h-5 w-5 text-gold" />
-              Trạng thái thuê bao
+              <Sparkles className="h-5 w-5 text-gold" />
+              Credits
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            {credits && credits.total > 0 ? (
+              <div className="rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 to-purple-deep/10 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Star className="h-5 w-5 text-gold fill-gold" />
+                    <span className="font-semibold text-foreground">Credits còn lại</span>
+                  </div>
+                  <span className="text-2xl font-bold text-primary">{credits.remaining}</span>
+                </div>
+                <div className="w-full bg-surface-3 rounded-full h-2 mt-2">
+                  <div
+                    className="bg-gradient-to-r from-primary to-gold h-2 rounded-full transition-all"
+                    style={{ width: `${Math.min((credits.remaining / Math.max(credits.total, 1)) * 100, 100)}%` }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Đã sử dụng {credits.total - credits.remaining}/{credits.total} credits
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Mỗi lần dùng Bói Kiều, Bói Quẻ, Vận Hạn hoặc Luận Giải = 1 credit
+                </p>
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <Package className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground mb-4">
+                  Bạn chưa có credits. Mua credits để sử dụng các tính năng trả phí!
+                </p>
+                <Button variant="gold" size="sm" onClick={() => navigate("/boi-kieu")}>
+                  Mua Credits
+                </Button>
+              </div>
+            )}
+
             {premiumFeature && (
               <div className="rounded-xl border border-gold/30 bg-gradient-to-r from-gold/10 to-purple-deep/10 p-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <Star className="h-5 w-5 text-gold fill-gold" />
+                  <Crown className="h-5 w-5 text-gold" />
                   <span className="font-semibold text-gold">PREMIUM</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -227,48 +260,6 @@ const Profile = () => {
                     ? `Hết hạn: ${formatDate(premiumFeature.expires_at)}`
                     : "Không giới hạn thời gian"}
                 </p>
-              </div>
-            )}
-
-            {/* Gói luận giải */}
-            {luanGiaiPkg && (
-              <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <span className="font-medium text-foreground text-sm">Gói Luận Giải Lá Số</span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Còn {luanGiaiPkg.remaining_uses}/{luanGiaiPkg.total_uses} lần luận giải
-                </p>
-              </div>
-            )}
-
-            {otherFeatures.map((f) => (
-              <div key={f.id} className="rounded-xl border border-border bg-surface-3/50 p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <ShieldCheck className="h-4 w-4 text-green-500" />
-                  <span className="font-medium text-foreground text-sm">
-                    {FEATURE_NAMES[f.feature] || f.feature}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Đã mua: {formatDate(f.unlocked_at)}
-                  {f.expires_at
-                    ? ` · Hết hạn: ${formatDate(f.expires_at)}`
-                    : " · Không giới hạn thời gian"}
-                </p>
-              </div>
-            ))}
-
-            {features.length === 0 && !luanGiaiPkg && (
-              <div className="text-center py-6">
-                <Package className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground mb-4">
-                  Bạn chưa có gói nào. Khám phá các tính năng premium!
-                </p>
-                <Button variant="gold" size="sm" onClick={() => navigate("/van-han")}>
-                  Xem các gói
-                </Button>
               </div>
             )}
           </CardContent>
