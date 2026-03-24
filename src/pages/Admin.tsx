@@ -176,9 +176,9 @@ const Admin = () => {
     () => historyPayments.filter((p) => matchesSearch(p, searchTerm)),
     [historyPayments, searchTerm],
   );
-  const filteredPackages = useMemo(
-    () => luanGiaiPackages.filter((p) => matchesSearch(p, searchTerm)),
-    [luanGiaiPackages, searchTerm],
+  const filteredCredits = useMemo(
+    () => creditInfos.filter((p) => matchesSearch(p, searchTerm)),
+    [creditInfos, searchTerm],
   );
 
   const activePending = filteredPending.filter((p) => p.status === "pending");
