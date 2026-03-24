@@ -13,12 +13,15 @@ import { Edit3, Check, X, LogOut, Star, Clock, Crown, ShieldCheck, Package, Scro
 
 const FEATURE_NAMES: Record<string, string> = {
   premium: "Premium toàn diện",
-  van_han_week: "Luận giải vận hạn tuần",
-  van_han_month: "Luận giải vận hạn tháng",
-  van_han_year: "Luận giải vận hạn năm",
-  boi_que: "Bói quẻ không giới hạn",
-  boi_kieu: "Bói Kiều không giới hạn",
-  luan_giai: "Luận giải lá số chi tiết",
+  credits_3: "3 Credits",
+  credits_5: "5 Credits",
+  credits_10: "10 Credits",
+  van_han_week: "3 Credits",
+  van_han_month: "3 Credits",
+  van_han_year: "3 Credits",
+  boi_que: "3 Credits",
+  boi_kieu: "3 Credits",
+  luan_giai: "3 Credits",
 };
 
 interface UserFeature {
