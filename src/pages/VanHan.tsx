@@ -1258,15 +1258,15 @@ const VanHan = () => {
             {/* or can use free trial → show directly (preview handles    */}
             {/* blur inline). Only gate when no access at all.            */}
             {/* ══════════════════════════════════════════════════════════ */}
-            {currentResult || isAnalyzing || isStreamingAI || activeStreamedText || isPackageExhausted || canAnalyze ? (
+            {currentResult || isAnalyzing || isStreamingAI || activeStreamedText || everPurchased || canAnalyze ? (
               /* Has result, streaming, exhausted, or can analyze → show directly */
               <div className="space-y-4">
-                {vanHanPackage && (
+                {hasCredits && (
                   <div className="text-xs text-primary/70 text-center">
-                    Còn {vanHanPackage.uses_remaining}/{vanHanPackage.uses_total} lần phân tích
+                    Còn {credits} credits
                   </div>
                 )}
-                {!vanHanPackage && canUseFreeTrial && !currentResult && !isAnalyzing && !isStreamingAI && (
+                {!hasCredits && canUseFreeTrial && !currentResult && !isAnalyzing && !isStreamingAI && (
                   <div className="text-xs text-primary/70 text-center">✨ 1 lần miễn phí</div>
                 )}
                 {renderAiResult()}
@@ -1275,15 +1275,15 @@ const VanHan = () => {
               /* No result + no access → PaymentGate wraps the analyze button */
               <PaymentGate
                 feature={currentTab.featureKey}
-                title={packageTitle[activeTab]}
+                title="Mua Credits - 39.000đ"
                 price="39.000đ"
-                description={packageDesc[activeTab]}
-                onUnlocked={() => loadPackage(activeTab)}
+                description="3 credits — dùng cho bất kỳ tính năng nào"
+                onUnlocked={() => loadCredits()}
               >
                 <div className="space-y-4">
-                  {vanHanPackage && (
+                  {hasCredits && (
                     <div className="text-xs text-primary/70 text-center">
-                      Còn {vanHanPackage.uses_remaining}/{vanHanPackage.uses_total} lần phân tích
+                      Còn {credits} credits
                     </div>
                   )}
                   {renderAiResult()}
