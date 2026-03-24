@@ -38,13 +38,10 @@ const FEATURE_LABELS: Record<string, string> = {
   premium_yearly: "Premium năm",
 };
 
-const GRANTABLE_FEATURES = [
-  { value: "luan_giai", label: "Luận Giải Lá Số (3 lượt)" },
-  { value: "boi_kieu", label: "Bói Kiều (3 lượt)" },
-  { value: "boi_que", label: "Bói Quẻ (3 lượt)" },
-  { value: "van_han_week", label: "Vận Hạn Tuần (3 lượt)" },
-  { value: "van_han_month", label: "Vận Hạn Tháng (3 lượt)" },
-  { value: "van_han_year", label: "Vận Hạn Năm (3 lượt)" },
+const CREDIT_PRESETS = [
+  { value: 3, label: "3 credits (39.000đ)" },
+  { value: 5, label: "5 credits (59.000đ)" },
+  { value: 10, label: "10 credits (99.000đ)" },
 ];
 
 const formatCurrency = (amount: number) => amount.toLocaleString("vi-VN") + "đ";
@@ -85,16 +82,13 @@ interface PaymentRow {
   user_email?: string | null;
 }
 
-interface LuanGiaiPackage {
+interface CreditInfo {
   id: string;
   user_id: string;
-  total_uses: number;
-  remaining_uses: number;
-  amount: number;
-  payment_status: string | null;
-  payment_method: string | null;
+  credits_remaining: number;
+  credits_total: number;
+  updated_at: string | null;
   created_at: string | null;
-  confirmed_at: string | null;
   display_name?: string | null;
   user_email?: string | null;
 }
@@ -127,7 +121,7 @@ const Admin = () => {
 
   const [pendingPayments, setPendingPayments] = useState<PaymentRow[]>([]);
   const [historyPayments, setHistoryPayments] = useState<PaymentRow[]>([]);
-  const [luanGiaiPackages, setLuanGiaiPackages] = useState<LuanGiaiPackage[]>([]);
+  const [creditInfos, setCreditInfos] = useState<CreditInfo[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
   const [monthRevenue, setMonthRevenue] = useState(0);
   const [activeUsers, setActiveUsers] = useState(0);
@@ -139,8 +133,7 @@ const Admin = () => {
 
   // Grant package state
   const [grantEmail, setGrantEmail] = useState("");
-  const [grantFeature, setGrantFeature] = useState("luan_giai");
-  const [grantUses, setGrantUses] = useState(3);
+  const [grantCredits, setGrantCredits] = useState(3);
   const [grantLoading, setGrantLoading] = useState(false);
 
   // Reset user state
@@ -151,18 +144,18 @@ const Admin = () => {
   const fetchAll = useCallback(async () => {
     setLoadingStats(true);
     try {
-      const [stats, pending, history, lgPkgs] = await Promise.all([
+      const [stats, pending, history, credits] = await Promise.all([
         callAdmin("get_stats"),
         callAdmin("get_pending"),
         callAdmin("get_history"),
-        callAdmin("get_luan_giai_packages"),
+        callAdmin("get_credits"),
       ]);
       setPendingCount(stats.pendingCount);
       setMonthRevenue(stats.monthRevenue);
       setActiveUsers(stats.activeUsers);
       setPendingPayments(pending);
       setHistoryPayments(history);
-      setLuanGiaiPackages(lgPkgs);
+      setCreditInfos(credits);
     } catch (err: any) {
       toast({ title: "Lỗi", description: err.message, variant: "destructive" });
     }
@@ -183,9 +176,9 @@ const Admin = () => {
     () => historyPayments.filter((p) => matchesSearch(p, searchTerm)),
     [historyPayments, searchTerm],
   );
-  const filteredPackages = useMemo(
-    () => luanGiaiPackages.filter((p) => matchesSearch(p, searchTerm)),
-    [luanGiaiPackages, searchTerm],
+  const filteredCredits = useMemo(
+    () => creditInfos.filter((p) => matchesSearch(p, searchTerm)),
+    [creditInfos, searchTerm],
   );
 
   const activePending = filteredPending.filter((p) => p.status === "pending");
@@ -234,7 +227,7 @@ const Admin = () => {
     setActionLoading(null);
   };
 
-  const handleConfirmLuanGiai = async (pkg: LuanGiaiPackage) => {
+  const handleConfirmLuanGiai = async (pkg: CreditInfo) => {
     setActionLoading(pkg.id);
     try {
       await callAdmin("confirm_luan_giai", { packageId: pkg.id });
@@ -246,22 +239,20 @@ const Admin = () => {
     setActionLoading(null);
   };
 
-  const handleGrantPackage = async () => {
-    if (!grantEmail.trim() || !grantFeature) return;
+  const handleGrantCredits = async () => {
+    if (!grantEmail.trim()) return;
     setGrantLoading(true);
     try {
-      const result = await callAdmin("grant_package", {
+      const result = await callAdmin("grant_credits", {
         email: grantEmail.trim(),
-        feature: grantFeature,
-        uses: grantUses,
+        credits: grantCredits,
       });
-      const featureLabel = GRANTABLE_FEATURES.find((f) => f.value === grantFeature)?.label || grantFeature;
       toast({
-        title: "✅ Đã cấp gói",
-        description: `Cấp ${featureLabel} (${grantUses} lượt) cho ${result.user?.display_name || grantEmail}`,
+        title: "✅ Đã cấp credits",
+        description: `Cấp ${grantCredits} credits cho ${result.user?.display_name || grantEmail}`,
       });
       setGrantEmail("");
-      setGrantUses(3);
+      setGrantCredits(3);
       fetchAll();
     } catch (err: any) {
       toast({ title: "Lỗi", description: err.message, variant: "destructive" });
@@ -373,7 +364,7 @@ const Admin = () => {
           {searchTerm && (
             <p className="text-xs text-muted-foreground mt-1 ml-1">
               Đang lọc: {activePending.length} chờ xác nhận · {expiredRecoverable.length} expired ·{" "}
-              {filteredPackages.length} gói · {filteredHistory.length} lịch sử
+              {filteredCredits.length} users · {filteredHistory.length} lịch sử
             </p>
           )}
         </div>
@@ -389,7 +380,7 @@ const Admin = () => {
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="luan_giai">Gói Luận Giải 📦</TabsTrigger>
+            <TabsTrigger value="luan_giai">Credits 💰</TabsTrigger>
             <TabsTrigger value="tools">Công cụ 🔧</TabsTrigger>
             <TabsTrigger value="history">Lịch sử ✅</TabsTrigger>
           </TabsList>
@@ -557,91 +548,41 @@ const Admin = () => {
             </ScrollArea>
           </TabsContent>
 
-          {/* =================== LUAN GIAI PACKAGES =================== */}
+          {/* =================== CREDITS =================== */}
           <TabsContent value="luan_giai">
             <ScrollArea className="w-full">
-              <div className="min-w-[700px]">
+              <div className="min-w-[600px]">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Ngày mua</TableHead>
                       <TableHead>Họ tên</TableHead>
                       <TableHead>Email</TableHead>
-                      <TableHead>Trạng thái</TableHead>
-                      <TableHead>Đã dùng / Tổng</TableHead>
-                      <TableHead>Số tiền</TableHead>
-                      <TableHead>Thao tác</TableHead>
+                      <TableHead>Credits còn lại</TableHead>
+                      <TableHead>Tổng đã mua</TableHead>
+                      <TableHead>Cập nhật lúc</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredPackages.length === 0 ? (
+                    {filteredCredits.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                          {searchTerm ? `Không tìm thấy gói cho "${searchTerm}"` : "Chưa có gói Luận Giải nào"}
+                        <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                          {searchTerm ? `Không tìm thấy user cho "${searchTerm}"` : "Chưa có user nào có credits"}
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredPackages.map((pkg) => {
-                        const used = pkg.total_uses - pkg.remaining_uses;
-                        const isPending = pkg.payment_status === "pending";
-                        const isExhausted = pkg.remaining_uses === 0;
-                        return (
-                          <TableRow key={pkg.id} className="hover:bg-accent/50">
-                            <TableCell className="text-xs">{formatTime(pkg.created_at)}</TableCell>
-                            <TableCell className="text-sm">{pkg.display_name || "—"}</TableCell>
-                            <TableCell className="text-xs text-muted-foreground">{pkg.user_email || "—"}</TableCell>
-                            <TableCell>
-                              {isPending ? (
-                                <Badge variant="outline" className="text-xs text-yellow-500 border-yellow-500">
-                                  ⏳ Chờ xác nhận
-                                </Badge>
-                              ) : isExhausted ? (
-                                <Badge
-                                  variant="outline"
-                                  className="text-xs text-muted-foreground border-muted-foreground/30"
-                                >
-                                  Đã dùng hết
-                                </Badge>
-                              ) : (
-                                <Badge variant="secondary" className="text-xs">
-                                  ✅ Đang active
-                                </Badge>
-                              )}
-                            </TableCell>
-                            <TableCell className="font-medium">
-                              <span className={isExhausted ? "text-muted-foreground" : ""}>
-                                {used}/{pkg.total_uses}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-xs">
-                              {formatCurrency(pkg.amount)}
-                              {pkg.payment_method === "admin_grant" && (
-                                <span className="ml-1 text-muted-foreground">(miễn phí)</span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {isPending && (
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  className="h-7 text-xs"
-                                  disabled={actionLoading === pkg.id}
-                                  onClick={() => handleConfirmLuanGiai(pkg)}
-                                >
-                                  {actionLoading === pkg.id ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                  ) : (
-                                    <>
-                                      <CheckCircle className="h-3 w-3 mr-1" />
-                                      Xác nhận
-                                    </>
-                                  )}
-                                </Button>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
+                      filteredCredits.map((c) => (
+                        <TableRow key={c.id} className="hover:bg-accent/50">
+                          <TableCell className="text-sm">{c.display_name || "—"}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{c.user_email || "—"}</TableCell>
+                          <TableCell>
+                            <span className={c.credits_remaining > 0 ? "font-bold text-primary" : "text-muted-foreground"}>
+                              {c.credits_remaining}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-sm">{c.credits_total}</TableCell>
+                          <TableCell className="text-xs">{formatTime(c.updated_at)}</TableCell>
+                        </TableRow>
+                      ))
                     )}
                   </TableBody>
                 </Table>
@@ -652,11 +593,11 @@ const Admin = () => {
           {/* =================== TOOLS =================== */}
           <TabsContent value="tools">
             <div className="space-y-4">
-              {/* Grant package */}
+              {/* Grant credits */}
               <Card className="bg-surface-2 border-border">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <Package className="h-4 w-4" /> Cấp gói cho user
+                    <Package className="h-4 w-4" /> Cấp credits cho user
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -668,30 +609,21 @@ const Admin = () => {
                         onChange={(e) => setGrantEmail(e.target.value)}
                         className="flex-1"
                       />
-                      <Select value={grantFeature} onValueChange={setGrantFeature}>
+                      <Select value={String(grantCredits)} onValueChange={(v) => setGrantCredits(parseInt(v))}>
                         <SelectTrigger className="w-full sm:w-[220px]">
-                          <SelectValue placeholder="Chọn tính năng" />
+                          <SelectValue placeholder="Số credits" />
                         </SelectTrigger>
                         <SelectContent>
-                          {GRANTABLE_FEATURES.map((f) => (
-                            <SelectItem key={f.value} value={f.value}>
-                              {f.label}
+                          {CREDIT_PRESETS.map((p) => (
+                            <SelectItem key={p.value} value={String(p.value)}>
+                              {p.label}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={99}
-                        value={grantUses}
-                        onChange={(e) => setGrantUses(parseInt(e.target.value) || 3)}
-                        className="w-20"
-                        placeholder="Lượt"
-                      />
                     </div>
                     <Button
-                      onClick={handleGrantPackage}
+                      onClick={handleGrantCredits}
                       disabled={grantLoading || !grantEmail.trim()}
                       className="w-full sm:w-auto"
                     >
@@ -699,7 +631,7 @@ const Admin = () => {
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <>
-                          <Plus className="h-4 w-4 mr-1" /> Cấp gói
+                          <Plus className="h-4 w-4 mr-1" /> Cấp {grantCredits} credits
                         </>
                       )}
                     </Button>
