@@ -651,7 +651,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
           <div className="space-y-1">
             <p className="font-bold text-xl text-foreground">Thanh toán thành công!</p>
             <p className="text-sm text-muted-foreground">
-              {isLuanGiai ? "Kết quả luận giải sẽ hiện khi bạn quay lại trang" : `Tính năng ${label} đã được mở khóa`}
+              Credits đã được cộng vào tài khoản!
             </p>
           </div>
           <Button variant="gold" size="lg" className="w-full" onClick={handleClose}>
