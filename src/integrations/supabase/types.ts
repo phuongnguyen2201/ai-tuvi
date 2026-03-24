@@ -271,6 +271,42 @@ export type Database = {
           },
         ]
       }
+      credit_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string | null
+          feature_used: string | null
+          id: string
+          metadata: Json | null
+          source: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          created_at?: string | null
+          feature_used?: string | null
+          id?: string
+          metadata?: Json | null
+          source?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string | null
+          feature_used?: string | null
+          id?: string
+          metadata?: Json | null
+          source?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       day_analyses: {
         Row: {
           analysis: Json | null
@@ -769,6 +805,33 @@ export type Database = {
           },
         ]
       }
+      user_credits: {
+        Row: {
+          created_at: string | null
+          credits_remaining: number
+          credits_total: number
+          id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          credits_remaining?: number
+          credits_total?: number
+          id?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          credits_remaining?: number
+          credits_total?: number
+          id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_features: {
         Row: {
           expires_at: string | null
@@ -930,9 +993,27 @@ export type Database = {
       }
     }
     Functions: {
+      add_credits: {
+        Args: {
+          p_amount: number
+          p_metadata?: Json
+          p_source?: string
+          p_user_id: string
+        }
+        Returns: {
+          new_balance: number
+        }[]
+      }
       cleanup_old_rate_limits: { Args: never; Returns: number }
       expire_old_payments: { Args: never; Returns: number }
       expire_old_pending_payments: { Args: never; Returns: undefined }
+      use_credit: {
+        Args: { p_feature: string; p_user_id: string }
+        Returns: {
+          remaining: number
+          success: boolean
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

@@ -64,21 +64,23 @@ const BoiKieu = () => {
   const [isShaking, setIsShaking] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<string | null>(null);
-  const [kieuPackage, setKieuPackage] = useState<any>(null);
+  // ── UNIFIED CREDITS ──
+  const [credits, setCredits] = useState<number>(0);
+  const [everPurchased, setEverPurchased] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [viewingHistoryId, setViewingHistoryId] = useState<string | null>(null);
   const [verses, setVerses] = useState<any[]>([]);
   const [freeTrialCount, setFreeTrialCount] = useState<number | null>(null);
-  const [everPurchased, setEverPurchased] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
 
   const { isStreaming: isStreamingAI, streamedText, startStreaming } = useStreamingAnalysis();
 
-  const canUseFreeTrial = freeTrialCount === 0 && !kieuPackage;
+  const hasCredits = credits > 0;
+  const canUseFreeTrial = freeTrialCount === 0 && !hasCredits;
   const displayText = result || streamedText;
-  const isFreePreview = !!displayText && !kieuPackage && !everPurchased;
-  const canGieoQue = !!kieuPackage || canUseFreeTrial;
+  const isFreePreview = !!displayText && !hasCredits && !everPurchased;
+  const canGieoQue = hasCredits || canUseFreeTrial;
 
   useEffect(() => {
     supabase
@@ -86,7 +88,7 @@ const BoiKieu = () => {
       .select("*")
       .then(({ data }) => setVerses(data || []));
     if (user) {
-      loadKieuPackage();
+      loadCredits();
       loadHistory();
       loadFreeTrialCount();
     }
@@ -106,30 +108,24 @@ const BoiKieu = () => {
         .select("id", { count: "exact", head: true })
         .eq("user_id", u.id);
       setFreeTrialCount(count ?? 0);
-      const { count: pkgCount } = await supabase
-        .from("kieu_packages")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", u.id);
-      setEverPurchased((pkgCount ?? 0) > 0);
     } catch {
       setFreeTrialCount(0);
     }
   };
 
-  const loadKieuPackage = async () => {
+  // ── UNIFIED: Load credits from user_credits ──
+  const loadCredits = async () => {
     const {
       data: { user: u },
     } = await supabase.auth.getUser();
     if (!u) return;
     const { data } = await supabase
-      .from("kieu_packages")
-      .select("*")
+      .from("user_credits")
+      .select("credits_remaining, credits_total")
       .eq("user_id", u.id)
-      .gt("uses_remaining", 0)
-      .order("created_at", { ascending: false })
-      .limit(1)
       .maybeSingle();
-    setKieuPackage(data);
+    setCredits(data?.credits_remaining ?? 0);
+    setEverPurchased((data?.credits_total ?? 0) > 0);
   };
 
   const loadHistory = async () => {
@@ -195,7 +191,7 @@ const BoiKieu = () => {
         try {
           await supabase.from("kieu_analyses").insert({
             user_id: u.id,
-            package_id: kieuPackage?.id || null,
+            package_id: null,
             verse_id: selectedVerse.id,
             verse: selectedVerse.verse,
             fortune: selectedVerse.fortune,
@@ -205,14 +201,16 @@ const BoiKieu = () => {
         } catch (saveErr) {
           console.warn("[BoiKieu] Save error:", saveErr);
         }
-        if (kieuPackage) {
-          await supabase
-            .from("kieu_packages")
-            .update({ uses_remaining: kieuPackage.uses_remaining - 1 })
-            .eq("id", kieuPackage.id);
+        // ── UNIFIED: Deduct 1 credit via RPC ──
+        if (hasCredits) {
+          const { data: creditResult } = await supabase.rpc("use_credit", {
+            p_user_id: u.id,
+            p_feature: "boi_kieu",
+          });
+          console.log("[BoiKieu] use_credit result:", creditResult);
         }
         setFreeTrialCount((prev) => (prev ?? 0) + 1);
-        loadKieuPackage();
+        loadCredits();
         loadHistory();
       }
     } catch (e) {
@@ -225,7 +223,7 @@ const BoiKieu = () => {
 
   const handlePaymentSuccess = () => {
     setShowPayment(false);
-    loadKieuPackage();
+    loadCredits();
     loadFreeTrialCount();
   };
 
@@ -333,12 +331,13 @@ const BoiKieu = () => {
 
   const style = verse ? fortuneStyles[verse.fortune] : null;
 
-  const usesLabel = kieuPackage
-    ? `Còn ${kieuPackage.uses_remaining}/${kieuPackage.uses_total} lần trong gói`
+  // ── UNIFIED: usesLabel dùng credits ──
+  const usesLabel = hasCredits
+    ? `Còn ${credits} credits`
     : canUseFreeTrial
       ? "1 lần miễn phí"
       : everPurchased
-        ? "Đã hết lượt trong gói"
+        ? "Đã hết credits"
         : "Hết lượt miễn phí";
 
   const renderAiResult = () => {
@@ -399,10 +398,10 @@ const BoiKieu = () => {
                 </div>
                 <h3 className="text-lg font-bold text-foreground">Mở khóa luận giải đầy đủ</h3>
                 <p className="text-sm text-muted-foreground">
-                  Bạn đang xem bản rút gọn. Thanh toán để xem toàn bộ luận giải chi tiết và được thêm 3 lần bói Kiều.
+                  Bạn đang xem bản rút gọn. Mua credits để xem toàn bộ luận giải chi tiết.
                 </p>
                 <p className="text-2xl font-bold text-primary">39.000đ</p>
-                <p className="text-xs text-muted-foreground -mt-2">Xem full luận giải này + 3 lần bói Kiều mới</p>
+                <p className="text-xs text-muted-foreground -mt-2">3 credits — dùng cho bất kỳ tính năng nào</p>
                 <Button
                   variant="gold"
                   size="lg"
@@ -416,7 +415,7 @@ const BoiKieu = () => {
                   }}
                 >
                   <Lock className="w-4 h-4 mr-2" />
-                  Mua gói Bói Kiều
+                  Mua Credits
                 </Button>
                 <p className="text-xs text-muted-foreground">Thanh toán nhanh qua ngân hàng</p>
               </div>
@@ -546,8 +545,10 @@ const BoiKieu = () => {
                 <CreditCard className="w-5 h-5 text-amber-400" />
               </div>
               <div className="min-w-0">
-                <p className="font-semibold text-amber-300 text-sm">Đã hết lượt bói Kiều</p>
-                <p className="text-xs text-amber-200/60">Mua thêm gói để tiếp tục · Lịch sử luận giải vẫn xem được</p>
+                <p className="font-semibold text-amber-300 text-sm">Đã hết credits</p>
+                <p className="text-xs text-amber-200/60">
+                  Mua thêm credits để tiếp tục · Lịch sử luận giải vẫn xem được
+                </p>
               </div>
             </div>
             <Button variant="gold" size="sm" onClick={() => setShowPayment(true)} className="shrink-0">
@@ -640,11 +641,11 @@ const BoiKieu = () => {
         ) : (
           <PaymentGate
             feature="boi_kieu"
-            title="Bói Kiều"
+            title="Mua Credits"
             price="39.000đ"
-            description="Gói 3 lần luận giải bằng thơ Kiều — 39.000đ"
+            description="Gói 3 credits — dùng cho bất kỳ tính năng nào"
             onUnlocked={() => {
-              loadKieuPackage();
+              loadCredits();
               loadFreeTrialCount();
             }}
           >

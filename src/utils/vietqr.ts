@@ -1,12 +1,16 @@
-// === CẤU HÌNH NGÂN HÀNG CỦA BẠN ===
+// === CẤU HÌNH NGÂN HÀNG ===
 
 const BANK_CONFIG = {
-  bankId: "VPBank", // Đổi thành ngân hàng bạn dùng
-  accountNo: "238898706", // Số tài khoản của bạn
-  accountName: "NGUYEN MINH PHUONG", // Tên chủ TK (UPPERCASE)
+  bankId: "VPBank",
+  accountNo: "238898706",
+  accountName: "NGUYEN MINH PHUONG",
 };
 
 export const PRICING = {
+  credits_3: 39000,
+  credits_5: 59000,
+  credits_10: 99000,
+  // Legacy keys — giữ để không break existing pending payments
   luan_giai: 39000,
   van_han: 39000,
   van_han_week: 39000,
@@ -32,37 +36,20 @@ export function generateVietQRUrl(feature: FeatureKey, transferContent: string):
   );
 }
 
-export function generateTransferContent(userId: string, feature: FeatureKey): string {
+export function generateTransferContent(userId: string, _feature: FeatureKey): string {
   const shortId = userId.slice(0, 8).toUpperCase();
   const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-  const prefixMap: Record<FeatureKey, string> = {
-    luan_giai: "LUANGIAI",
-    van_han: "VANHAN",
-    van_han_week: "VHTUAN",
-    van_han_month: "VHTHANG",
-    van_han_year: "VHNAM",
-    boi_que: "BOIQUE",
-    boi_kieu: "BOIKIEU",
-    premium_monthly: "PREMIUM",
-    premium_yearly: "PREMIUM",
-  };
-  const prefix = prefixMap[feature] || "TUVI";
-  return `${prefix} ${shortId}${random}`;
+  return `TUVI ${shortId}${random}`;
 }
 
 export function getFeatureLabel(feature: FeatureKey): string {
-  const labels: Record<FeatureKey, string> = {
-    luan_giai: "Gói Luận Giải (3 lần) - 39.000đ",
-    van_han: "Dự đoán vận hạn năm",
-    van_han_week: "Luận giải vận hạn tuần (3 lần) - 39.000đ",
-    van_han_month: "Luận giải vận hạn tháng (3 lần) - 39.000đ",
-    van_han_year: "Luận giải vận hạn năm (3 lần) - 39.000đ",
-    boi_que: "Bói Quẻ (3 lần) - 39.000đ",
-    boi_kieu: "Bói Kiều (3 lần) - 39.000đ",
-    premium_monthly: "Premium 1 tháng",
-    premium_yearly: "Premium 1 năm",
-  };
-  return labels[feature];
+  const amount = PRICING[feature];
+  if (amount >= 99000) return "10 Credits - 99.000đ";
+  if (amount >= 59000) return "5 Credits - 59.000đ";
+  if (amount >= 49000 && feature.includes("premium")) {
+    return feature === "premium_yearly" ? "Premium 1 năm" : "Premium 1 tháng";
+  }
+  return "3 Credits - 39.000đ";
 }
 
 export function generateBankDeepLink(feature: FeatureKey, transferContent: string): string {

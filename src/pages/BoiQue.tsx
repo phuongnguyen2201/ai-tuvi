@@ -705,7 +705,7 @@ const BoiQue = () => {
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const { isStreaming: isStreamingAI, streamedText, startStreaming, abort: abortStreaming } = useStreamingAnalysis();
-  const [quePackage, setQuePackage] = useState<any>(null);
+  const [credits, setCredits] = useState<number>(0);
   const [history, setHistory] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [viewingHistoryId, setViewingHistoryId] = useState<string | null>(null);
@@ -724,14 +724,15 @@ const BoiQue = () => {
   });
   const audioCtxRef = useRef<AudioContext | null>(null);
 
-  const canUseFreeTrial = freeTrialCount === 0 && !quePackage;
+  const hasCredits = credits > 0;
+  const canUseFreeTrial = freeTrialCount === 0 && !hasCredits;
   const displayText = aiResult || streamedText;
-  const isFreePreview = !!displayText && !quePackage && !everPurchased;
-  const canGieoQue = !!quePackage || canUseFreeTrial;
+  const isFreePreview = !!displayText && !hasCredits && !everPurchased;
+  const canGieoQue = hasCredits || canUseFreeTrial;
 
   useEffect(() => {
     if (user) {
-      loadQuePackage();
+      loadCredits();
       loadHistory();
       loadFreeTrialCount();
     }
@@ -751,30 +752,22 @@ const BoiQue = () => {
         .select("id", { count: "exact", head: true })
         .eq("user_id", u.id);
       setFreeTrialCount(count ?? 0);
-      const { count: pkgCount } = await supabase
-        .from("boi_que_packages")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", u.id);
-      setEverPurchased((pkgCount ?? 0) > 0);
+      // everPurchased is now set in loadCredits()
     } catch {
       setFreeTrialCount(0);
     }
   };
 
-  const loadQuePackage = async () => {
-    const {
-      data: { user: u },
-    } = await supabase.auth.getUser();
+  const loadCredits = async () => {
+    const { data: { user: u } } = await supabase.auth.getUser();
     if (!u) return;
-    const { data } = await supabase
-      .from("boi_que_packages")
-      .select("*")
+    const { data } = await (supabase as any)
+      .from("user_credits")
+      .select("credits_remaining, credits_total")
       .eq("user_id", u.id)
-      .gt("uses_remaining", 0)
-      .order("created_at", { ascending: false })
-      .limit(1)
       .maybeSingle();
-    setQuePackage(data);
+    setCredits(data?.credits_remaining ?? 0);
+    setEverPurchased((data?.credits_total ?? 0) > 0);
   };
 
   const loadHistory = async () => {
@@ -878,7 +871,7 @@ const BoiQue = () => {
         try {
           await supabase.from("boi_que_analyses").insert({
             user_id: u.id,
-            package_id: quePackage?.id || null,
+            package_id: null,
             question: question.trim(),
             hexagram_num: queData.id,
             hexagram_name: queData.name,
@@ -890,14 +883,15 @@ const BoiQue = () => {
         } catch (saveErr) {
           console.warn("[BoiQue] Save error:", saveErr);
         }
-        if (quePackage) {
-          await supabase
-            .from("boi_que_packages")
-            .update({ uses_remaining: quePackage.uses_remaining - 1 })
-            .eq("id", quePackage.id);
+        if (hasCredits) {
+          const { data: creditResult } = await (supabase as any).rpc("use_credit", {
+            p_user_id: u.id,
+            p_feature: "boi_que",
+          });
+          console.log("[BoiQue] use_credit result:", creditResult);
         }
         setFreeTrialCount((prev) => (prev ?? 0) + 1);
-        loadQuePackage();
+        loadCredits();
         loadHistory();
       }
     } catch {
@@ -976,18 +970,18 @@ const BoiQue = () => {
   };
   const handlePaymentSuccess = () => {
     setShowPayment(false);
-    loadQuePackage();
+    loadCredits();
     loadFreeTrialCount();
   };
 
   const style = result ? fortuneConfig[result.fortune as keyof typeof fortuneConfig] : null;
 
-  const usesLabel = quePackage
-    ? `Còn ${quePackage.uses_remaining}/${quePackage.uses_total} lần trong gói`
+  const usesLabel = hasCredits
+    ? `Còn ${credits} credits`
     : canUseFreeTrial
       ? "1 lần miễn phí"
       : everPurchased
-        ? "Đã hết lượt trong gói"
+        ? "Đã hết credits"
         : "Hết lượt miễn phí";
 
   const renderAiSection = () => {
@@ -1048,10 +1042,10 @@ const BoiQue = () => {
                 </div>
                 <h3 className="text-lg font-bold text-foreground">Mở khóa luận giải đầy đủ</h3>
                 <p className="text-sm text-muted-foreground">
-                  Bạn đang xem bản rút gọn. Thanh toán để xem toàn bộ luận giải chi tiết và được thêm 3 lần gieo quẻ.
+                  Bạn đang xem bản rút gọn. Thanh toán để xem toàn bộ luận giải chi tiết.
                 </p>
                 <p className="text-2xl font-bold text-gold">39.000đ</p>
-                <p className="text-xs text-muted-foreground -mt-2">Xem full luận giải này + 3 lần gieo quẻ mới</p>
+                <p className="text-xs text-muted-foreground -mt-2">3 credits — dùng cho bất kỳ tính năng nào</p>
                 <Button
                   variant="gold"
                   size="lg"
@@ -1065,7 +1059,7 @@ const BoiQue = () => {
                   }}
                 >
                   <Lock className="w-4 h-4 mr-2" />
-                  Mua gói Bói Quẻ
+                  Mua Credits
                 </Button>
                 <p className="text-xs text-muted-foreground">Thanh toán nhanh qua ngân hàng</p>
               </div>
@@ -1179,8 +1173,8 @@ const BoiQue = () => {
                   <CreditCard className="w-5 h-5 text-amber-400" />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-semibold text-amber-300 text-sm">Đã hết lượt bói Quẻ</p>
-                  <p className="text-xs text-amber-200/60">Mua thêm gói để tiếp tục · Lịch sử luận giải vẫn xem được</p>
+                  <p className="font-semibold text-amber-300 text-sm">Đã hết credits</p>
+                  <p className="text-xs text-amber-200/60">Mua thêm credits để tiếp tục · Lịch sử luận giải vẫn xem được</p>
                 </div>
               </div>
               <Button variant="gold" size="sm" onClick={() => setShowPayment(true)} className="shrink-0">
@@ -1243,10 +1237,10 @@ const BoiQue = () => {
             ) : !everPurchased ? (
               <PaymentGate
                 feature="boi_que"
-                title="Gói Bói Quẻ - 39.000đ"
-                description="3 lần gieo quẻ + luận giải AI chi tiết"
+                title="Mua Credits - 39.000đ"
+                description="3 credits — dùng cho bất kỳ tính năng nào"
                 onUnlocked={() => {
-                  loadQuePackage();
+                  loadCredits();
                   loadFreeTrialCount();
                 }}
               >
