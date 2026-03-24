@@ -592,7 +592,7 @@ const VanHan = () => {
       try {
         await supabase.from("van_han_analyses").insert({
           user_id: user.id,
-          package_id: vanHanPackage?.id || null,
+          package_id: null,
           chart_hash: selectedChart.chart_hash,
           time_frame: activeTab,
           period: timeInfo.period,
