@@ -155,7 +155,7 @@ const Admin = () => {
       setActiveUsers(stats.activeUsers);
       setPendingPayments(pending);
       setHistoryPayments(history);
-      setLuanGiaiPackages(lgPkgs);
+      setCreditInfos(credits);
     } catch (err: any) {
       toast({ title: "Lỗi", description: err.message, variant: "destructive" });
     }
