@@ -439,6 +439,7 @@ const VanHan = () => {
   const autoLoadCached = async () => {
     // Clear history viewing state + stale streaming text
     setViewingHistoryId(null);
+    setStreamingForTab(null);
     abortStreaming();
 
     const {
