@@ -51,6 +51,16 @@ async function logAdminAction(
   }
 }
 
+// ============================================================
+// UNIFIED CREDITS: Map payment amount → credits
+// ============================================================
+function getCreditsForAmount(amount: number): number {
+  if (amount >= 99000) return 10;
+  if (amount >= 59000) return 5;
+  if (amount >= 39000) return 3;
+  return 3; // fallback
+}
+
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
 
@@ -140,7 +150,7 @@ serve(async (req) => {
           .select("amount")
           .eq("status", "verified")
           .gte("created_at", startOfMonth.toISOString()),
-        adminClient.from("user_features").select("user_id"),
+        adminClient.from("user_credits").select("user_id"),
       ]);
 
       const revenue = (revenueRes.data ?? []).reduce((s: number, r: any) => s + (r.amount ?? 0), 0);
@@ -232,10 +242,13 @@ serve(async (req) => {
     }
 
     // ══════════════════════════════════════════════════════════════
-    // VERIFY — accepts both "pending" and "expired" payments
+    // VERIFY — UNIFIED CREDITS: add credits instead of per-feature packages
     // ══════════════════════════════════════════════════════════════
     if (action === "verify") {
       const { paymentId, userId, feature, expiresAt, paymentRef } = params;
+
+      // Get payment amount to determine credits
+      const { data: paymentData } = await adminClient.from("payments").select("amount").eq("id", paymentId).single();
 
       const { error: updateErr } = await adminClient
         .from("payments")
@@ -250,80 +263,33 @@ serve(async (req) => {
         });
       }
 
-      // Create feature-specific package
-      if (feature === "luan_giai") {
-        const { data: pendingPkgs } = await adminClient
-          .from("luan_giai_packages")
-          .select("id")
-          .eq("user_id", userId)
-          .eq("payment_status", "pending")
-          .order("created_at", { ascending: false })
-          .limit(1);
-
-        if (pendingPkgs && pendingPkgs.length > 0) {
-          await adminClient
-            .from("luan_giai_packages")
-            .update({ payment_status: "confirmed", confirmed_at: new Date().toISOString() })
-            .eq("id", pendingPkgs[0].id);
-          console.log("[verify] ✅ luan_giai_packages confirmed:", pendingPkgs[0].id);
-        } else {
-          const { data: insertedPkg } = await adminClient
-            .from("luan_giai_packages")
-            .insert({
-              user_id: userId,
-              total_uses: 3,
-              remaining_uses: 3,
-              amount: 39000,
-              payment_status: "confirmed",
-              confirmed_at: new Date().toISOString(),
-              payment_id: paymentId,
-            })
-            .select("id")
-            .single();
-          console.log("[verify] ✅ luan_giai_packages created:", insertedPkg?.id);
-        }
-      } else if (["van_han_week", "van_han_month", "van_han_year"].includes(feature)) {
-        const usesMap: Record<string, number> = { van_han_week: 3, van_han_month: 3, van_han_year: 3 };
-        const timeFrameMap: Record<string, string> = {
-          van_han_week: "week",
-          van_han_month: "month",
-          van_han_year: "year",
-        };
-        const { data: insertedPkg, error: pkgErr } = await adminClient
-          .from("van_han_packages")
-          .insert({
-            user_id: userId,
-            payment_id: paymentId,
-            time_frame: timeFrameMap[feature],
-            uses_total: usesMap[feature],
-            uses_remaining: usesMap[feature],
-          })
-          .select("id")
-          .single();
-        if (pkgErr) console.error("[verify] van_han_packages error:", pkgErr);
-        else console.log("[verify] ✅ van_han_packages created:", insertedPkg?.id);
-      } else if (feature === "boi_kieu") {
-        const { data: insertedPkg, error: pkgErr } = await adminClient
-          .from("kieu_packages")
-          .insert({ user_id: userId, payment_id: paymentId, uses_total: 3, uses_remaining: 3 })
-          .select("id")
-          .single();
-        if (pkgErr) console.error("[verify] kieu_packages error:", pkgErr);
-        else console.log("[verify] ✅ kieu_packages created:", insertedPkg?.id);
-      } else if (feature === "boi_que") {
-        const { data: insertedPkg, error: pkgErr } = await adminClient
-          .from("boi_que_packages")
-          .insert({ user_id: userId, payment_id: paymentId, uses_total: 3, uses_remaining: 3 })
-          .select("id")
-          .single();
-        if (pkgErr) console.error("[verify] boi_que_packages error:", pkgErr);
-        else console.log("[verify] ✅ boi_que_packages created:", insertedPkg?.id);
-      } else {
+      // Premium features still use user_features table
+      if (feature === "premium_monthly" || feature === "premium_yearly") {
         const { error: featErr } = await adminClient
           .from("user_features")
-          .insert({ user_id: userId, feature, expires_at: expiresAt, payment_ref: paymentRef });
+          .insert({ user_id: userId, feature: "premium", expires_at: expiresAt, payment_ref: paymentRef });
         if (featErr) console.error("[verify] user_features error:", featErr);
-        else console.log("[verify] ✅ user_features created for:", feature);
+        else console.log("[verify] ✅ premium feature created");
+      } else {
+        // All other features: add credits via RPC
+        const credits = getCreditsForAmount(paymentData?.amount ?? 39000);
+        const { data: result, error: creditErr } = await adminClient.rpc("add_credits", {
+          p_user_id: userId,
+          p_amount: credits,
+          p_source: "vietqr",
+          p_metadata: JSON.stringify({
+            payment_id: paymentId,
+            feature: feature,
+            verified_by: user.email,
+            admin_verify: true,
+          }),
+        });
+
+        if (creditErr) {
+          console.error("[verify] add_credits error:", creditErr);
+        } else {
+          console.log(`[verify] ✅ Added ${credits} credits for user ${userId}`);
+        }
       }
 
       await logAdminAction(
@@ -369,8 +335,37 @@ serve(async (req) => {
     }
 
     // ============================================================
-    // GET LUAN GIAI PACKAGES
+    // GET CREDIT INFO — replaces get_luan_giai_packages
     // ============================================================
+    if (action === "get_credits") {
+      const { data } = await adminClient
+        .from("user_credits")
+        .select("*")
+        .order("updated_at", { ascending: false })
+        .limit(100);
+
+      const userIds = [...new Set((data ?? []).map((p: any) => p.user_id).filter(Boolean))];
+      let profileMap: Record<string, any> = {};
+      if (userIds.length > 0) {
+        const { data: profiles } = await adminClient
+          .from("profiles")
+          .select("id, display_name, email")
+          .in("id", userIds);
+        (profiles ?? []).forEach((p: any) => {
+          profileMap[p.id] = p;
+        });
+      }
+
+      const result = (data ?? []).map((p: any) => ({
+        ...p,
+        display_name: profileMap[p.user_id]?.display_name ?? null,
+        user_email: profileMap[p.user_id]?.email ?? null,
+      }));
+
+      return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Keep legacy endpoint for backward compatibility
     if (action === "get_luan_giai_packages") {
       const { data } = await adminClient
         .from("luan_giai_packages")
@@ -400,7 +395,7 @@ serve(async (req) => {
     }
 
     // ============================================================
-    // CONFIRM LUAN GIAI
+    // CONFIRM LUAN GIAI (legacy — keep for old pending packages)
     // ============================================================
     if (action === "confirm_luan_giai") {
       const { packageId } = params;
@@ -433,11 +428,11 @@ serve(async (req) => {
     }
 
     // ══════════════════════════════════════════════════════════════
-    // GRANT PACKAGE — cấp gói bất kỳ cho user (6 features)
+    // GRANT CREDITS — replaces grant_package (unified)
     // ══════════════════════════════════════════════════════════════
-    if (action === "grant_package") {
-      const { email, feature, uses } = params;
-      const numUses = uses ?? 3;
+    if (action === "grant_credits") {
+      const { email, credits } = params;
+      const numCredits = credits ?? 3;
 
       // Find user
       const { data: profiles } = await adminClient
@@ -453,55 +448,19 @@ serve(async (req) => {
       }
       const targetUser = profiles[0];
 
-      let insertError: any = null;
+      const { data: result, error: creditErr } = await adminClient.rpc("add_credits", {
+        p_user_id: targetUser.id,
+        p_amount: numCredits,
+        p_source: "admin",
+        p_metadata: JSON.stringify({
+          granted_by: user.email,
+          reason: "admin_grant",
+          granted_at: new Date().toISOString(),
+        }),
+      });
 
-      if (feature === "luan_giai") {
-        const { error } = await adminClient.from("luan_giai_packages").insert({
-          user_id: targetUser.id,
-          total_uses: numUses,
-          remaining_uses: numUses,
-          amount: 0,
-          payment_status: "confirmed",
-          confirmed_at: new Date().toISOString(),
-          payment_method: "admin_grant",
-        });
-        insertError = error;
-      } else if (feature === "boi_kieu") {
-        const { error } = await adminClient.from("kieu_packages").insert({
-          user_id: targetUser.id,
-          uses_total: numUses,
-          uses_remaining: numUses,
-        });
-        insertError = error;
-      } else if (feature === "boi_que") {
-        const { error } = await adminClient.from("boi_que_packages").insert({
-          user_id: targetUser.id,
-          uses_total: numUses,
-          uses_remaining: numUses,
-        });
-        insertError = error;
-      } else if (["van_han_week", "van_han_month", "van_han_year"].includes(feature)) {
-        const timeFrameMap: Record<string, string> = {
-          van_han_week: "week",
-          van_han_month: "month",
-          van_han_year: "year",
-        };
-        const { error } = await adminClient.from("van_han_packages").insert({
-          user_id: targetUser.id,
-          time_frame: timeFrameMap[feature],
-          uses_total: numUses,
-          uses_remaining: numUses,
-        });
-        insertError = error;
-      } else {
-        return new Response(JSON.stringify({ error: "Unknown feature: " + feature }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      if (insertError) {
-        return new Response(JSON.stringify({ error: insertError.message }), {
+      if (creditErr) {
+        return new Response(JSON.stringify({ error: creditErr.message }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -511,10 +470,63 @@ serve(async (req) => {
         adminClient,
         user.email!,
         adminRecord.id,
-        "grant_package",
-        feature,
+        "grant_credits",
+        "user_credits",
         targetUser.id,
-        { targetEmail: email, feature, uses: numUses },
+        { targetEmail: email, credits: numCredits },
+        req,
+      );
+
+      return new Response(JSON.stringify({ success: true, user: targetUser, credits: numCredits }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Keep legacy grant_package for backward compat
+    if (action === "grant_package") {
+      const { email, feature, uses } = params;
+      const numCredits = uses ?? 3;
+
+      const { data: profiles } = await adminClient
+        .from("profiles")
+        .select("id, email, display_name")
+        .eq("email", email)
+        .limit(1);
+      if (!profiles || profiles.length === 0) {
+        return new Response(JSON.stringify({ error: "Không tìm thấy user với email: " + email }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const targetUser = profiles[0];
+
+      // Redirect to unified credits
+      const { error: creditErr } = await adminClient.rpc("add_credits", {
+        p_user_id: targetUser.id,
+        p_amount: numCredits,
+        p_source: "admin",
+        p_metadata: JSON.stringify({
+          granted_by: user.email,
+          legacy_feature: feature,
+          reason: "admin_grant_legacy",
+        }),
+      });
+
+      if (creditErr) {
+        return new Response(JSON.stringify({ error: creditErr.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      await logAdminAction(
+        adminClient,
+        user.email!,
+        adminRecord.id,
+        "grant_credits",
+        "user_credits",
+        targetUser.id,
+        { targetEmail: email, feature, credits: numCredits },
         req,
       );
 
@@ -524,7 +536,7 @@ serve(async (req) => {
     }
 
     // ══════════════════════════════════════════════════════════════
-    // RESET USER — xóa toàn bộ data, user trở về trạng thái mới
+    // RESET USER — includes user_credits + credit_transactions
     // ══════════════════════════════════════════════════════════════
     if (action === "reset_user") {
       const { email } = params;
@@ -554,20 +566,33 @@ serve(async (req) => {
         deleted[table] = count ?? 0;
       }
 
-      // 3. Packages
+      // 3. Legacy packages (keep for cleanup)
       for (const table of ["van_han_packages", "kieu_packages", "boi_que_packages", "luan_giai_packages"]) {
         const { count } = await adminClient.from(table).delete({ count: "exact" }).eq("user_id", uid);
         deleted[table] = count ?? 0;
       }
 
-      // 4. User features
+      // 4. UNIFIED CREDITS
+      const { count: creditTxCount } = await adminClient
+        .from("credit_transactions")
+        .delete({ count: "exact" })
+        .eq("user_id", uid);
+      deleted["credit_transactions"] = creditTxCount ?? 0;
+
+      const { count: creditCount } = await adminClient
+        .from("user_credits")
+        .delete({ count: "exact" })
+        .eq("user_id", uid);
+      deleted["user_credits"] = creditCount ?? 0;
+
+      // 5. User features
       const { count: featCount } = await adminClient
         .from("user_features")
         .delete({ count: "exact" })
         .eq("user_id", uid);
       deleted["user_features"] = featCount ?? 0;
 
-      // 5. Payments last
+      // 6. Payments last
       const { count: payCount } = await adminClient.from("payments").delete({ count: "exact" }).eq("user_id", uid);
       deleted["payments"] = payCount ?? 0;
 
