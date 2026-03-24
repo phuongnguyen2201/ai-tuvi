@@ -1039,10 +1039,10 @@ const BoiQue = () => {
                 </div>
                 <h3 className="text-lg font-bold text-foreground">Mở khóa luận giải đầy đủ</h3>
                 <p className="text-sm text-muted-foreground">
-                  Bạn đang xem bản rút gọn. Thanh toán để xem toàn bộ luận giải chi tiết và được thêm 3 lần gieo quẻ.
+                  Bạn đang xem bản rút gọn. Thanh toán để xem toàn bộ luận giải chi tiết.
                 </p>
                 <p className="text-2xl font-bold text-gold">39.000đ</p>
-                <p className="text-xs text-muted-foreground -mt-2">Xem full luận giải này + 3 lần gieo quẻ mới</p>
+                <p className="text-xs text-muted-foreground -mt-2">3 credits — dùng cho bất kỳ tính năng nào</p>
                 <Button
                   variant="gold"
                   size="lg"
