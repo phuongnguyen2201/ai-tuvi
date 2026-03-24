@@ -949,14 +949,14 @@ const VanHan = () => {
             Chia sẻ luận giải
           </Button>
         </div>
-        {vanHanPackage && vanHanPackage.uses_remaining > 0 && (
+        {hasCredits && (
           <Button
             variant="ghost"
             size="sm"
             onClick={handleRetryAnalyze}
             className="w-full mt-2 text-xs text-muted-foreground"
           >
-            Luận giải lại ({vanHanPackage.uses_remaining} lần còn lại)
+            Luận giải lại ({credits} credits còn lại)
           </Button>
         )}
       </div>
