@@ -1056,7 +1056,7 @@ const BoiQue = () => {
                   }}
                 >
                   <Lock className="w-4 h-4 mr-2" />
-                  Mua gói Bói Quẻ
+                  Mua Credits
                 </Button>
                 <p className="text-xs text-muted-foreground">Thanh toán nhanh qua ngân hàng</p>
               </div>
