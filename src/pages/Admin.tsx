@@ -593,11 +593,11 @@ const Admin = () => {
           {/* =================== TOOLS =================== */}
           <TabsContent value="tools">
             <div className="space-y-4">
-              {/* Grant package */}
+              {/* Grant credits */}
               <Card className="bg-surface-2 border-border">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <Package className="h-4 w-4" /> Cấp gói cho user
+                    <Package className="h-4 w-4" /> Cấp credits cho user
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -609,30 +609,21 @@ const Admin = () => {
                         onChange={(e) => setGrantEmail(e.target.value)}
                         className="flex-1"
                       />
-                      <Select value={grantFeature} onValueChange={setGrantFeature}>
+                      <Select value={String(grantCredits)} onValueChange={(v) => setGrantCredits(parseInt(v))}>
                         <SelectTrigger className="w-full sm:w-[220px]">
-                          <SelectValue placeholder="Chọn tính năng" />
+                          <SelectValue placeholder="Số credits" />
                         </SelectTrigger>
                         <SelectContent>
-                          {GRANTABLE_FEATURES.map((f) => (
-                            <SelectItem key={f.value} value={f.value}>
-                              {f.label}
+                          {CREDIT_PRESETS.map((p) => (
+                            <SelectItem key={p.value} value={String(p.value)}>
+                              {p.label}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={99}
-                        value={grantUses}
-                        onChange={(e) => setGrantUses(parseInt(e.target.value) || 3)}
-                        className="w-20"
-                        placeholder="Lượt"
-                      />
                     </div>
                     <Button
-                      onClick={handleGrantPackage}
+                      onClick={handleGrantCredits}
                       disabled={grantLoading || !grantEmail.trim()}
                       className="w-full sm:w-auto"
                     >
@@ -640,7 +631,7 @@ const Admin = () => {
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <>
-                          <Plus className="h-4 w-4 mr-1" /> Cấp gói
+                          <Plus className="h-4 w-4 mr-1" /> Cấp {grantCredits} credits
                         </>
                       )}
                     </Button>
