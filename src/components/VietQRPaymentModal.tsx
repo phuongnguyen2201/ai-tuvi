@@ -26,12 +26,6 @@ export interface VietQRPaymentModalProps {
   metadata?: Record<string, any>;
 }
 
-// ── UNIFIED CREDITS: Map price → credits ──
-const CREDIT_AMOUNTS: Record<number, number> = {
-  99000: 10, // VIP
-  59000: 5, // Phổ biến
-  39000: 3, // Cơ bản
-};
 
 // ══════════════════════════════════════════════════════════════
 // ANTI-SPAM: Max rejected payments per feature before blocking
@@ -96,31 +90,6 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
   const amount = PRICING[activeFeature] || 0;
   const label = getFeatureLabel(activeFeature);
 
-  // ── UNIFIED CREDITS: Add credits after payment verified ──
-  const addCreditsForPayment = useCallback(
-    async (uid: string, paymentId: string) => {
-      const credits = CREDIT_AMOUNTS[amount] || 3;
-      console.log("[Modal] Adding", credits, "credits for user:", uid);
-
-      const { error } = await (supabase as any).rpc("add_credits", {
-        p_user_id: uid,
-        p_amount: credits,
-        p_source: "vietqr",
-        p_metadata: JSON.stringify({
-          payment_id: paymentId,
-          amount: amount,
-          feature: feature,
-        }),
-      });
-
-      if (error) {
-        console.error("[Modal] add_credits error:", error);
-      } else {
-        console.log("[Modal] ✅ Added", credits, "credits successfully");
-      }
-    },
-    [amount, feature],
-  );
 
   const persistPendingState = useCallback(
     (pendingStep: Step, tc: string, uid: string) => {
@@ -334,9 +303,9 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
     const handleVerified = async (uid: string, paymentId: string) => {
       if (cancelled || alreadyHandled) return;
       alreadyHandled = true;
-      console.log("[Modal] ✅ Payment verified! Adding credits...");
+      console.log("[Modal] ✅ Payment verified!");
       if (pollInterval) clearInterval(pollInterval);
-      await addCreditsForPayment(uid, paymentId);
+      // Credits already added by SePay webhook — no need to add here
       localStorage.removeItem(storageKey);
       setExistingPendingId(null);
       setStep("success");
@@ -451,7 +420,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
       if (pollInterval) clearInterval(pollInterval);
       if (channel) supabase.removeChannel(channel);
     };
-  }, [step, transferContent, addCreditsForPayment, storageKey, activeFeature]);
+  }, [step, transferContent, storageKey, activeFeature]);
 
   const handleClose = () => {
     cleanupPolling();
