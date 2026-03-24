@@ -603,19 +603,19 @@ const VanHan = () => {
         console.warn("[VanHan] Save error (package_id may be required):", saveErr);
       }
 
-      // Only decrement if has paid package
-      if (vanHanPackage) {
-        await supabase
-          .from("van_han_packages")
-          .update({ uses_remaining: vanHanPackage.uses_remaining - 1 })
-          .eq("id", vanHanPackage.id);
+      if (hasCredits) {
+        const { data: creditResult } = await (supabase as any).rpc("use_credit", {
+          p_user_id: user.id,
+          p_feature: `van_han_${activeTab}`,
+        });
+        console.log("[VanHan] use_credit result:", creditResult);
       }
 
       // Update free trial count
       setFreeTrialCount((prev) => (prev ?? 0) + 1);
 
       setCurrentResult(fullText);
-      loadPackage(activeTab);
+      loadCredits();
 
       // CHANGE A: Reload history so new analysis appears
       loadAnalysisHistory();
