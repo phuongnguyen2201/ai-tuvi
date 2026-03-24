@@ -704,7 +704,7 @@ const BoiQue = () => {
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const { isStreaming: isStreamingAI, streamedText, startStreaming, abort: abortStreaming } = useStreamingAnalysis();
-  const [quePackage, setQuePackage] = useState<any>(null);
+  const [credits, setCredits] = useState<number>(0);
   const [history, setHistory] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [viewingHistoryId, setViewingHistoryId] = useState<string | null>(null);
