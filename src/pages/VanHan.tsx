@@ -1246,7 +1246,7 @@ const VanHan = () => {
           feature={currentTab.featureKey}
           onSuccess={() => {
             setShowPaymentModal(false);
-            loadPackage(activeTab);
+            loadCredits();
           }}
         />
 
