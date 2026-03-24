@@ -1215,7 +1215,7 @@ const VanHan = () => {
         {/* ══════════════════════════════════════════════════════════ */}
         {/* Exhausted banner — prominent, when package used up        */}
         {/* ══════════════════════════════════════════════════════════ */}
-        {selectedChart && !vanHanPackage && isPackageExhausted && (
+        {selectedChart && !hasCredits && everPurchased && (
           <div className="rounded-2xl p-4 bg-gradient-to-r from-amber-950/60 to-orange-950/40 border border-amber-500/30">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
@@ -1223,7 +1223,7 @@ const VanHan = () => {
                   <CreditCard className="w-5 h-5 text-amber-400" />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-semibold text-amber-300 text-sm">Đã hết lượt luận giải</p>
+                  <p className="font-semibold text-amber-300 text-sm">Đã hết credits</p>
                   <p className="text-xs text-amber-200/60">
                     Thanh toán để luận giải tiếp · Lịch sử luận giải vẫn xem được
                   </p>
