@@ -199,8 +199,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
           setTransferContent(saved.transferContent);
           setUserId(saved.userId);
         } else {
-          setStep(isPremium ? "select_plan" : "show_qr");
-          loadUserId();
+          setStep("select_plan");
         }
       });
     }
