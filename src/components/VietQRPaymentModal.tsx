@@ -87,8 +87,9 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
 
   const isPremium = feature === "premium";
   const isLuanGiai = feature === "luan_giai";
-  const activeFeature: FeatureKey = isPremium ? selectedPlan : (feature as FeatureKey);
-  const amount = PRICING[activeFeature] || 0;
+  const activeFeature: FeatureKey = isPremium ? selectedPlan : (`credits_${selectedCredits}` as FeatureKey);
+  const creditPricing: Record<number, number> = { 3: 39000, 5: 59000, 10: 99000 };
+  const amount = isPremium ? (PRICING[activeFeature] || 0) : creditPricing[selectedCredits];
   const label = getFeatureLabel(activeFeature);
 
 
