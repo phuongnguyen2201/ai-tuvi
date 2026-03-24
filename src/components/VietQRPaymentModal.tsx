@@ -174,7 +174,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
 
         if (!result) {
           // Not logged in or error
-          setStep(isPremium ? "select_plan" : "show_qr");
+          setStep("select_plan");
           return;
         }
 
