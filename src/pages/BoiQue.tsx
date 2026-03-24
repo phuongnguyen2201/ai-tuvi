@@ -731,7 +731,7 @@ const BoiQue = () => {
 
   useEffect(() => {
     if (user) {
-      loadQuePackage();
+      loadCredits();
       loadHistory();
       loadFreeTrialCount();
     }
