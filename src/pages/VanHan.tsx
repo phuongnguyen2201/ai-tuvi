@@ -336,7 +336,7 @@ const VanHan = () => {
   };
 
   useEffect(() => {
-    if (selectedChart) loadPackage(activeTab);
+    if (selectedChart) loadCredits();
   }, [activeTab, selectedChart]);
 
   // ══════════════════════════════════════════════════════════════
