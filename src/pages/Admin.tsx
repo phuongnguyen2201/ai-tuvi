@@ -366,7 +366,7 @@ const Admin = () => {
           {searchTerm && (
             <p className="text-xs text-muted-foreground mt-1 ml-1">
               Đang lọc: {activePending.length} chờ xác nhận · {expiredRecoverable.length} expired ·{" "}
-              {filteredPackages.length} gói · {filteredHistory.length} lịch sử
+              {filteredCredits.length} users · {filteredHistory.length} lịch sử
             </p>
           )}
         </div>
