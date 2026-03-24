@@ -303,9 +303,9 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
     const handleVerified = async (uid: string, paymentId: string) => {
       if (cancelled || alreadyHandled) return;
       alreadyHandled = true;
-      console.log("[Modal] ✅ Payment verified! Adding credits...");
+      console.log("[Modal] ✅ Payment verified!");
       if (pollInterval) clearInterval(pollInterval);
-      await addCreditsForPayment(uid, paymentId);
+      // Credits already added by SePay webhook — no need to add here
       localStorage.removeItem(storageKey);
       setExistingPendingId(null);
       setStep("success");
