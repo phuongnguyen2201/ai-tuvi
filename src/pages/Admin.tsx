@@ -133,8 +133,7 @@ const Admin = () => {
 
   // Grant package state
   const [grantEmail, setGrantEmail] = useState("");
-  const [grantFeature, setGrantFeature] = useState("luan_giai");
-  const [grantUses, setGrantUses] = useState(3);
+  const [grantCredits, setGrantCredits] = useState(3);
   const [grantLoading, setGrantLoading] = useState(false);
 
   // Reset user state
