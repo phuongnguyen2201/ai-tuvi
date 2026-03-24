@@ -346,7 +346,7 @@ const VanHan = () => {
   // (e.g. user already has a blur preview from free trial)
   // ══════════════════════════════════════════════════════════════
   useEffect(() => {
-    if (checkedPendingPayment || showPaymentModal || vanHanPackage) return;
+    if (checkedPendingPayment || showPaymentModal || hasCredits) return;
     const featureKey = TABS.find((t) => t.key === activeTab)?.featureKey;
     if (!featureKey) return;
 
