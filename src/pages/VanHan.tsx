@@ -224,8 +224,8 @@ const VanHan = () => {
   const [chartsLoading, setChartsLoading] = useState(true);
 
   // Package
-  const [vanHanPackage, setVanHanPackage] = useState<any>(null);
-  const [isPackageExhausted, setIsPackageExhausted] = useState(false); // had package but 0 remaining
+  const [credits, setCredits] = useState<number>(0);
+  const [everPurchased, setEverPurchased] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [checkedPendingPayment, setCheckedPendingPayment] = useState(false);
 
@@ -258,12 +258,13 @@ const VanHan = () => {
   // ══════════════════════════════════════════════════════════════
   // FREEMIUM: Derived state
   // ══════════════════════════════════════════════════════════════
-  const canUseFreeTrial = freeTrialCount === 0 && !vanHanPackage;
+  const hasCredits = credits > 0;
+  const canUseFreeTrial = freeTrialCount === 0 && !hasCredits;
   // FIX: Only show streamedText if it belongs to the current tab
   const activeStreamedText = streamingForTab === activeTab ? streamedText : "";
   const displayText = currentResult || activeStreamedText;
-  const isFreePreview = !!displayText && !vanHanPackage && !isPackageExhausted;
-  const canAnalyze = !!vanHanPackage || canUseFreeTrial;
+  const isFreePreview = !!displayText && !hasCredits && !everPurchased;
+  const canAnalyze = hasCredits || canUseFreeTrial;
 
   // Load user charts from chart_analyses
   useEffect(() => {
@@ -322,42 +323,20 @@ const VanHan = () => {
     setChartsLoading(false);
   };
 
-  // Load package for current timeframe + detect exhaustion
-  const loadPackage = async (timeFrame: string) => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  const loadCredits = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-
-    // Check for active package (uses > 0)
-    const { data } = await supabase
-      .from("van_han_packages")
-      .select("*")
+    const { data } = await (supabase as any)
+      .from("user_credits")
+      .select("credits_remaining, credits_total")
       .eq("user_id", user.id)
-      .eq("time_frame", timeFrame)
-      .gt("uses_remaining", 0)
-      .order("created_at", { ascending: false })
-      .limit(1)
       .maybeSingle();
-
-    setVanHanPackage(data);
-
-    // If no active package, check if they ever had one (exhausted)
-    if (!data) {
-      const { count } = await supabase
-        .from("van_han_packages")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("time_frame", timeFrame);
-
-      setIsPackageExhausted((count ?? 0) > 0);
-    } else {
-      setIsPackageExhausted(false);
-    }
+    setCredits(data?.credits_remaining ?? 0);
+    setEverPurchased((data?.credits_total ?? 0) > 0);
   };
 
   useEffect(() => {
-    if (selectedChart) loadPackage(activeTab);
+    if (selectedChart) loadCredits();
   }, [activeTab, selectedChart]);
 
   // ══════════════════════════════════════════════════════════════
@@ -367,7 +346,7 @@ const VanHan = () => {
   // (e.g. user already has a blur preview from free trial)
   // ══════════════════════════════════════════════════════════════
   useEffect(() => {
-    if (checkedPendingPayment || showPaymentModal || vanHanPackage) return;
+    if (checkedPendingPayment || showPaymentModal || hasCredits) return;
     const featureKey = TABS.find((t) => t.key === activeTab)?.featureKey;
     if (!featureKey) return;
 
@@ -396,7 +375,7 @@ const VanHan = () => {
       setCheckedPendingPayment(true);
     };
     check();
-  }, [activeTab, checkedPendingPayment, showPaymentModal, vanHanPackage]);
+  }, [activeTab, checkedPendingPayment, showPaymentModal, hasCredits]);
 
   // Reset offset and streaming state when switching tabs
   useEffect(() => {
@@ -513,7 +492,7 @@ const VanHan = () => {
   const handleAnalyze = async () => {
     if (!selectedChart) return;
     // ── FREEMIUM: Allow if has package OR free trial ──
-    if (!vanHanPackage && !canUseFreeTrial) return;
+    if (!hasCredits && !canUseFreeTrial) return;
 
     const {
       data: { user },
@@ -613,7 +592,7 @@ const VanHan = () => {
       try {
         await supabase.from("van_han_analyses").insert({
           user_id: user.id,
-          package_id: vanHanPackage?.id || null,
+          package_id: null,
           chart_hash: selectedChart.chart_hash,
           time_frame: activeTab,
           period: timeInfo.period,
@@ -624,19 +603,19 @@ const VanHan = () => {
         console.warn("[VanHan] Save error (package_id may be required):", saveErr);
       }
 
-      // Only decrement if has paid package
-      if (vanHanPackage) {
-        await supabase
-          .from("van_han_packages")
-          .update({ uses_remaining: vanHanPackage.uses_remaining - 1 })
-          .eq("id", vanHanPackage.id);
+      if (hasCredits) {
+        const { data: creditResult } = await (supabase as any).rpc("use_credit", {
+          p_user_id: user.id,
+          p_feature: `van_han_${activeTab}`,
+        });
+        console.log("[VanHan] use_credit result:", creditResult);
       }
 
       // Update free trial count
       setFreeTrialCount((prev) => (prev ?? 0) + 1);
 
       setCurrentResult(fullText);
-      loadPackage(activeTab);
+      loadCredits();
 
       // CHANGE A: Reload history so new analysis appears
       loadAnalysisHistory();
@@ -824,7 +803,7 @@ const VanHan = () => {
     // ── STATE B: NO RESULT — show analyze button or exhausted message ──
     if (!currentResult && !activeStreamedText) {
       // Sub-state: package exhausted + no free trial left
-      if (!vanHanPackage && isPackageExhausted) {
+      if (!hasCredits && everPurchased) {
         return (
           <div id="van-han-result" className="text-center py-6 space-y-3">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20">
@@ -900,13 +879,12 @@ const VanHan = () => {
                 <h3 className="text-lg font-bold text-foreground">Mở khóa luận giải đầy đủ</h3>
 
                 <p className="text-sm text-muted-foreground">
-                  Bạn đang xem bản rút gọn. Thanh toán để xem toàn bộ luận giải chi tiết và được thêm 3 lần phân tích
-                  vận hạn theo {tabLabel}.
+                  Bạn đang xem bản rút gọn. Thanh toán để xem toàn bộ luận giải chi tiết.
                 </p>
 
                 <p className="text-2xl font-bold text-primary">39.000đ</p>
                 <p className="text-xs text-muted-foreground -mt-2">
-                  Xem full luận giải này + 3 lần phân tích {tabLabel} mới
+                  3 credits — dùng cho bất kỳ tính năng nào
                 </p>
 
                 <Button
@@ -922,7 +900,7 @@ const VanHan = () => {
                   }}
                 >
                   <Lock className="w-4 h-4 mr-2" />
-                  Mua gói Vận Hạn {tabLabel.charAt(0).toUpperCase() + tabLabel.slice(1)}
+                  Mua Credits
                 </Button>
                 <p className="text-xs text-muted-foreground">Thanh toán nhanh qua ngân hàng</p>
               </div>
@@ -970,14 +948,14 @@ const VanHan = () => {
             Chia sẻ luận giải
           </Button>
         </div>
-        {vanHanPackage && vanHanPackage.uses_remaining > 0 && (
+        {hasCredits && (
           <Button
             variant="ghost"
             size="sm"
             onClick={handleRetryAnalyze}
             className="w-full mt-2 text-xs text-muted-foreground"
           >
-            Luận giải lại ({vanHanPackage.uses_remaining} lần còn lại)
+            Luận giải lại ({credits} credits còn lại)
           </Button>
         )}
       </div>
@@ -1158,17 +1136,6 @@ const VanHan = () => {
     );
   };
 
-  const packageTitle: Record<TimeFrame, string> = {
-    week: "Gói Vận Hạn Tuần - 39.000đ",
-    month: "Gói Vận Hạn Tháng - 39.000đ",
-    year: "Gói Vận Hạn Năm - 39.000đ",
-  };
-
-  const packageDesc: Record<TimeFrame, string> = {
-    week: "Thanh toán 1 lần, luận giải 3 lần vận hạn theo tuần",
-    month: "Thanh toán 1 lần, luận giải 3 lần vận hạn theo tháng",
-    year: "Thanh toán 1 lần, luận giải 3 lần vận hạn theo năm",
-  };
 
   return (
     <PageLayout title="Vận Hạn">
@@ -1236,7 +1203,7 @@ const VanHan = () => {
         {/* ══════════════════════════════════════════════════════════ */}
         {/* Exhausted banner — prominent, when package used up        */}
         {/* ══════════════════════════════════════════════════════════ */}
-        {selectedChart && !vanHanPackage && isPackageExhausted && (
+        {selectedChart && !hasCredits && everPurchased && (
           <div className="rounded-2xl p-4 bg-gradient-to-r from-amber-950/60 to-orange-950/40 border border-amber-500/30">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
@@ -1244,7 +1211,7 @@ const VanHan = () => {
                   <CreditCard className="w-5 h-5 text-amber-400" />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-semibold text-amber-300 text-sm">Đã hết lượt luận giải</p>
+                  <p className="font-semibold text-amber-300 text-sm">Đã hết credits</p>
                   <p className="text-xs text-amber-200/60">
                     Thanh toán để luận giải tiếp · Lịch sử luận giải vẫn xem được
                   </p>
@@ -1267,7 +1234,7 @@ const VanHan = () => {
           feature={currentTab.featureKey}
           onSuccess={() => {
             setShowPaymentModal(false);
-            loadPackage(activeTab);
+            loadCredits();
           }}
         />
 
@@ -1279,15 +1246,15 @@ const VanHan = () => {
             {/* or can use free trial → show directly (preview handles    */}
             {/* blur inline). Only gate when no access at all.            */}
             {/* ══════════════════════════════════════════════════════════ */}
-            {currentResult || isAnalyzing || isStreamingAI || activeStreamedText || isPackageExhausted || canAnalyze ? (
+            {currentResult || isAnalyzing || isStreamingAI || activeStreamedText || everPurchased || canAnalyze ? (
               /* Has result, streaming, exhausted, or can analyze → show directly */
               <div className="space-y-4">
-                {vanHanPackage && (
+                {hasCredits && (
                   <div className="text-xs text-primary/70 text-center">
-                    Còn {vanHanPackage.uses_remaining}/{vanHanPackage.uses_total} lần phân tích
+                    Còn {credits} credits
                   </div>
                 )}
-                {!vanHanPackage && canUseFreeTrial && !currentResult && !isAnalyzing && !isStreamingAI && (
+                {!hasCredits && canUseFreeTrial && !currentResult && !isAnalyzing && !isStreamingAI && (
                   <div className="text-xs text-primary/70 text-center">✨ 1 lần miễn phí</div>
                 )}
                 {renderAiResult()}
@@ -1296,15 +1263,15 @@ const VanHan = () => {
               /* No result + no access → PaymentGate wraps the analyze button */
               <PaymentGate
                 feature={currentTab.featureKey}
-                title={packageTitle[activeTab]}
+                title="Mua Credits - 39.000đ"
                 price="39.000đ"
-                description={packageDesc[activeTab]}
-                onUnlocked={() => loadPackage(activeTab)}
+                description="3 credits — dùng cho bất kỳ tính năng nào"
+                onUnlocked={() => loadCredits()}
               >
                 <div className="space-y-4">
-                  {vanHanPackage && (
+                  {hasCredits && (
                     <div className="text-xs text-primary/70 text-center">
-                      Còn {vanHanPackage.uses_remaining}/{vanHanPackage.uses_total} lần phân tích
+                      Còn {credits} credits
                     </div>
                   )}
                   {renderAiResult()}
