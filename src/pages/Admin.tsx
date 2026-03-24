@@ -144,11 +144,11 @@ const Admin = () => {
   const fetchAll = useCallback(async () => {
     setLoadingStats(true);
     try {
-      const [stats, pending, history, lgPkgs] = await Promise.all([
+      const [stats, pending, history, credits] = await Promise.all([
         callAdmin("get_stats"),
         callAdmin("get_pending"),
         callAdmin("get_history"),
-        callAdmin("get_luan_giai_packages"),
+        callAdmin("get_credits"),
       ]);
       setPendingCount(stats.pendingCount);
       setMonthRevenue(stats.monthRevenue);
