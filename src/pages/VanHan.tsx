@@ -803,7 +803,7 @@ const VanHan = () => {
     // ── STATE B: NO RESULT — show analyze button or exhausted message ──
     if (!currentResult && !activeStreamedText) {
       // Sub-state: package exhausted + no free trial left
-      if (!vanHanPackage && isPackageExhausted) {
+      if (!hasCredits && everPurchased) {
         return (
           <div id="van-han-result" className="text-center py-6 space-y-3">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20">
