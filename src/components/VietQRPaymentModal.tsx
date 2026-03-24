@@ -436,42 +436,94 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
 
   const formatAmount = (amount: number) => amount.toLocaleString("vi-VN") + "đ";
 
-  // ── Step: Select Plan (Premium only) ──
-  const renderSelectPlan = () => (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground text-center">Chọn gói Premium phù hợp với bạn</p>
-      <div className="grid grid-cols-2 gap-3">
-        <button
-          onClick={() => setSelectedPlan("premium_monthly")}
-          className={`rounded-xl border-2 p-4 text-center transition-all ${
-            selectedPlan === "premium_monthly"
-              ? "border-primary bg-primary/10 glow-gold"
-              : "border-border bg-card hover:border-muted-foreground"
-          }`}
-        >
-          <p className="font-semibold text-foreground">1 tháng</p>
-          <p className="text-lg font-bold text-primary mt-1">49.000đ</p>
-        </button>
-        <button
-          onClick={() => setSelectedPlan("premium_yearly")}
-          className={`rounded-xl border-2 p-4 text-center transition-all relative ${
-            selectedPlan === "premium_yearly"
-              ? "border-primary bg-primary/10 glow-gold"
-              : "border-border bg-card hover:border-muted-foreground"
-          }`}
-        >
-          <span className="absolute -top-2.5 right-2 bg-destructive text-destructive-foreground text-[10px] font-bold px-2 py-0.5 rounded-full">
-            -32%
-          </span>
-          <p className="font-semibold text-foreground">1 năm</p>
-          <p className="text-lg font-bold text-primary mt-1">399.000đ</p>
-        </button>
+  // ── Step: Select Plan ──
+  const renderSelectPlan = () => {
+    if (isPremium) {
+      return (
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground text-center">Chọn gói Premium phù hợp với bạn</p>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => setSelectedPlan("premium_monthly")}
+              className={`rounded-xl border-2 p-4 text-center transition-all ${
+                selectedPlan === "premium_monthly"
+                  ? "border-primary bg-primary/10 glow-gold"
+                  : "border-border bg-card hover:border-muted-foreground"
+              }`}
+            >
+              <p className="font-semibold text-foreground">1 tháng</p>
+              <p className="text-lg font-bold text-primary mt-1">49.000đ</p>
+            </button>
+            <button
+              onClick={() => setSelectedPlan("premium_yearly")}
+              className={`rounded-xl border-2 p-4 text-center transition-all relative ${
+                selectedPlan === "premium_yearly"
+                  ? "border-primary bg-primary/10 glow-gold"
+                  : "border-border bg-card hover:border-muted-foreground"
+              }`}
+            >
+              <span className="absolute -top-2.5 right-2 bg-destructive text-destructive-foreground text-[10px] font-bold px-2 py-0.5 rounded-full">
+                -32%
+              </span>
+              <p className="font-semibold text-foreground">1 năm</p>
+              <p className="text-lg font-bold text-primary mt-1">399.000đ</p>
+            </button>
+          </div>
+          <Button variant="gold" size="lg" className="w-full" onClick={() => { setStep("show_qr"); loadUserId(); }}>
+            Tiếp tục thanh toán
+          </Button>
+        </div>
+      );
+    }
+
+    // Credit package selection
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-muted-foreground text-center">
+          Chọn gói credits — dùng cho tất cả tính năng trả phí
+        </p>
+        <div className="space-y-3">
+          {([3, 5, 10] as const).map((num) => {
+            const prices: Record<number, number> = { 3: 39000, 5: 59000, 10: 99000 };
+            const labels: Record<number, string> = { 3: "Cơ bản", 5: "Phổ biến", 10: "VIP" };
+            const isSelected = selectedCredits === num;
+            return (
+              <button
+                key={num}
+                onClick={() => setSelectedCredits(num)}
+                className={`w-full rounded-xl border-2 p-4 text-left transition-all relative ${
+                  isSelected
+                    ? "border-primary bg-primary/10"
+                    : "border-border bg-card hover:border-muted-foreground"
+                }`}
+              >
+                {num === 5 && (
+                  <span className="absolute -top-2.5 right-3 bg-gold text-background text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    Phổ biến
+                  </span>
+                )}
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="font-semibold text-foreground">{labels[num]}</p>
+                    <p className="text-sm text-muted-foreground">{num} credits</p>
+                  </div>
+                  <p className="text-lg font-bold text-primary">
+                    {prices[num].toLocaleString("vi-VN")}đ
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-xs text-muted-foreground text-center">
+          Mỗi lần dùng Bói Kiều, Bói Quẻ, Vận Hạn, Luận Giải = 1 credit
+        </p>
+        <Button variant="gold" size="lg" className="w-full" onClick={() => { setStep("show_qr"); loadUserId(); }}>
+          Tiếp tục thanh toán — {amount.toLocaleString("vi-VN")}đ
+        </Button>
       </div>
-      <Button variant="gold" size="lg" className="w-full" onClick={() => setStep("show_qr")}>
-        Tiếp tục thanh toán
-      </Button>
-    </div>
-  );
+    );
+  };
 
   // ── Step: Show QR ──
   const renderShowQR = () => (
