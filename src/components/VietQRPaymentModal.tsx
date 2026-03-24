@@ -420,7 +420,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
       if (pollInterval) clearInterval(pollInterval);
       if (channel) supabase.removeChannel(channel);
     };
-  }, [step, transferContent, addCreditsForPayment, storageKey, activeFeature]);
+  }, [step, transferContent, storageKey, activeFeature]);
 
   const handleClose = () => {
     cleanupPolling();
