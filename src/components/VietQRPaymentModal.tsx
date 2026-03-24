@@ -716,7 +716,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
   };
 
   const stepDesc: Record<Step, string> = {
-    select_plan: "Chọn gói phù hợp",
+    select_plan: isPremium ? "Chọn gói phù hợp" : "Chọn gói credits",
     show_qr: existingPendingId ? "Giao dịch đang chờ — quét QR để chuyển khoản" : label,
     pending: "Vui lòng chờ xác nhận",
     processing: "AI đang phân tích lá số",
