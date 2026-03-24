@@ -65,6 +65,7 @@ const VietQRPaymentModal = ({ open, onOpenChange, feature, onSuccess, metadata }
 
   const [step, setStep] = useState<Step>(persisted?.step || "show_qr");
   const [selectedPlan, setSelectedPlan] = useState<"premium_monthly" | "premium_yearly">("premium_monthly");
+  const [selectedCredits, setSelectedCredits] = useState<3 | 5 | 10>(3);
   const [copied, setCopied] = useState(false);
   const [userId, setUserId] = useState(persisted?.userId || "");
   const [transferContent, setTransferContent] = useState(persisted?.transferContent || "");
