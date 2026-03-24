@@ -723,10 +723,11 @@ const BoiQue = () => {
   });
   const audioCtxRef = useRef<AudioContext | null>(null);
 
-  const canUseFreeTrial = freeTrialCount === 0 && !quePackage;
+  const hasCredits = credits > 0;
+  const canUseFreeTrial = freeTrialCount === 0 && !hasCredits;
   const displayText = aiResult || streamedText;
-  const isFreePreview = !!displayText && !quePackage && !everPurchased;
-  const canGieoQue = !!quePackage || canUseFreeTrial;
+  const isFreePreview = !!displayText && !hasCredits && !everPurchased;
+  const canGieoQue = hasCredits || canUseFreeTrial;
 
   useEffect(() => {
     if (user) {
