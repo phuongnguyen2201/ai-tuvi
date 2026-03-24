@@ -224,8 +224,8 @@ const VanHan = () => {
   const [chartsLoading, setChartsLoading] = useState(true);
 
   // Package
-  const [vanHanPackage, setVanHanPackage] = useState<any>(null);
-  const [isPackageExhausted, setIsPackageExhausted] = useState(false); // had package but 0 remaining
+  const [credits, setCredits] = useState<number>(0);
+  const [everPurchased, setEverPurchased] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [checkedPendingPayment, setCheckedPendingPayment] = useState(false);
 
