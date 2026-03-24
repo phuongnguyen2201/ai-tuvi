@@ -82,16 +82,13 @@ interface PaymentRow {
   user_email?: string | null;
 }
 
-interface LuanGiaiPackage {
+interface CreditInfo {
   id: string;
   user_id: string;
-  total_uses: number;
-  remaining_uses: number;
-  amount: number;
-  payment_status: string | null;
-  payment_method: string | null;
+  credits_remaining: number;
+  credits_total: number;
+  updated_at: string | null;
   created_at: string | null;
-  confirmed_at: string | null;
   display_name?: string | null;
   user_email?: string | null;
 }
