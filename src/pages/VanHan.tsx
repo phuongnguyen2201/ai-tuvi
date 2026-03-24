@@ -1136,17 +1136,6 @@ const VanHan = () => {
     );
   };
 
-  const packageTitle: Record<TimeFrame, string> = {
-    week: "Gói Vận Hạn Tuần - 39.000đ",
-    month: "Gói Vận Hạn Tháng - 39.000đ",
-    year: "Gói Vận Hạn Năm - 39.000đ",
-  };
-
-  const packageDesc: Record<TimeFrame, string> = {
-    week: "Thanh toán 1 lần, luận giải 3 lần vận hạn theo tuần",
-    month: "Thanh toán 1 lần, luận giải 3 lần vận hạn theo tháng",
-    year: "Thanh toán 1 lần, luận giải 3 lần vận hạn theo năm",
-  };
 
   return (
     <PageLayout title="Vận Hạn">
