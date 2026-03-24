@@ -870,7 +870,7 @@ const BoiQue = () => {
         try {
           await supabase.from("boi_que_analyses").insert({
             user_id: u.id,
-            package_id: quePackage?.id || null,
+            package_id: null,
             question: question.trim(),
             hexagram_num: queData.id,
             hexagram_name: queData.name,
