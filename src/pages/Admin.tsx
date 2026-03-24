@@ -38,13 +38,10 @@ const FEATURE_LABELS: Record<string, string> = {
   premium_yearly: "Premium năm",
 };
 
-const GRANTABLE_FEATURES = [
-  { value: "luan_giai", label: "Luận Giải Lá Số (3 lượt)" },
-  { value: "boi_kieu", label: "Bói Kiều (3 lượt)" },
-  { value: "boi_que", label: "Bói Quẻ (3 lượt)" },
-  { value: "van_han_week", label: "Vận Hạn Tuần (3 lượt)" },
-  { value: "van_han_month", label: "Vận Hạn Tháng (3 lượt)" },
-  { value: "van_han_year", label: "Vận Hạn Năm (3 lượt)" },
+const CREDIT_PRESETS = [
+  { value: 3, label: "3 credits (39.000đ)" },
+  { value: 5, label: "5 credits (59.000đ)" },
+  { value: 10, label: "10 credits (99.000đ)" },
 ];
 
 const formatCurrency = (amount: number) => amount.toLocaleString("vi-VN") + "đ";
