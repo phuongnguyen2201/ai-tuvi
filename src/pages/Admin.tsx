@@ -227,7 +227,7 @@ const Admin = () => {
     setActionLoading(null);
   };
 
-  const handleConfirmLuanGiai = async (pkg: LuanGiaiPackage) => {
+  const handleConfirmLuanGiai = async (pkg: CreditInfo) => {
     setActionLoading(pkg.id);
     try {
       await callAdmin("confirm_luan_giai", { packageId: pkg.id });
