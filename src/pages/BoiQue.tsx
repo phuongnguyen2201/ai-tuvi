@@ -757,20 +757,16 @@ const BoiQue = () => {
     }
   };
 
-  const loadQuePackage = async () => {
-    const {
-      data: { user: u },
-    } = await supabase.auth.getUser();
+  const loadCredits = async () => {
+    const { data: { user: u } } = await supabase.auth.getUser();
     if (!u) return;
-    const { data } = await supabase
-      .from("boi_que_packages")
-      .select("*")
+    const { data } = await (supabase as any)
+      .from("user_credits")
+      .select("credits_remaining, credits_total")
       .eq("user_id", u.id)
-      .gt("uses_remaining", 0)
-      .order("created_at", { ascending: false })
-      .limit(1)
       .maybeSingle();
-    setQuePackage(data);
+    setCredits(data?.credits_remaining ?? 0);
+    setEverPurchased((data?.credits_total ?? 0) > 0);
   };
 
   const loadHistory = async () => {
