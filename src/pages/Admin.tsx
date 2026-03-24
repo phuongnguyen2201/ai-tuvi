@@ -239,22 +239,20 @@ const Admin = () => {
     setActionLoading(null);
   };
 
-  const handleGrantPackage = async () => {
-    if (!grantEmail.trim() || !grantFeature) return;
+  const handleGrantCredits = async () => {
+    if (!grantEmail.trim()) return;
     setGrantLoading(true);
     try {
-      const result = await callAdmin("grant_package", {
+      const result = await callAdmin("grant_credits", {
         email: grantEmail.trim(),
-        feature: grantFeature,
-        uses: grantUses,
+        credits: grantCredits,
       });
-      const featureLabel = GRANTABLE_FEATURES.find((f) => f.value === grantFeature)?.label || grantFeature;
       toast({
-        title: "✅ Đã cấp gói",
-        description: `Cấp ${featureLabel} (${grantUses} lượt) cho ${result.user?.display_name || grantEmail}`,
+        title: "✅ Đã cấp credits",
+        description: `Cấp ${grantCredits} credits cho ${result.user?.display_name || grantEmail}`,
       });
       setGrantEmail("");
-      setGrantUses(3);
+      setGrantCredits(3);
       fetchAll();
     } catch (err: any) {
       toast({ title: "Lỗi", description: err.message, variant: "destructive" });
