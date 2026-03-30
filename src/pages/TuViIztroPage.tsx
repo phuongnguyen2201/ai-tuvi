@@ -246,11 +246,12 @@ export default function TuViIztroPage() {
 
       setFreeTrialCount(count ?? 0);
 
-      const { count: pkgCount } = await supabase
-        .from("luan_giai_packages")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", currentUser.id);
-      setEverPurchased((pkgCount ?? 0) > 0);
+      const { data: creditData } = await (supabase as any)
+        .from("user_credits")
+        .select("credits_total")
+        .eq("user_id", currentUser.id)
+        .maybeSingle();
+      setEverPurchased((creditData?.credits_total ?? 0) > 0);
     } catch {
       setFreeTrialCount(0);
     }
