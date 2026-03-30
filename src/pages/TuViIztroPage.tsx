@@ -23,7 +23,7 @@ import PageLayout from "@/components/PageLayout";
 import { supabase } from "@/integrations/supabase/client";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import { useAuth } from "@/contexts/AuthContext";
-import { useLuanGiaiAccess, decrementLuanGiaiUses } from "@/hooks/useLuanGiaiAccess";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -173,7 +173,7 @@ export default function TuViIztroPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Package-based access
-  const { hasAccess, remaining, total, isLoading: accessLoading, refresh: refreshAccess } = useLuanGiaiAccess();
+  const { hasAccess, credits, isLoading: accessLoading, refresh: refreshAccess } = useFeatureAccess("luan_giai");
 
   // Streaming AI analysis
   const {
@@ -246,11 +246,12 @@ export default function TuViIztroPage() {
 
       setFreeTrialCount(count ?? 0);
 
-      const { count: pkgCount } = await supabase
-        .from("luan_giai_packages")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", currentUser.id);
-      setEverPurchased((pkgCount ?? 0) > 0);
+      const { data: creditData } = await (supabase as any)
+        .from("user_credits")
+        .select("credits_total")
+        .eq("user_id", currentUser.id)
+        .maybeSingle();
+      setEverPurchased((creditData?.credits_total ?? 0) > 0);
     } catch {
       setFreeTrialCount(0);
     }
@@ -443,9 +444,12 @@ export default function TuViIztroPage() {
           });
         }
 
-        // Only decrement package uses if NOT free trial
+        // Only decrement credits if NOT free trial
         if (!isFreeTrial) {
-          await decrementLuanGiaiUses(currentUser.id);
+          await (supabase as any).rpc("use_credit", {
+            p_user_id: currentUser.id,
+            p_feature: "luan_giai",
+          });
           await refreshAccess();
         }
 
@@ -478,7 +482,7 @@ export default function TuViIztroPage() {
   );
 
   const handleInterpret = useCallback(async () => {
-    if (hasAccess && remaining > 0) {
+    if (hasAccess && credits > 0) {
       await loadAnalysis(false);
       return;
     }
@@ -487,7 +491,7 @@ export default function TuViIztroPage() {
       return;
     }
     setShowPayment(true);
-  }, [hasAccess, remaining, canUseFreeTrial, loadAnalysis]);
+  }, [hasAccess, credits, canUseFreeTrial, loadAnalysis]);
 
   const handlePaymentSuccess = () => {
     setShowPayment(false);
@@ -718,13 +722,13 @@ export default function TuViIztroPage() {
 
                   <h3 className="text-lg font-bold text-foreground">Mở khóa luận giải đầy đủ</h3>
 
-                  <p className="text-sm text-muted-foreground">
-                    Bạn đang xem bản rút gọn. Thanh toán để xem toàn bộ luận giải chi tiết
-                    {personName ? ` cho ${personName}` : ""} và được thêm 2 lần luận giải cho lá số khác.
+                   <p className="text-sm text-muted-foreground">
+                    Bạn đang xem bản rút gọn. Mua credits để xem toàn bộ luận giải chi tiết
+                    {personName ? ` cho ${personName}` : ""}.
                   </p>
 
-                  <p className="text-2xl font-bold text-primary">39.000đ</p>
-                  <p className="text-xs text-muted-foreground -mt-2">Xem full luận giải này + 2 lần luận giải mới</p>
+                   <p className="text-2xl font-bold text-primary">39.000đ</p>
+                   <p className="text-xs text-muted-foreground -mt-2">3 credits — dùng cho bất kỳ tính năng nào</p>
 
                   <Button
                     variant="gold"
@@ -739,7 +743,7 @@ export default function TuViIztroPage() {
                     }}
                   >
                     <Lock className="w-4 h-4 mr-2" />
-                    Mua gói luận giải
+                    Mua Credits
                   </Button>
                   <p className="text-xs text-muted-foreground">Thanh toán nhanh qua ngân hàng</p>
                 </div>
@@ -764,7 +768,7 @@ export default function TuViIztroPage() {
             <AnalysisDisclaimer />
             <div className="mt-8 pt-4 border-t border-primary/20 space-y-3">
               <p className="text-xs text-muted-foreground">Luận giải bởi AI · Dựa trên lá số tử vi</p>
-              {hasAccess && remaining > 0 ? (
+              {hasAccess && credits > 0 ? (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -781,11 +785,11 @@ export default function TuViIztroPage() {
                     loadAnalysis(false, true);
                   }}
                 >
-                   🔄 Luận giải lại ({remaining} lượt còn lại)
+                   🔄 Luận giải lại ({credits} credits còn lại)
                 </Button>
               ) : everPurchased && !hasAccess ? (
                 <Button variant="gold" size="sm" className="w-full text-xs" onClick={() => setShowPayment(true)}>
-                  Hết lượt · Mua thêm gói (39.000đ)
+                  Hết credits · Mua thêm
                 </Button>
               ) : null}
             </div>
@@ -817,15 +821,15 @@ export default function TuViIztroPage() {
                 <Button variant="gold" size="lg" className="w-full" onClick={handleInterpret}>
                   <Sparkles className="w-4 h-4 mr-2" /> Luận giải miễn phí
                 </Button>
-                <p className="text-xs text-muted-foreground mt-2">Xem bản rút gọn miễn phí · Mua gói để xem đầy đủ</p>
+                <p className="text-xs text-muted-foreground mt-2">Xem bản rút gọn miễn phí · Mua credits để xem đầy đủ</p>
               </>
-            ) : hasAccess && remaining > 0 ? (
+            ) : hasAccess && credits > 0 ? (
               <>
                 <p className="text-sm text-muted-foreground mb-3">
                   {personName ? `Luận giải chi tiết cho ${personName}.` : "AI phân tích chuyên sâu 12 cung."}
                 </p>
                 <p className="text-xs text-primary mb-4">
-                  Bạn còn {remaining}/{total} lần luận giải
+                  Bạn còn {credits} credits
                 </p>
                 <Button variant="gold" size="lg" className="w-full" onClick={handleInterpret}>
                   <Sparkles className="w-4 h-4 mr-2" />
@@ -836,7 +840,7 @@ export default function TuViIztroPage() {
               <>
                 <p className="text-2xl font-bold text-primary mb-2">39.000đ</p>
                 <p className="text-sm text-muted-foreground mb-5">
-                  Gói 3 lần luận giải AI chuyên sâu 12 cung. Thanh toán 1 lần, dùng cho nhiều lá số.
+                  3 credits — dùng cho luận giải, bói Kiều, bói Quẻ, vận hạn.
                 </p>
                 <Button
                   variant="gold"
@@ -851,7 +855,7 @@ export default function TuViIztroPage() {
                   }}
                 >
                   <Lock className="w-4 h-4 mr-2" />
-                  Mua gói luận giải
+                  Mua Credits
                 </Button>
                 <p className="text-xs text-muted-foreground">Thanh toán nhanh qua ngân hàng</p>
               </>
@@ -878,7 +882,7 @@ export default function TuViIztroPage() {
             {hasAccess ? (
               <div className="flex justify-center">
                 <Badge variant="outline" className="border-primary/50 text-primary bg-primary/10 px-4 py-1">
-                  Bạn còn {remaining}/{total} lần luận giải
+                  Bạn còn {credits} credits
                 </Badge>
               </div>
             ) : everPurchased && !hasAccess ? (
@@ -889,9 +893,9 @@ export default function TuViIztroPage() {
                       <CreditCard className="w-5 h-5 text-amber-400" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-amber-300 text-sm">Đã hết lượt luận giải</p>
+                      <p className="font-semibold text-amber-300 text-sm">Đã hết credits</p>
                       <p className="text-xs text-amber-200/60">
-                        Mua thêm gói để tiếp tục · Lịch sử luận giải vẫn xem được
+                        Mua thêm credits để tiếp tục · Lịch sử luận giải vẫn xem được
                       </p>
                     </div>
                   </div>
