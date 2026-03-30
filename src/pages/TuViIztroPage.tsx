@@ -840,7 +840,7 @@ export default function TuViIztroPage() {
               <>
                 <p className="text-2xl font-bold text-primary mb-2">39.000đ</p>
                 <p className="text-sm text-muted-foreground mb-5">
-                  Gói 3 lần luận giải AI chuyên sâu 12 cung. Thanh toán 1 lần, dùng cho nhiều lá số.
+                  3 credits — dùng cho luận giải, bói Kiều, bói Quẻ, vận hạn.
                 </p>
                 <Button
                   variant="gold"
