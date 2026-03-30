@@ -173,7 +173,7 @@ export default function TuViIztroPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Package-based access
-  const { hasAccess, remaining, total, isLoading: accessLoading, refresh: refreshAccess } = useLuanGiaiAccess();
+  const { hasAccess, credits, isLoading: accessLoading, refresh: refreshAccess } = useFeatureAccess("luan_giai");
 
   // Streaming AI analysis
   const {
