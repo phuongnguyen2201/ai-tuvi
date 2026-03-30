@@ -821,7 +821,7 @@ export default function TuViIztroPage() {
                 <Button variant="gold" size="lg" className="w-full" onClick={handleInterpret}>
                   <Sparkles className="w-4 h-4 mr-2" /> Luận giải miễn phí
                 </Button>
-                <p className="text-xs text-muted-foreground mt-2">Xem bản rút gọn miễn phí · Mua gói để xem đầy đủ</p>
+                <p className="text-xs text-muted-foreground mt-2">Xem bản rút gọn miễn phí · Mua credits để xem đầy đủ</p>
               </>
             ) : hasAccess && remaining > 0 ? (
               <>
