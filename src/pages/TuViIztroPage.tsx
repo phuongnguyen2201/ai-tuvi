@@ -823,13 +823,13 @@ export default function TuViIztroPage() {
                 </Button>
                 <p className="text-xs text-muted-foreground mt-2">Xem bản rút gọn miễn phí · Mua credits để xem đầy đủ</p>
               </>
-            ) : hasAccess && remaining > 0 ? (
+            ) : hasAccess && credits > 0 ? (
               <>
                 <p className="text-sm text-muted-foreground mb-3">
                   {personName ? `Luận giải chi tiết cho ${personName}.` : "AI phân tích chuyên sâu 12 cung."}
                 </p>
                 <p className="text-xs text-primary mb-4">
-                  Bạn còn {remaining}/{total} lần luận giải
+                  Bạn còn {credits} credits
                 </p>
                 <Button variant="gold" size="lg" className="w-full" onClick={handleInterpret}>
                   <Sparkles className="w-4 h-4 mr-2" />
