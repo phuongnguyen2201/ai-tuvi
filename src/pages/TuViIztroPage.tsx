@@ -482,7 +482,7 @@ export default function TuViIztroPage() {
   );
 
   const handleInterpret = useCallback(async () => {
-    if (hasAccess && remaining > 0) {
+    if (hasAccess && credits > 0) {
       await loadAnalysis(false);
       return;
     }
@@ -491,7 +491,7 @@ export default function TuViIztroPage() {
       return;
     }
     setShowPayment(true);
-  }, [hasAccess, remaining, canUseFreeTrial, loadAnalysis]);
+  }, [hasAccess, credits, canUseFreeTrial, loadAnalysis]);
 
   const handlePaymentSuccess = () => {
     setShowPayment(false);
