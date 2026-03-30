@@ -23,7 +23,7 @@ import PageLayout from "@/components/PageLayout";
 import { supabase } from "@/integrations/supabase/client";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import { useAuth } from "@/contexts/AuthContext";
-import { useLuanGiaiAccess, decrementLuanGiaiUses } from "@/hooks/useLuanGiaiAccess";
+import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
