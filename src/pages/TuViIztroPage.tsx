@@ -768,7 +768,7 @@ export default function TuViIztroPage() {
             <AnalysisDisclaimer />
             <div className="mt-8 pt-4 border-t border-primary/20 space-y-3">
               <p className="text-xs text-muted-foreground">Luận giải bởi AI · Dựa trên lá số tử vi</p>
-              {hasAccess && remaining > 0 ? (
+              {hasAccess && credits > 0 ? (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -785,7 +785,7 @@ export default function TuViIztroPage() {
                     loadAnalysis(false, true);
                   }}
                 >
-                   🔄 Luận giải lại ({remaining} lượt còn lại)
+                   🔄 Luận giải lại ({credits} credits còn lại)
                 </Button>
               ) : everPurchased && !hasAccess ? (
                 <Button variant="gold" size="sm" className="w-full text-xs" onClick={() => setShowPayment(true)}>
