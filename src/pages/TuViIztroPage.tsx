@@ -444,9 +444,12 @@ export default function TuViIztroPage() {
           });
         }
 
-        // Only decrement package uses if NOT free trial
+        // Only decrement credits if NOT free trial
         if (!isFreeTrial) {
-          await decrementLuanGiaiUses(currentUser.id);
+          await (supabase as any).rpc("use_credit", {
+            p_user_id: currentUser.id,
+            p_feature: "luan_giai",
+          });
           await refreshAccess();
         }
 
