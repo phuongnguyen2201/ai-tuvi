@@ -789,7 +789,7 @@ export default function TuViIztroPage() {
                 </Button>
               ) : everPurchased && !hasAccess ? (
                 <Button variant="gold" size="sm" className="w-full text-xs" onClick={() => setShowPayment(true)}>
-                  Hết lượt · Mua thêm gói (39.000đ)
+                  Hết credits · Mua thêm
                 </Button>
               ) : null}
             </div>
