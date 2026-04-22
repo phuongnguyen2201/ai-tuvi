@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import Logo from "@/components/Logo";
 import { Mail, Lock, Eye, EyeOff, Sparkles, UserRound, CheckCircle2, Check } from "lucide-react";
 import { toast } from "sonner";
+import { signInAsGuest, signInWithGoogle } from "@/lib/auth/socialAuth";
 
 type AuthView = "login" | "signup" | "forgot" | "signupSuccess" | "forgotSuccess" | "resetPassword" | "resetSuccess" | "alreadyRegistered";
 
@@ -32,6 +33,30 @@ const Auth = () => {
   const navigate = useNavigate();
   const searchParams = new URLSearchParams(window.location.search);
   const redirectTo = searchParams.get('redirect') || '/profile';
+  const [socialLoading, setSocialLoading] = useState<"guest" | "google" | null>(null);
+
+  const handleGuest = async () => {
+    setSocialLoading("guest");
+    toast("Đang khởi động...");
+    try {
+      await signInAsGuest();
+      navigate('/', { replace: true });
+    } catch (err: any) {
+      toast.error(err?.message || "Không thể tạo phiên khách", { duration: 10000 });
+    } finally {
+      setSocialLoading(null);
+    }
+  };
+
+  const handleGoogle = async () => {
+    setSocialLoading("google");
+    try {
+      await signInWithGoogle();
+    } catch (err: any) {
+      toast.error(err?.message || "Đăng nhập Google thất bại", { duration: 10000 });
+      setSocialLoading(null);
+    }
+  };
 
   // Handle recovery redirect
   useEffect(() => {
