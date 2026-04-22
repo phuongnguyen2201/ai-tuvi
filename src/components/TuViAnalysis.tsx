@@ -22,6 +22,8 @@ import {
   Share2
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useUpgradeModal } from '@/contexts/UpgradeModalContext';
 
 // =============================================================================
 // TYPES
@@ -216,6 +218,8 @@ function formatInlineMarkdown(text: string): React.ReactNode {
 // MAIN COMPONENT
 // =============================================================================
 export function TuViAnalysis({ chart }: Props) {
+  const { isGuest } = useAuth();
+  const { openUpgrade } = useUpgradeModal();
   const [analysisType, setAnalysisType] = useState<AnalysisType>('full');
   const [question, setQuestion] = useState('');
   const [analysis, setAnalysis] = useState<string | null>(null);
@@ -225,6 +229,10 @@ export function TuViAnalysis({ chart }: Props) {
   const [tokenUsage, setTokenUsage] = useState<{ input: number; output: number } | null>(null);
 
   const handleAnalyze = async () => {
+    if (isGuest) {
+      openUpgrade();
+      return;
+    }
     setLoading(true);
     setError(null);
     setAnalysis(null);
