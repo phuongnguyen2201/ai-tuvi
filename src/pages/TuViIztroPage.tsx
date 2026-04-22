@@ -499,6 +499,19 @@ export default function TuViIztroPage() {
     setShowPayment(true);
   }, [hasAccess, credits, canUseFreeTrial, loadAnalysis, isGuest, openUpgrade]);
 
+  // Guard: open VietQR for users, UpgradeModal for guests
+  const openPaymentOrUpgrade = useCallback(() => {
+    if (isGuest) {
+      openUpgrade();
+      return;
+    }
+    if (!user) {
+      window.location.href = "/auth?redirect=" + encodeURIComponent(window.location.pathname);
+      return;
+    }
+    setShowPayment(true);
+  }, [isGuest, openUpgrade, user]);
+
   const handlePaymentSuccess = () => {
     setShowPayment(false);
     refreshAccess();

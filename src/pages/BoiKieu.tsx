@@ -230,6 +230,18 @@ const BoiKieu = () => {
     loadFreeTrialCount();
   };
 
+  const openPaymentOrUpgrade = () => {
+    if (isGuest) {
+      openUpgrade();
+      return;
+    }
+    if (!user) {
+      window.location.href = "/auth?redirect=" + encodeURIComponent(window.location.pathname);
+      return;
+    }
+    setShowPayment(true);
+  };
+
   const handleShare = async (type: "verse" | "full") => {
     if (!verse) return;
     let shareText = "";

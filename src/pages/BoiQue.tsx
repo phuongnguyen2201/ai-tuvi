@@ -977,6 +977,18 @@ const BoiQue = () => {
     loadFreeTrialCount();
   };
 
+  const openPaymentOrUpgrade = () => {
+    if (isGuest) {
+      openUpgrade();
+      return;
+    }
+    if (!user) {
+      window.location.href = "/auth?redirect=" + encodeURIComponent(window.location.pathname);
+      return;
+    }
+    setShowPayment(true);
+  };
+
   const style = result ? fortuneConfig[result.fortune as keyof typeof fortuneConfig] : null;
 
   const usesLabel = hasCredits
