@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +8,7 @@ import { Capacitor } from "@capacitor/core";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { initSocialLogin, setupOAuthDeepLinkListener } from "@/lib/auth/socialAuth";
 import Index from "./pages/Index";
 import TuViIztroPage from "./pages/TuViIztroPage";
 import Compatibility from "./pages/Compatibility";
@@ -16,6 +18,7 @@ import BoiQue from "./pages/BoiQue";
 import VanHan from "./pages/VanHan";
 
 import Auth from "./pages/Auth";
+import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
 import Profile from "./pages/Profile";
@@ -39,6 +42,7 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/auth" element={<Auth />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/lap-la-so" element={<TuViIztroPage />} />
       <Route path="/tuoi-hop" element={<Compatibility />} />
       <Route path="/xem-ngay" element={<DayAnalysis />} />
@@ -61,21 +65,28 @@ const AppRoutes = () => {
   );
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <NetworkStatus />
-          <Router>
-            <AppRoutes />
-          </Router>
-        </TooltipProvider>
-      </AuthProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  useEffect(() => {
+    initSocialLogin();
+    setupOAuthDeepLinkListener();
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <NetworkStatus />
+            <Router>
+              <AppRoutes />
+            </Router>
+          </TooltipProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

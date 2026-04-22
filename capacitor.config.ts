@@ -21,6 +21,12 @@ const config: CapacitorConfig = {
       style: 'DARK',
       resizeOnFullScreen: true,
     },
+    SocialLogin: {
+      google: {
+        // Web Client ID (không phải Android Client ID) — cùng credential đã config trong Supabase Google provider
+        webClientId: '529338826106-ojnpj2gtitnoct8np861v54et59saeb3.apps.googleusercontent.com',
+      },
+    },
   },
 };
 
