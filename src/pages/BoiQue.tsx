@@ -905,6 +905,10 @@ const BoiQue = () => {
       toast.error("Vui lòng nhập câu hỏi trước khi gieo quẻ");
       return;
     }
+    if (isGuest) {
+      openUpgrade();
+      return;
+    }
     if (!canGieoQue) {
       setShowPayment(true);
       return;
