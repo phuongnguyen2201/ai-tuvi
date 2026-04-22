@@ -9,9 +9,17 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Edit3, Check, X, LogOut, Star, Clock, Crown, ShieldCheck, Package, ScrollText, Eye, Sparkles, AlertTriangle, Mail } from "lucide-react";
+import { Edit3, Check, X, LogOut, Star, Clock, Crown, ShieldCheck, Package, ScrollText, Eye, Sparkles, AlertTriangle, Mail, Trash2 } from "lucide-react";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import { signInWithGoogle } from "@/lib/auth/socialAuth";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const FEATURE_NAMES: Record<string, string> = {
   premium: "Premium toàn diện",
