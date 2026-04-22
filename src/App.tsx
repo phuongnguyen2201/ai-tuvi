@@ -15,6 +15,7 @@ import BoiQue from "./pages/BoiQue";
 import VanHan from "./pages/VanHan";
 
 import Auth from "./pages/Auth";
+import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
 import Profile from "./pages/Profile";
@@ -29,12 +30,15 @@ import TestChartPage from "./components/test-chart-page";
 
 const queryClient = new QueryClient();
 
+const Router = BrowserRouter;
+
 const AppRoutes = () => {
   usePageTitle();
   return (
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/auth" element={<Auth />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/lap-la-so" element={<TuViIztroPage />} />
       <Route path="/tuoi-hop" element={<Compatibility />} />
       <Route path="/xem-ngay" element={<DayAnalysis />} />
@@ -57,20 +61,22 @@ const AppRoutes = () => {
   );
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <Router>
+              <AppRoutes />
+            </Router>
+          </TooltipProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
