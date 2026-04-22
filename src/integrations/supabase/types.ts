@@ -696,7 +696,9 @@ export type Database = {
           display_name: string | null
           email: string | null
           id: string
+          is_guest: boolean | null
           is_premium: boolean | null
+          login_method: string | null
           premium_expires_at: string | null
           premium_plan: string | null
           updated_at: string | null
@@ -707,7 +709,9 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           id: string
+          is_guest?: boolean | null
           is_premium?: boolean | null
+          login_method?: string | null
           premium_expires_at?: string | null
           premium_plan?: string | null
           updated_at?: string | null
@@ -718,7 +722,9 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           id?: string
+          is_guest?: boolean | null
           is_premium?: boolean | null
+          login_method?: string | null
           premium_expires_at?: string | null
           premium_plan?: string | null
           updated_at?: string | null
