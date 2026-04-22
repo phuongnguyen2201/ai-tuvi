@@ -8,6 +8,7 @@ import { Sparkles, RefreshCw, BookOpen, Share2, Loader2, Lock, CreditCard } from
 import { toast } from "sonner";
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import AuthPromptCard from "@/components/AuthPromptCard";
 import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
@@ -57,7 +58,8 @@ function truncateToWords(text: string, maxWords: number): { preview: string; isT
 }
 
 const BoiKieu = () => {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
+  const { openUpgrade } = useUpgradeModal();
   const [question, setQuestion] = useState("");
   const [verse, setVerse] = useState<any>(null);
   const [isShaking, setIsShaking] = useState(false);
@@ -144,6 +146,10 @@ const BoiKieu = () => {
   const handleGieoQue = async () => {
     if (!question.trim()) {
       toast.error("Vui lòng nhập câu hỏi");
+      return;
+    }
+    if (isGuest) {
+      openUpgrade();
       return;
     }
     if (verses.length === 0) {

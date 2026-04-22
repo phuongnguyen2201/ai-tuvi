@@ -23,6 +23,7 @@ import PageLayout from "@/components/PageLayout";
 import { supabase } from "@/integrations/supabase/client";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 import { toast } from "sonner";
@@ -123,7 +124,8 @@ const LUNAR_HOURS = [
 ];
 
 export default function TuViIztroPage() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
+  const { openUpgrade } = useUpgradeModal();
   const [chart, setChart] = useState<TuViChartData | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -482,6 +484,10 @@ export default function TuViIztroPage() {
   );
 
   const handleInterpret = useCallback(async () => {
+    if (isGuest) {
+      openUpgrade();
+      return;
+    }
     if (hasAccess && credits > 0) {
       await loadAnalysis(false);
       return;
@@ -491,7 +497,7 @@ export default function TuViIztroPage() {
       return;
     }
     setShowPayment(true);
-  }, [hasAccess, credits, canUseFreeTrial, loadAnalysis]);
+  }, [hasAccess, credits, canUseFreeTrial, loadAnalysis, isGuest, openUpgrade]);
 
   const handlePaymentSuccess = () => {
     setShowPayment(false);
