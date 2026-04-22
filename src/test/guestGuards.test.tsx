@@ -224,7 +224,13 @@ describe("Static audit: guest guards present in every AI/credit page", () => {
       // For each trigger, walk backwards until we hit the enclosing
       // `useEffect(` / `=>` arrow / function boundary and check whether
       // any enclosing line contains an `if (... isGuest ...)` guard.
-      const ENCLOSING_BOUNDARY = /useEffect\s*\(|^\s*const\s+\w+\s*=\s*(?:useCallback\s*\()?(?:async\s*)?\(|^\s*function\s+\w+/;
+      // Treat only the outer-most enclosing scope as a boundary. We stop
+      // walking when we encounter a `useEffect(` line or top-level
+      // `function` declaration. Inner arrow helpers (e.g. `const check =
+      // async () => {`) are NOT boundaries because the relevant guard
+      // commonly sits one line below the outer effect's opening and the
+      // trigger lives inside an inner async helper of that same effect.
+      const ENCLOSING_BOUNDARY = /^\s*(useEffect|useCallback|useMemo)\s*\(|^\s*(export\s+)?(async\s+)?function\s+\w+/;
       lines.forEach((line, idx) => {
         if (!/setShowPayment(?:Modal)?\(true\)/.test(line)) return;
         if (/isGuest/.test(line)) return;
