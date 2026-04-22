@@ -221,13 +221,22 @@ describe("Static audit: guest guards present in every AI/credit page", () => {
       const lines = src.split("\n");
       const hasWrapper = /const\s+openPaymentOrUpgrade\s*=/.test(src);
       const offenders: string[] = [];
+      // For each trigger, walk backwards until we hit the enclosing
+      // `useEffect(` / `=>` arrow / function boundary and check whether
+      // any enclosing line contains an `if (... isGuest ...)` guard.
+      const ENCLOSING_BOUNDARY = /useEffect\s*\(|^\s*const\s+\w+\s*=\s*(?:useCallback\s*\()?(?:async\s*)?\(|^\s*function\s+\w+/;
       lines.forEach((line, idx) => {
         if (!/setShowPayment(?:Modal)?\(true\)/.test(line)) return;
         if (/isGuest/.test(line)) return;
         if (hasWrapper) return;
-        const window = lines.slice(Math.max(0, idx - 12), idx).join("\n");
-        if (/if\s*\([^)]*isGuest[^)]*\)/.test(window)) return;
-        offenders.push(`${rel}:${idx + 1} → ${line.trim()}`);
+        // Walk back up to 60 lines or until enclosing boundary.
+        const start = Math.max(0, idx - 60);
+        let foundGuard = false;
+        for (let i = idx - 1; i >= start; i--) {
+          if (/if\s*\([^)]*isGuest[^)]*\)/.test(lines[i])) { foundGuard = true; break; }
+          if (ENCLOSING_BOUNDARY.test(lines[i])) break;
+        }
+        if (!foundGuard) offenders.push(`${rel}:${idx + 1} → ${line.trim()}`);
       });
       expect(offenders, `Unguarded payment-modal triggers:\n${offenders.join("\n")}`).toEqual([]);
 
