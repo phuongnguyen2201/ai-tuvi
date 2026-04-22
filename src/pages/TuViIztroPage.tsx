@@ -775,7 +775,7 @@ export default function TuViIztroPage() {
                       .eq("user_id", user.id);
                     setCachedAnalysis(null);
                     setAnalysisError(false);
-                    loadAnalysis(false, true);
+                    loadAnalysis(true);
                   }}
                 >
                    🔄 Luận giải lại ({credits} credits còn lại)
