@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { Capacitor } from '@capacitor/core';
+import { isGuestUser, signOutAll } from '@/lib/auth/socialAuth';
 
 interface AuthContextType {
   user: User | null;
@@ -9,6 +9,7 @@ interface AuthContextType {
   loading: boolean;
   initializing: boolean;
   displayName: string;
+  isGuest: boolean;
   profile: { display_name: string | null; is_premium: boolean | null } | null;
   signUp: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
@@ -84,9 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email,
       password,
       options: {
-        emailRedirectTo: Capacitor.isNativePlatform()
-          ? 'vn.tuviapp.app://auth-callback'
-          : window.location.origin,
+        emailRedirectTo: window.location.origin,
       },
     });
     return { error };
@@ -101,11 +100,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await signOutAll();
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, initializing, displayName, profile, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, initializing, displayName, isGuest: isGuestUser(user), profile, signUp, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
