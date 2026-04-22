@@ -235,9 +235,6 @@ const VanHan = () => {
   const [currentResult, setCurrentResult] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // ── FREEMIUM: DB-based free trial tracking ──
-  const [freeTrialCount, setFreeTrialCount] = useState<number | null>(null);
-
   // ══════════════════════════════════════════════════════════════
   // CHANGE A: History state — past analyses grouped by tab
   // ══════════════════════════════════════════════════════════════
@@ -261,46 +258,16 @@ const VanHan = () => {
   // FREEMIUM: Derived state
   // ══════════════════════════════════════════════════════════════
   const hasCredits = credits > 0;
-  const canUseFreeTrial = freeTrialCount === 0 && !hasCredits;
   // FIX: Only show streamedText if it belongs to the current tab
   const activeStreamedText = streamingForTab === activeTab ? streamedText : "";
   const displayText = currentResult || activeStreamedText;
   const isFreePreview = !!displayText && !hasCredits && !everPurchased;
-  const canAnalyze = hasCredits || canUseFreeTrial;
+  const canAnalyze = hasCredits;
 
   // Load user charts from chart_analyses
   useEffect(() => {
     loadUserCharts();
   }, []);
-
-  // Load free trial count when user available
-  useEffect(() => {
-    if (user) {
-      loadFreeTrialCount();
-    }
-  }, [user, activeTab]);
-
-  const loadFreeTrialCount = async () => {
-    try {
-      const {
-        data: { user: currentUser },
-      } = await supabase.auth.getUser();
-      if (!currentUser) {
-        setFreeTrialCount(0);
-        return;
-      }
-
-      const { count } = await supabase
-        .from("van_han_analyses")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", currentUser.id)
-        .eq("time_frame", activeTab);
-
-      setFreeTrialCount(count ?? 0);
-    } catch {
-      setFreeTrialCount(0);
-    }
-  };
 
   const loadUserCharts = async () => {
     setChartsLoading(true);
@@ -491,15 +458,14 @@ const VanHan = () => {
     }, 100);
   };
 
-  // ── CHANGE 3: Analyze with STREAMING — supports both free trial & paid ──
+  // ── CHANGE 3: Analyze with STREAMING — deducts 1 credit ──
   const handleAnalyze = async () => {
     if (!selectedChart) return;
     if (isGuest) {
       openUpgrade();
       return;
     }
-    // ── FREEMIUM: Allow if has package OR free trial ──
-    if (!hasCredits && !canUseFreeTrial) return;
+    if (!hasCredits) return;
 
     const {
       data: { user },
@@ -595,7 +561,6 @@ const VanHan = () => {
         throw new Error("Không nhận được kết quả phân tích.");
       }
 
-      // ── Save to DB for ALL users (free trial + paid) ──
       try {
         await supabase.from("van_han_analyses").insert({
           user_id: user.id,
@@ -610,16 +575,11 @@ const VanHan = () => {
         console.warn("[VanHan] Save error (package_id may be required):", saveErr);
       }
 
-      if (hasCredits) {
-        const { data: creditResult } = await (supabase as any).rpc("use_credit", {
-          p_user_id: user.id,
-          p_feature: `van_han_${activeTab}`,
-        });
-        console.log("[VanHan] use_credit result:", creditResult);
-      }
-
-      // Update free trial count
-      setFreeTrialCount((prev) => (prev ?? 0) + 1);
+      const { data: creditResult } = await (supabase as any).rpc("use_credit", {
+        p_user_id: user.id,
+        p_feature: `van_han_${activeTab}`,
+      });
+      console.log("[VanHan] use_credit result:", creditResult);
 
       setCurrentResult(fullText);
       loadCredits();
@@ -834,12 +794,10 @@ const VanHan = () => {
         <div id="van-han-result" className="text-center py-6">
           <Button variant="gold" size="lg" onClick={handleAnalyze} disabled={!canAnalyze}>
             <Sparkles className="w-5 h-5 mr-2" />
-            {canUseFreeTrial ? "Thử miễn phí" : `Luận Giải AI ${timeInfo.label}`}
+            {`Luận Giải AI ${timeInfo.label}`}
           </Button>
           <p className="text-xs text-muted-foreground mt-2">
-            {canUseFreeTrial
-              ? "1 lần miễn phí — xem bản rút gọn luận giải AI"
-              : "Phân tích chuyên sâu bằng AI dựa trên lá số của bạn"}
+            Phân tích chuyên sâu bằng AI dựa trên lá số của bạn
           </p>
         </div>
       );
@@ -1253,21 +1211,12 @@ const VanHan = () => {
         {/* Content - only if chart selected */}
         {selectedChart && (
           <>
-            {/* ══════════════════════════════════════════════════════════ */}
-            {/* FREEMIUM: If we have a result, are streaming, exhausted,  */}
-            {/* or can use free trial → show directly (preview handles    */}
-            {/* blur inline). Only gate when no access at all.            */}
-            {/* ══════════════════════════════════════════════════════════ */}
             {currentResult || isAnalyzing || isStreamingAI || activeStreamedText || everPurchased || canAnalyze ? (
-              /* Has result, streaming, exhausted, or can analyze → show directly */
               <div className="space-y-4">
                 {hasCredits && (
                   <div className="text-xs text-primary/70 text-center">
                     Còn {credits} credits
                   </div>
-                )}
-                {!hasCredits && canUseFreeTrial && !currentResult && !isAnalyzing && !isStreamingAI && (
-                  <div className="text-xs text-primary/70 text-center">✨ 1 lần miễn phí</div>
                 )}
                 {renderAiResult()}
               </div>

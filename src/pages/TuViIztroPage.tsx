@@ -167,8 +167,6 @@ export default function TuViIztroPage() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [viewingHistoryId, setViewingHistoryId] = useState<string | null>(null);
 
-  // Free trial tracking
-  const [freeTrialCount, setFreeTrialCount] = useState<number | null>(null);
   const [everPurchased, setEverPurchased] = useState(false);
 
   // URL params
@@ -191,11 +189,10 @@ export default function TuViIztroPage() {
 
   // Derived state
   const isFreePreview = !!(cachedAnalysis || streamedText) && !hasAccess && !everPurchased;
-  const canUseFreeTrial = freeTrialCount === 0 && !hasAccess;
 
   useEffect(() => {
     if (user) {
-      loadFreeTrialCount();
+      loadEverPurchased();
       loadChartHistory();
     }
   }, [user]);
@@ -231,22 +228,12 @@ export default function TuViIztroPage() {
     checkPending();
   }, [chart, checkedPendingPayment, showPayment, hasAccess, accessLoading, isGuest]);
 
-  const loadFreeTrialCount = async () => {
+  const loadEverPurchased = async () => {
     try {
       const {
         data: { user: currentUser },
       } = await supabase.auth.getUser();
-      if (!currentUser) {
-        setFreeTrialCount(0);
-        return;
-      }
-
-      const { count } = await (supabase.from("chart_analyses") as any)
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", currentUser.id)
-        .not("analysis_result", "is", null);
-
-      setFreeTrialCount(count ?? 0);
+      if (!currentUser) return;
 
       const { data: creditData } = await (supabase as any)
         .from("user_credits")
@@ -255,7 +242,7 @@ export default function TuViIztroPage() {
         .maybeSingle();
       setEverPurchased((creditData?.credits_total ?? 0) > 0);
     } catch {
-      setFreeTrialCount(0);
+      // ignore
     }
   };
 
@@ -365,7 +352,7 @@ export default function TuViIztroPage() {
 
   // Load or call AI interpretation (STREAMING)
   const loadAnalysis = useCallback(
-    async (isFreeTrial = false, skipCache = false) => {
+    async (skipCache = false) => {
       if (!chartHash || !chart) return;
       if (isAnalyzingRef.current) return;
 
@@ -446,17 +433,14 @@ export default function TuViIztroPage() {
           });
         }
 
-        // Only decrement credits if NOT free trial
-        if (!isFreeTrial) {
-          await (supabase as any).rpc("use_credit", {
-            p_user_id: currentUser.id,
-            p_feature: "luan_giai",
-          });
-          await refreshAccess();
-        }
+        await (supabase as any).rpc("use_credit", {
+          p_user_id: currentUser.id,
+          p_feature: "luan_giai",
+        });
+        await refreshAccess();
+        await loadEverPurchased();
 
         setCachedAnalysis(fullText);
-        setFreeTrialCount((prev) => (prev ?? 0) + 1);
         loadChartHistory();
       } catch (err: any) {
         if (!analysisError) {
@@ -489,15 +473,11 @@ export default function TuViIztroPage() {
       return;
     }
     if (hasAccess && credits > 0) {
-      await loadAnalysis(false);
-      return;
-    }
-    if (canUseFreeTrial) {
-      await loadAnalysis(true);
+      await loadAnalysis();
       return;
     }
     setShowPayment(true);
-  }, [hasAccess, credits, canUseFreeTrial, loadAnalysis, isGuest, openUpgrade]);
+  }, [hasAccess, credits, loadAnalysis, isGuest, openUpgrade]);
 
   // Guard: open VietQR for users, UpgradeModal for guests
   const openPaymentOrUpgrade = useCallback(() => {
@@ -515,7 +495,7 @@ export default function TuViIztroPage() {
   const handlePaymentSuccess = () => {
     setShowPayment(false);
     refreshAccess();
-    loadFreeTrialCount();
+    loadEverPurchased();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -822,21 +802,7 @@ export default function TuViIztroPage() {
             <Sparkles className="w-10 h-10 text-primary mx-auto mb-3" />
             <h3 className="text-lg font-bold text-foreground mb-1">Luận giải chi tiết lá số</h3>
 
-            {canUseFreeTrial ? (
-              <>
-                <p className="text-sm text-muted-foreground mb-3">
-                  {personName ? `Luận giải chi tiết cho ${personName}.` : "AI phân tích chuyên sâu 12 cung."}
-                </p>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 mb-4">
-                  <Sparkles className="w-3 h-3 text-green-400" />
-                  <span className="text-xs font-medium text-green-400">Miễn phí lần đầu</span>
-                </div>
-                <Button variant="gold" size="lg" className="w-full" onClick={handleInterpret}>
-                  <Sparkles className="w-4 h-4 mr-2" /> Luận giải miễn phí
-                </Button>
-                <p className="text-xs text-muted-foreground mt-2">Xem bản rút gọn miễn phí · Mua credits để xem đầy đủ</p>
-              </>
-            ) : hasAccess && credits > 0 ? (
+            {hasAccess && credits > 0 ? (
               <>
                 <p className="text-sm text-muted-foreground mb-3">
                   {personName ? `Luận giải chi tiết cho ${personName}.` : "AI phân tích chuyên sâu 12 cung."}
@@ -911,12 +877,6 @@ export default function TuViIztroPage() {
                     Mua thêm
                   </Button>
                 </div>
-              </div>
-            ) : canUseFreeTrial ? (
-              <div className="flex justify-center">
-                <Badge variant="outline" className="border-green-500/50 text-green-400 bg-green-500/10 px-4 py-1">
-                  Bạn có 1 lần luận giải miễn phí
-                </Badge>
               </div>
             ) : null}
           </>
@@ -1071,7 +1031,7 @@ export default function TuViIztroPage() {
             {!user && (
               <AuthPromptCard
                 variant="banner"
-                title="Nhận 1 lần luận giải AI miễn phí!"
+                title="Nhận 1 credit dùng thử miễn phí!"
                 description="Đăng ký tài khoản để AI phân tích chi tiết lá số của bạn"
               />
             )}

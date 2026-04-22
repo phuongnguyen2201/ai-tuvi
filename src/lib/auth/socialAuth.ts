@@ -54,9 +54,7 @@ async function signInWithGoogleNative() {
 
   const result = await SocialLogin.login({
     provider: 'google',
-    options: {
-      scopes: ['email', 'profile', 'openid'],
-    },
+    options: {},
   });
 
   if (result.provider !== 'google') {

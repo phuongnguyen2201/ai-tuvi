@@ -804,20 +804,29 @@ QUAN TRỌNG:
 
     if (isStreaming) {
       // ── STREAMING MODE ──
-      // Pipe Anthropic SSE stream directly to client via ReadableStream
+      // Pipe Anthropic SSE stream directly to client via ReadableStream.
+      // Prompt caching: system prompt wrapped với cache_control ephemeral →
+      // Anthropic cache input tokens ~90% rẻ hơn sau lần đầu (5-min TTL).
       const anthropicResponse = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "x-api-key": anthropicKey,
           "anthropic-version": "2023-06-01",
+          "anthropic-beta": "prompt-caching-2024-07-31",
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
           max_tokens: maxTokens,
           stream: true,
           messages: [{ role: "user", content: userPrompt }],
-          system: systemPrompt,
+          system: [
+            {
+              type: "text",
+              text: systemPrompt,
+              cache_control: { type: "ephemeral" },
+            },
+          ],
         }),
       });
 
@@ -853,7 +862,19 @@ QUAN TRỌNG:
                 try {
                   const event = JSON.parse(jsonStr);
 
-                  if (event.type === "content_block_delta" && event.delta?.text) {
+                  if (event.type === "message_start" && event.message?.usage) {
+                    // Log prompt-cache stats để monitor cache hit rate
+                    const u = event.message.usage;
+                    console.log(
+                      "[analyze-chart] stream usage:",
+                      JSON.stringify({
+                        input_tokens: u.input_tokens,
+                        cache_creation_input_tokens: u.cache_creation_input_tokens ?? 0,
+                        cache_read_input_tokens: u.cache_read_input_tokens ?? 0,
+                        analysisType,
+                      }),
+                    );
+                  } else if (event.type === "content_block_delta" && event.delta?.text) {
                     // Send clean text chunk to frontend
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`));
                   } else if (event.type === "message_stop") {
@@ -905,12 +926,19 @@ QUAN TRỌNG:
             "Content-Type": "application/json",
             "x-api-key": anthropicKey,
             "anthropic-version": "2023-06-01",
+            "anthropic-beta": "prompt-caching-2024-07-31",
           },
           body: JSON.stringify({
             model: "claude-sonnet-4-20250514",
             max_tokens: maxTokens,
             messages: [{ role: "user", content: userPrompt }],
-            system: systemPrompt,
+            system: [
+              {
+                type: "text",
+                text: systemPrompt,
+                cache_control: { type: "ephemeral" },
+              },
+            ],
           }),
         });
 
@@ -928,6 +956,19 @@ QUAN TRỌNG:
 
       if (!data?.content?.[0]?.text) {
         throw new Error(lastError || "AI analysis failed after retries");
+      }
+
+      if (data.usage) {
+        console.log(
+          "[analyze-chart] non-stream usage:",
+          JSON.stringify({
+            input_tokens: data.usage.input_tokens,
+            output_tokens: data.usage.output_tokens,
+            cache_creation_input_tokens: data.usage.cache_creation_input_tokens ?? 0,
+            cache_read_input_tokens: data.usage.cache_read_input_tokens ?? 0,
+            analysisType,
+          }),
+        );
       }
 
       const analysis = data.content[0].text;
