@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { hapticImpact, hapticSuccess } from "@/utils/native";
 import {
   Share2,
   RotateCcw,
@@ -713,7 +714,6 @@ const BoiQue = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showLookup, setShowLookup] = useState(false);
   const [selectedQue, setSelectedQue] = useState<(typeof QUE_DATA)[0] | null>(null);
-  const [freeTrialCount, setFreeTrialCount] = useState<number | null>(null);
   const [everPurchased, setEverPurchased] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(() => {
@@ -726,38 +726,16 @@ const BoiQue = () => {
   const audioCtxRef = useRef<AudioContext | null>(null);
 
   const hasCredits = credits > 0;
-  const canUseFreeTrial = freeTrialCount === 0 && !hasCredits;
   const displayText = aiResult || streamedText;
   const isFreePreview = !!displayText && !hasCredits && !everPurchased;
-  const canGieoQue = hasCredits || canUseFreeTrial;
+  const canGieoQue = hasCredits;
 
   useEffect(() => {
     if (user) {
       loadCredits();
       loadHistory();
-      loadFreeTrialCount();
     }
   }, [user]);
-
-  const loadFreeTrialCount = async () => {
-    try {
-      const {
-        data: { user: u },
-      } = await supabase.auth.getUser();
-      if (!u) {
-        setFreeTrialCount(0);
-        return;
-      }
-      const { count } = await supabase
-        .from("boi_que_analyses")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", u.id);
-      setFreeTrialCount(count ?? 0);
-      // everPurchased is now set in loadCredits()
-    } catch {
-      setFreeTrialCount(0);
-    }
-  };
 
   const loadCredits = async () => {
     const { data: { user: u } } = await supabase.auth.getUser();
@@ -884,14 +862,11 @@ const BoiQue = () => {
         } catch (saveErr) {
           console.warn("[BoiQue] Save error:", saveErr);
         }
-        if (hasCredits) {
-          const { data: creditResult } = await (supabase as any).rpc("use_credit", {
-            p_user_id: u.id,
-            p_feature: "boi_que",
-          });
-          console.log("[BoiQue] use_credit result:", creditResult);
-        }
-        setFreeTrialCount((prev) => (prev ?? 0) + 1);
+        const { data: creditResult } = await (supabase as any).rpc("use_credit", {
+          p_user_id: u.id,
+          p_feature: "boi_que",
+        });
+        console.log("[BoiQue] use_credit result:", creditResult);
         loadCredits();
         loadHistory();
       }
@@ -915,6 +890,7 @@ const BoiQue = () => {
       setShowPayment(true);
       return;
     }
+    hapticImpact();
     setIsAnimating(true);
     setResult(null);
     setAiResult(null);
@@ -940,6 +916,7 @@ const BoiQue = () => {
             setHasChanging(hexData.hasChanging);
             setChangingLineIndexes(hexData.changingLines.filter((l) => l.isChanging).map((l) => l.index));
             setIsAnimating(false);
+            hapticSuccess();
             playResultReveal();
             navigator.vibrate?.([20, 40, 20, 40, 50]);
             handleAnalyze(queData, [...revealLines], hexData.changedHexNum);
@@ -974,7 +951,6 @@ const BoiQue = () => {
   const handlePaymentSuccess = () => {
     setShowPayment(false);
     loadCredits();
-    loadFreeTrialCount();
   };
 
   const openPaymentOrUpgrade = () => {
@@ -993,11 +969,9 @@ const BoiQue = () => {
 
   const usesLabel = hasCredits
     ? `Còn ${credits} credits`
-    : canUseFreeTrial
-      ? "1 lần miễn phí"
-      : everPurchased
-        ? "Đã hết credits"
-        : "Hết lượt miễn phí";
+    : everPurchased
+      ? "Đã hết credits"
+      : "Cần mua credits";
 
   const renderAiSection = () => {
     if ((aiLoading || isStreamingAI) && !aiResult) {
@@ -1241,7 +1215,7 @@ const BoiQue = () => {
             ) : !user ? (
               <AuthPromptCard
                 title="Đăng nhập để tiếp tục"
-                description="Đăng ký tài khoản miễn phí để nhận 1 lần luận giải Bói Quẻ miễn phí!"
+                description="Đăng ký tài khoản miễn phí để nhận 1 credit dùng thử!"
               />
             ) : !everPurchased ? (
               <PaymentGate
@@ -1250,7 +1224,6 @@ const BoiQue = () => {
                 description="3 credits — dùng cho bất kỳ tính năng nào"
                 onUnlocked={() => {
                   loadCredits();
-                  loadFreeTrialCount();
                 }}
               >
                  <Button disabled variant="gold" size="lg" className="w-full">

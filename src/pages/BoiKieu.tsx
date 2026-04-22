@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Sparkles, RefreshCw, BookOpen, Share2, Loader2, Lock, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
+import { hapticImpact, hapticSuccess } from "@/utils/native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
@@ -72,16 +73,14 @@ const BoiKieu = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [viewingHistoryId, setViewingHistoryId] = useState<string | null>(null);
   const [verses, setVerses] = useState<any[]>([]);
-  const [freeTrialCount, setFreeTrialCount] = useState<number | null>(null);
   const [showPayment, setShowPayment] = useState(false);
 
   const { isStreaming: isStreamingAI, streamedText, startStreaming } = useStreamingAnalysis();
 
   const hasCredits = credits > 0;
-  const canUseFreeTrial = freeTrialCount === 0 && !hasCredits;
   const displayText = result || streamedText;
   const isFreePreview = !!displayText && !hasCredits && !everPurchased;
-  const canGieoQue = hasCredits || canUseFreeTrial;
+  const canGieoQue = hasCredits;
 
   useEffect(() => {
     supabase
@@ -91,28 +90,8 @@ const BoiKieu = () => {
     if (user) {
       loadCredits();
       loadHistory();
-      loadFreeTrialCount();
     }
   }, [user]);
-
-  const loadFreeTrialCount = async () => {
-    try {
-      const {
-        data: { user: u },
-      } = await supabase.auth.getUser();
-      if (!u) {
-        setFreeTrialCount(0);
-        return;
-      }
-      const { count } = await supabase
-        .from("kieu_analyses")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", u.id);
-      setFreeTrialCount(count ?? 0);
-    } catch {
-      setFreeTrialCount(0);
-    }
-  };
 
   // ── UNIFIED: Load credits from user_credits ──
   const loadCredits = async () => {
@@ -160,6 +139,7 @@ const BoiKieu = () => {
       setShowPayment(true);
       return;
     }
+    hapticImpact();
     setIsShaking(true);
     setResult(null);
     setVerse(null);
@@ -186,6 +166,7 @@ const BoiKieu = () => {
         },
       );
       if (!fullText) throw new Error("Không nhận được kết quả.");
+      hapticSuccess();
       setResult(fullText);
       const {
         data: { user: u },
@@ -205,14 +186,11 @@ const BoiKieu = () => {
           console.warn("[BoiKieu] Save error:", saveErr);
         }
         // ── UNIFIED: Deduct 1 credit via RPC ──
-        if (hasCredits) {
-          const { data: creditResult } = await supabase.rpc("use_credit", {
-            p_user_id: u.id,
-            p_feature: "boi_kieu",
-          });
-          console.log("[BoiKieu] use_credit result:", creditResult);
-        }
-        setFreeTrialCount((prev) => (prev ?? 0) + 1);
+        const { data: creditResult } = await supabase.rpc("use_credit", {
+          p_user_id: u.id,
+          p_feature: "boi_kieu",
+        });
+        console.log("[BoiKieu] use_credit result:", creditResult);
         loadCredits();
         loadHistory();
       }
@@ -227,7 +205,6 @@ const BoiKieu = () => {
   const handlePaymentSuccess = () => {
     setShowPayment(false);
     loadCredits();
-    loadFreeTrialCount();
   };
 
   const openPaymentOrUpgrade = () => {
@@ -349,11 +326,9 @@ const BoiKieu = () => {
   // ── UNIFIED: usesLabel dùng credits ──
   const usesLabel = hasCredits
     ? `Còn ${credits} credits`
-    : canUseFreeTrial
-      ? "1 lần miễn phí"
-      : everPurchased
-        ? "Đã hết credits"
-        : "Hết lượt miễn phí";
+    : everPurchased
+      ? "Đã hết credits"
+      : "Cần mua credits";
 
   const renderAiResult = () => {
     if ((isAnalyzing || isStreamingAI) && !result) {
@@ -645,7 +620,7 @@ const BoiKieu = () => {
         ) : !user ? (
           <AuthPromptCard
             title="Đăng nhập để tiếp tục"
-            description="Đăng ký tài khoản miễn phí để nhận 1 lần luận giải Bói Kiều miễn phí!"
+            description="Đăng ký tài khoản miễn phí để nhận 1 credit dùng thử!"
           />
         ) : (
           <PaymentGate
@@ -655,7 +630,6 @@ const BoiKieu = () => {
             description="Gói 3 credits — dùng cho bất kỳ tính năng nào"
             onUnlocked={() => {
               loadCredits();
-              loadFreeTrialCount();
             }}
           >
             {mainContent}
