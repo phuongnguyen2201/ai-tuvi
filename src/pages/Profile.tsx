@@ -9,9 +9,17 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Edit3, Check, X, LogOut, Star, Clock, Crown, ShieldCheck, Package, ScrollText, Eye, Sparkles, AlertTriangle, Mail } from "lucide-react";
+import { Edit3, Check, X, LogOut, Star, Clock, Crown, ShieldCheck, Package, ScrollText, Eye, Sparkles, AlertTriangle, Mail, Trash2 } from "lucide-react";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import { signInWithGoogle } from "@/lib/auth/socialAuth";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const FEATURE_NAMES: Record<string, string> = {
   premium: "Premium toàn diện",
@@ -89,6 +97,9 @@ const Profile = () => {
   const [credits, setCredits] = useState<{ remaining: number; total: number } | null>(null);
   const [showPayment, setShowPayment] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     if (user && !isGuest) {
@@ -133,6 +144,28 @@ const Profile = () => {
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== "XOA") return;
+    setDeletingAccount(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-account", {
+        body: { confirmation: "DELETE" },
+      });
+      if (error || (data as any)?.error) {
+        const msg = (error as any)?.message || (data as any)?.error || "Không thể xóa tài khoản";
+        toast.error(msg);
+        setDeletingAccount(false);
+        return;
+      }
+      await supabase.auth.signOut();
+      toast.success("Đã xóa tài khoản thành công");
+      navigate("/");
+    } catch (e: any) {
+      toast.error(e?.message || "Không thể xóa tài khoản");
+      setDeletingAccount(false);
+    }
   };
 
   if (loading || initializing) {
@@ -433,6 +466,33 @@ const Profile = () => {
           <LogOut className="h-4 w-4 mr-2" />
           Đăng xuất
         </Button>
+
+        {/* Vùng nguy hiểm */}
+        <Card className="border-destructive/40 bg-destructive/5">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Vùng nguy hiểm
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Xóa tài khoản sẽ xóa vĩnh viễn toàn bộ dữ liệu của bạn: lá số đã lập,
+              credits còn lại, lịch sử luận giải. Hành động này không thể hoàn tác.
+            </p>
+            <Button
+              variant="destructive"
+              className="w-full gap-2"
+              onClick={() => {
+                setDeleteConfirmText("");
+                setShowDeleteDialog(true);
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+              Xóa tài khoản
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
       <VietQRPaymentModal
@@ -444,6 +504,44 @@ const Profile = () => {
           fetchAll();
         }}
       />
+
+      <Dialog open={showDeleteDialog} onOpenChange={(o) => !deletingAccount && setShowDeleteDialog(o)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              Xác nhận xóa tài khoản
+            </DialogTitle>
+            <DialogDescription>
+              Toàn bộ lá số, credits và lịch sử của bạn sẽ bị xóa vĩnh viễn và không
+              thể khôi phục. Để xác nhận, vui lòng gõ <strong className="text-foreground">XOA</strong> vào ô bên dưới.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            value={deleteConfirmText}
+            onChange={(e) => setDeleteConfirmText(e.target.value)}
+            placeholder="Gõ XOA để xác nhận"
+            disabled={deletingAccount}
+            autoFocus
+          />
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(false)}
+              disabled={deletingAccount}
+            >
+              Hủy
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteAccount}
+              disabled={deleteConfirmText !== "XOA" || deletingAccount}
+            >
+              {deletingAccount ? "Đang xóa..." : "Xác nhận xóa"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageLayout>
   );
 };
