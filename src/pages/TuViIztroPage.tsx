@@ -698,7 +698,7 @@ export default function TuViIztroPage() {
             variant="gold"
             onClick={() => {
               setAnalysisError(false);
-              loadAnalysis();
+              handleInterpret();
             }}
           >
                    🔄 Thử lại ngay
