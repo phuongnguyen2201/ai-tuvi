@@ -1065,13 +1065,7 @@ const BoiQue = () => {
                   variant="gold"
                   size="lg"
                   className="w-full"
-                  onClick={() => {
-                    if (!user) {
-                      window.location.href = "/auth?redirect=" + encodeURIComponent(window.location.pathname);
-                      return;
-                    }
-                    setShowPayment(true);
-                  }}
+                  onClick={openPaymentOrUpgrade}
                 >
                   <Lock className="w-4 h-4 mr-2" />
                   Mua Credits
@@ -1192,7 +1186,7 @@ const BoiQue = () => {
                   <p className="text-xs text-amber-200/60">Mua thêm credits để tiếp tục · Lịch sử luận giải vẫn xem được</p>
                 </div>
               </div>
-              <Button variant="gold" size="sm" onClick={() => setShowPayment(true)} className="shrink-0">
+              <Button variant="gold" size="sm" onClick={openPaymentOrUpgrade} className="shrink-0">
                 <CreditCard className="w-4 h-4 mr-1.5" />
                 Mua thêm
               </Button>
