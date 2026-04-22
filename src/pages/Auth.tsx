@@ -379,6 +379,60 @@ const Auth = () => {
     const isLogin = view === "login";
     return (
       <div className="bg-surface-2/80 backdrop-blur-xl rounded-2xl border border-gold/20 p-8 shadow-2xl">
+        {/* Guest button */}
+        <div className="mb-4">
+          <Button
+            type="button"
+            variant="gold"
+            size="lg"
+            className="w-full"
+            onClick={handleGuest}
+            disabled={socialLoading !== null}
+          >
+            {socialLoading === "guest" ? (
+              <Sparkles className="w-5 h-5 animate-spin" />
+            ) : (
+              <>🪄 Dùng thử ngay không cần đăng ký</>
+            )}
+          </Button>
+          <p className="text-xs text-muted-foreground text-center mt-2">
+            Lập lá số miễn phí, đăng ký sau
+          </p>
+        </div>
+
+        {/* Google button */}
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          className="w-full mb-6 bg-background hover:bg-surface-3 border-gold/20"
+          onClick={handleGoogle}
+          disabled={socialLoading !== null}
+        >
+          {socialLoading === "google" ? (
+            <Sparkles className="w-5 h-5 animate-spin" />
+          ) : (
+            <>
+              <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="#EA4335" d="M12 10.2v3.96h5.52c-.24 1.44-1.68 4.2-5.52 4.2-3.36 0-6.12-2.76-6.12-6.18S8.64 6 12 6c1.92 0 3.18.84 3.9 1.5l2.64-2.58C16.86 3.36 14.64 2.4 12 2.4 6.66 2.4 2.4 6.66 2.4 12s4.26 9.6 9.6 9.6c5.52 0 9.18-3.9 9.18-9.36 0-.66-.06-1.14-.18-1.62L12 10.2z"/>
+              </svg>
+              Tiếp tục với Google
+            </>
+          )}
+        </Button>
+
+        {/* Divider */}
+        <div className="relative mb-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gold/20" />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-surface-2 px-3 text-xs text-muted-foreground">
+              hoặc đăng ký bằng email
+            </span>
+          </div>
+        </div>
+
         {/* Tab switcher */}
         <div className="flex rounded-xl bg-surface-3 p-1 mb-6">
           <button
