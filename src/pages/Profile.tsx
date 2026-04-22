@@ -147,6 +147,68 @@ const Profile = () => {
     return <Navigate to="/auth?redirect=/profile" replace />;
   }
 
+  // ── GUEST VIEW ──
+  if (isGuest) {
+    const handleGoogle = async () => {
+      setGoogleLoading(true);
+      try {
+        await signInWithGoogle();
+      } catch (err: any) {
+        toast.error(err?.message || "Đăng nhập Google thất bại");
+        setGoogleLoading(false);
+      }
+    };
+    return (
+      <PageLayout title="Hồ sơ cá nhân">
+        <div className="space-y-6">
+          <div className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 p-4 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-yellow-200">Bạn đang dùng ở chế độ Khách</p>
+              <p className="text-sm text-yellow-100/80 mt-1">
+                Dữ liệu sẽ mất khi đóng app hoặc đổi thiết bị. Đăng ký ngay để lưu lại lá số và nhận phân tích AI.
+              </p>
+            </div>
+          </div>
+
+          <Card className="border-gold/20 bg-surface-2/80 backdrop-blur">
+            <CardContent className="pt-6 space-y-3">
+              <Button
+                variant="gold"
+                size="lg"
+                className="w-full"
+                onClick={handleGoogle}
+                disabled={googleLoading}
+              >
+                <Sparkles className="w-5 h-5" />
+                Đăng ký với Google
+              </Button>
+              <Button
+                variant="goldOutline"
+                size="lg"
+                className="w-full"
+                onClick={() => navigate("/auth")}
+                disabled={googleLoading}
+              >
+                <Mail className="w-4 h-4" />
+                Đăng ký bằng email
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Button
+            variant="outline"
+            className="w-full border-destructive/30 text-destructive hover:bg-destructive/10"
+            onClick={handleSignOut}
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Thoát chế độ Khách
+          </Button>
+        </div>
+      </PageLayout>
+    );
+  }
+
   const pendingPayments = payments.filter((p) => p.status === "pending");
   const premiumFeature = features.find((f) => f.feature === "premium");
   const otherFeatures = features.filter((f) => f.feature !== "premium");
@@ -247,7 +309,7 @@ const Profile = () => {
                 <p className="text-sm text-muted-foreground mb-4">
                   Bạn chưa có credits. Mua credits để sử dụng các tính năng trả phí!
                 </p>
-                <Button variant="gold" size="sm" onClick={() => navigate("/boi-kieu")}>
+                <Button variant="gold" size="sm" onClick={() => setShowPayment(true)}>
                   Mua Credits
                 </Button>
               </div>
@@ -372,6 +434,16 @@ const Profile = () => {
           Đăng xuất
         </Button>
       </div>
+
+      <VietQRPaymentModal
+        open={showPayment}
+        onOpenChange={setShowPayment}
+        feature="luan_giai"
+        onSuccess={() => {
+          setShowPayment(false);
+          fetchAll();
+        }}
+      />
     </PageLayout>
   );
 };
