@@ -202,7 +202,7 @@ export default function TuViIztroPage() {
 
   // Auto-open pending payment modal
   useEffect(() => {
-    if (checkedPendingPayment || showPayment || !chart || hasAccess || accessLoading) return;
+    if (checkedPendingPayment || showPayment || !chart || hasAccess || accessLoading || isGuest) return;
 
     const checkPending = async () => {
       const {
@@ -229,7 +229,7 @@ export default function TuViIztroPage() {
       setCheckedPendingPayment(true);
     };
     checkPending();
-  }, [chart, checkedPendingPayment, showPayment, hasAccess, accessLoading]);
+  }, [chart, checkedPendingPayment, showPayment, hasAccess, accessLoading, isGuest]);
 
   const loadFreeTrialCount = async () => {
     try {
