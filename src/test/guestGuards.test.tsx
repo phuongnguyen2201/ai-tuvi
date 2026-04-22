@@ -212,17 +212,24 @@ describe("Static audit: guest guards present in every AI/credit page", () => {
       expect(src).toMatch(/if\s*\(\s*isGuest\s*\)\s*\{[\s\S]{0,80}openUpgrade\(\)/);
 
       // 4. For every `setShowPayment(true)` / `setShowPaymentModal(true)`
-      //    occurrence, the same logical line must include an `isGuest`
-      //    check OR the file must define an `openPaymentOrUpgrade` wrapper.
-      const setShowMatches = src.match(/setShowPayment(?:Modal)?\(true\)/g) ?? [];
-      if (setShowMatches.length > 0) {
-        const hasWrapper = /const\s+openPaymentOrUpgrade\s*=/.test(src);
-        const allGuarded = src
-          .split("\n")
-          .filter((l) => /setShowPayment(?:Modal)?\(true\)/.test(l))
-          .every((l) => /isGuest/.test(l) || hasWrapper);
-        expect(allGuarded).toBe(true);
-      }
+      //    occurrence, one of the following must be true:
+      //      (a) same line contains `isGuest`
+      //      (b) the file defines an `openPaymentOrUpgrade` wrapper helper
+      //      (c) within the previous 12 lines there is an `if (...isGuest...)`
+      //          check (covers multi-line onClick handlers and useEffect
+      //          early-return guards like `if (... || isGuest) return`)
+      const lines = src.split("\n");
+      const hasWrapper = /const\s+openPaymentOrUpgrade\s*=/.test(src);
+      const offenders: string[] = [];
+      lines.forEach((line, idx) => {
+        if (!/setShowPayment(?:Modal)?\(true\)/.test(line)) return;
+        if (/isGuest/.test(line)) return;
+        if (hasWrapper) return;
+        const window = lines.slice(Math.max(0, idx - 12), idx).join("\n");
+        if (/if\s*\([^)]*isGuest[^)]*\)/.test(window)) return;
+        offenders.push(`${rel}:${idx + 1} → ${line.trim()}`);
+      });
+      expect(offenders, `Unguarded payment-modal triggers:\n${offenders.join("\n")}`).toEqual([]);
 
       // 5. For every supabase.functions.invoke call referencing analyze-chart,
       //    the file must contain a guarded handler.
