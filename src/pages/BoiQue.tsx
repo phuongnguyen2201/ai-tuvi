@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import AuthPromptCard from "@/components/AuthPromptCard";
 import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
@@ -692,7 +693,8 @@ function renderBold(text: string): React.ReactNode {
 }
 
 const BoiQue = () => {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
+  const { openUpgrade } = useUpgradeModal();
   const [question, setQuestion] = useState("");
   const [result, setResult] = useState<(typeof QUE_DATA)[0] | null>(null);
   const [hexLines, setHexLines] = useState<string[]>([]);
@@ -903,6 +905,10 @@ const BoiQue = () => {
   const handleGieoQue = () => {
     if (!question.trim()) {
       toast.error("Vui lòng nhập câu hỏi trước khi gieo quẻ");
+      return;
+    }
+    if (isGuest) {
+      openUpgrade();
       return;
     }
     if (!canGieoQue) {

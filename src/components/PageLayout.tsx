@@ -3,6 +3,7 @@ import { ArrowLeft, LogIn, User as UserIcon } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -11,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 interface PageLayoutProps {
   children: React.ReactNode;
@@ -21,7 +23,8 @@ interface PageLayoutProps {
 
 const PageLayout = ({ children, title, showBack = true, className }: PageLayoutProps) => {
   const navigate = useNavigate();
-  const { user, displayName, signOut } = useAuth();
+  const { user, displayName, signOut, isGuest } = useAuth();
+  const { openUpgrade } = useUpgradeModal();
 
   const handleSignOut = async () => {
     await signOut();
@@ -58,7 +61,7 @@ const PageLayout = ({ children, title, showBack = true, className }: PageLayoutP
               )}
               <div className="ml-auto flex items-center gap-2">
                 <ThemeToggle />
-                {user ? (
+                {user && !isGuest ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button className="flex items-center gap-1.5 rounded-lg bg-surface-3 border border-border px-2 py-1.5 hover:border-gold/50 transition-all">
@@ -87,6 +90,23 @@ const PageLayout = ({ children, title, showBack = true, className }: PageLayoutP
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
+                ) : isGuest ? (
+                  <>
+                    <Badge
+                      variant="outline"
+                      className="border-muted-foreground/40 text-muted-foreground text-[10px] px-1.5 py-0 h-5"
+                    >
+                      Khách
+                    </Badge>
+                    <Button
+                      variant="gold"
+                      size="sm"
+                      className="h-8 text-xs"
+                      onClick={openUpgrade}
+                    >
+                      Đăng ký
+                    </Button>
+                  </>
                 ) : (
                   <Button
                     variant="goldOutline"

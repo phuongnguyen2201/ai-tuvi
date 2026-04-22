@@ -26,6 +26,7 @@ import {
 // ── CHANGE 1: Import streaming hook ──
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
 import { getISOWeek, startOfISOWeek, endOfISOWeek, addWeeks } from "date-fns";
@@ -212,7 +213,8 @@ function truncateToWords(text: string, maxWords: number): { preview: string; isT
 
 // ── Component ──
 const VanHan = () => {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
+  const { openUpgrade } = useUpgradeModal();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TimeFrame>("year");
   const [timeOffset, setTimeOffset] = useState(0);
@@ -492,6 +494,10 @@ const VanHan = () => {
   // ── CHANGE 3: Analyze with STREAMING — supports both free trial & paid ──
   const handleAnalyze = async () => {
     if (!selectedChart) return;
+    if (isGuest) {
+      openUpgrade();
+      return;
+    }
     // ── FREEMIUM: Allow if has package OR free trial ──
     if (!hasCredits && !canUseFreeTrial) return;
 

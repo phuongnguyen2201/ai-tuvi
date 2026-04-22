@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { UpgradeModalProvider } from "@/contexts/UpgradeModalContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import Index from "./pages/Index";
 import TuViIztroPage from "./pages/TuViIztroPage";
@@ -70,7 +71,9 @@ const App = () => {
             <Toaster />
             <Sonner />
             <Router>
-              <AppRoutes />
+              <UpgradeModalProvider>
+                <AppRoutes />
+              </UpgradeModalProvider>
             </Router>
           </TooltipProvider>
         </AuthProvider>
