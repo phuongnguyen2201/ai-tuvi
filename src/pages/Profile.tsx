@@ -97,6 +97,9 @@ const Profile = () => {
   const [credits, setCredits] = useState<{ remaining: number; total: number } | null>(null);
   const [showPayment, setShowPayment] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     if (user && !isGuest) {
@@ -141,6 +144,28 @@ const Profile = () => {
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== "XOA") return;
+    setDeletingAccount(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-account", {
+        body: { confirmation: "DELETE" },
+      });
+      if (error || (data as any)?.error) {
+        const msg = (error as any)?.message || (data as any)?.error || "Không thể xóa tài khoản";
+        toast.error(msg);
+        setDeletingAccount(false);
+        return;
+      }
+      await supabase.auth.signOut();
+      toast.success("Đã xóa tài khoản thành công");
+      navigate("/");
+    } catch (e: any) {
+      toast.error(e?.message || "Không thể xóa tài khoản");
+      setDeletingAccount(false);
+    }
   };
 
   if (loading || initializing) {
