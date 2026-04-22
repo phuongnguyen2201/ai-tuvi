@@ -9,7 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Edit3, Check, X, LogOut, Star, Clock, Crown, ShieldCheck, Package, ScrollText, Eye, Sparkles } from "lucide-react";
+import { Edit3, Check, X, LogOut, Star, Clock, Crown, ShieldCheck, Package, ScrollText, Eye, Sparkles, AlertTriangle, Mail } from "lucide-react";
+import VietQRPaymentModal from "@/components/VietQRPaymentModal";
+import { signInWithGoogle } from "@/lib/auth/socialAuth";
 
 const FEATURE_NAMES: Record<string, string> = {
   premium: "Premium toàn diện",
@@ -75,7 +77,7 @@ const LUNAR_HOURS: Record<number, string> = {
 };
 
 const Profile = () => {
-  const { user, loading, initializing, displayName, signOut } = useAuth();
+  const { user, loading, initializing, displayName, signOut, isGuest } = useAuth();
   const navigate = useNavigate();
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState("");
@@ -85,12 +87,14 @@ const Profile = () => {
   const [profileData, setProfileData] = useState<any>(null);
   const [readings, setReadings] = useState<TuViReading[]>([]);
   const [credits, setCredits] = useState<{ remaining: number; total: number } | null>(null);
+  const [showPayment, setShowPayment] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
-    if (user) {
+    if (user && !isGuest) {
       fetchAll();
     }
-  }, [user]);
+  }, [user, isGuest]);
 
   const fetchAll = async () => {
     if (!user) return;
