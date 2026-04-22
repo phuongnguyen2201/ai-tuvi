@@ -22,3 +22,14 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Native mobile (chỉ exist trong feature/capacitor-mobile)
+android/
+ios/
+capacitor.config.ts
+
+# Credentials - NEVER commit
+*.keystore
+*.jks
+OAuth Client/
+client_secret_*.json
