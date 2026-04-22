@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import { useFeatureAccess } from "@/hooks/useFeatureAccess";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import type { User } from "@supabase/supabase-js";
 
 interface PaymentGateProps {
@@ -62,6 +64,8 @@ const DEFAULT_CONFIGS: Record<string, { title: string; price: string; descriptio
 
 const PaymentGate = ({ feature, children, onUnlocked, title, price, description, metadata }: PaymentGateProps) => {
   const { hasAccess, isLoading, refresh } = useFeatureAccess(feature);
+  const { isGuest } = useAuth();
+  const { openUpgrade } = useUpgradeModal();
   const [showPayment, setShowPayment] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [checkedPending, setCheckedPending] = useState(false);
@@ -99,7 +103,7 @@ const PaymentGate = ({ feature, children, onUnlocked, title, price, description,
   // Runs once after access check completes
   // ══════════════════════════════════════════════════════════════
   useEffect(() => {
-    if (isLoading || hasAccess || checkedPending) return;
+    if (isLoading || hasAccess || checkedPending || isGuest) return;
 
     const checkPending = async () => {
       const {
@@ -127,7 +131,7 @@ const PaymentGate = ({ feature, children, onUnlocked, title, price, description,
     };
 
     checkPending();
-  }, [isLoading, hasAccess, feature, checkedPending]);
+  }, [isLoading, hasAccess, feature, checkedPending, isGuest]);
 
   // ── Memoize onSuccess ──
   const handlePaymentSuccess = useCallback(async () => {
@@ -169,7 +173,11 @@ const PaymentGate = ({ feature, children, onUnlocked, title, price, description,
             size="lg"
             className="w-full mb-3"
             onClick={() => {
-              if (!currentUser) {
+              if (!currentUser || isGuest) {
+                if (isGuest) {
+                  openUpgrade();
+                  return;
+                }
                 navigate("/auth?redirect=" + encodeURIComponent(window.location.pathname));
                 return;
               }

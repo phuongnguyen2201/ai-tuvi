@@ -7,6 +7,7 @@ import { BrowserRouter, MemoryRouter, Routes, Route } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { UpgradeModalProvider } from "@/contexts/UpgradeModalContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { initSocialLogin, setupOAuthDeepLinkListener } from "@/lib/auth/socialAuth";
 import Index from "./pages/Index";
@@ -80,7 +81,9 @@ const App = () => {
             <Sonner />
             <NetworkStatus />
             <Router>
-              <AppRoutes />
+              <UpgradeModalProvider>
+                <AppRoutes />
+              </UpgradeModalProvider>
             </Router>
           </TooltipProvider>
         </AuthProvider>

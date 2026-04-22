@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 import { hapticImpact, hapticSuccess } from "@/utils/native";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import AuthPromptCard from "@/components/AuthPromptCard";
 import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
@@ -58,7 +59,8 @@ function truncateToWords(text: string, maxWords: number): { preview: string; isT
 }
 
 const BoiKieu = () => {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
+  const { openUpgrade } = useUpgradeModal();
   const [question, setQuestion] = useState("");
   const [verse, setVerse] = useState<any>(null);
   const [isShaking, setIsShaking] = useState(false);
@@ -147,6 +149,10 @@ const BoiKieu = () => {
       toast.error("Vui lòng nhập câu hỏi");
       return;
     }
+    if (isGuest) {
+      openUpgrade();
+      return;
+    }
     if (verses.length === 0) {
       toast.error("Chưa tải được câu Kiều, thử lại sau");
       return;
@@ -225,6 +231,18 @@ const BoiKieu = () => {
     setShowPayment(false);
     loadCredits();
     loadFreeTrialCount();
+  };
+
+  const openPaymentOrUpgrade = () => {
+    if (isGuest) {
+      openUpgrade();
+      return;
+    }
+    if (!user) {
+      window.location.href = "/auth?redirect=" + encodeURIComponent(window.location.pathname);
+      return;
+    }
+    setShowPayment(true);
   };
 
   const handleShare = async (type: "verse" | "full") => {
@@ -406,13 +424,7 @@ const BoiKieu = () => {
                   variant="gold"
                   size="lg"
                   className="w-full"
-                  onClick={() => {
-                    if (!user) {
-                      window.location.href = "/auth?redirect=" + encodeURIComponent(window.location.pathname);
-                      return;
-                    }
-                    setShowPayment(true);
-                  }}
+                  onClick={openPaymentOrUpgrade}
                 >
                   <Lock className="w-4 h-4 mr-2" />
                   Mua Credits
@@ -551,7 +563,7 @@ const BoiKieu = () => {
                 </p>
               </div>
             </div>
-            <Button variant="gold" size="sm" onClick={() => setShowPayment(true)} className="shrink-0">
+            <Button variant="gold" size="sm" onClick={openPaymentOrUpgrade} className="shrink-0">
               <CreditCard className="w-4 h-4 mr-1.5" />
               Mua thêm
             </Button>

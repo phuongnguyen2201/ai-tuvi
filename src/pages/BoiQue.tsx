@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import AuthPromptCard from "@/components/AuthPromptCard";
 import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
@@ -693,7 +694,8 @@ function renderBold(text: string): React.ReactNode {
 }
 
 const BoiQue = () => {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
+  const { openUpgrade } = useUpgradeModal();
   const [question, setQuestion] = useState("");
   const [result, setResult] = useState<(typeof QUE_DATA)[0] | null>(null);
   const [hexLines, setHexLines] = useState<string[]>([]);
@@ -906,6 +908,10 @@ const BoiQue = () => {
       toast.error("Vui lòng nhập câu hỏi trước khi gieo quẻ");
       return;
     }
+    if (isGuest) {
+      openUpgrade();
+      return;
+    }
     if (!canGieoQue) {
       setShowPayment(true);
       return;
@@ -972,6 +978,18 @@ const BoiQue = () => {
     setShowPayment(false);
     loadCredits();
     loadFreeTrialCount();
+  };
+
+  const openPaymentOrUpgrade = () => {
+    if (isGuest) {
+      openUpgrade();
+      return;
+    }
+    if (!user) {
+      window.location.href = "/auth?redirect=" + encodeURIComponent(window.location.pathname);
+      return;
+    }
+    setShowPayment(true);
   };
 
   const style = result ? fortuneConfig[result.fortune as keyof typeof fortuneConfig] : null;
@@ -1050,13 +1068,7 @@ const BoiQue = () => {
                   variant="gold"
                   size="lg"
                   className="w-full"
-                  onClick={() => {
-                    if (!user) {
-                      window.location.href = "/auth?redirect=" + encodeURIComponent(window.location.pathname);
-                      return;
-                    }
-                    setShowPayment(true);
-                  }}
+                  onClick={openPaymentOrUpgrade}
                 >
                   <Lock className="w-4 h-4 mr-2" />
                   Mua Credits
@@ -1177,7 +1189,7 @@ const BoiQue = () => {
                   <p className="text-xs text-amber-200/60">Mua thêm credits để tiếp tục · Lịch sử luận giải vẫn xem được</p>
                 </div>
               </div>
-              <Button variant="gold" size="sm" onClick={() => setShowPayment(true)} className="shrink-0">
+              <Button variant="gold" size="sm" onClick={openPaymentOrUpgrade} className="shrink-0">
                 <CreditCard className="w-4 h-4 mr-1.5" />
                 Mua thêm
               </Button>

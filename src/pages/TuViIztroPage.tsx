@@ -23,6 +23,7 @@ import PageLayout from "@/components/PageLayout";
 import { supabase } from "@/integrations/supabase/client";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useFeatureAccess } from "@/hooks/useFeatureAccess";
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 import { toast } from "sonner";
@@ -123,7 +124,8 @@ const LUNAR_HOURS = [
 ];
 
 export default function TuViIztroPage() {
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
+  const { openUpgrade } = useUpgradeModal();
   const [chart, setChart] = useState<TuViChartData | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -200,7 +202,7 @@ export default function TuViIztroPage() {
 
   // Auto-open pending payment modal
   useEffect(() => {
-    if (checkedPendingPayment || showPayment || !chart || hasAccess || accessLoading) return;
+    if (checkedPendingPayment || showPayment || !chart || hasAccess || accessLoading || isGuest) return;
 
     const checkPending = async () => {
       const {
@@ -227,7 +229,7 @@ export default function TuViIztroPage() {
       setCheckedPendingPayment(true);
     };
     checkPending();
-  }, [chart, checkedPendingPayment, showPayment, hasAccess, accessLoading]);
+  }, [chart, checkedPendingPayment, showPayment, hasAccess, accessLoading, isGuest]);
 
   const loadFreeTrialCount = async () => {
     try {
@@ -482,6 +484,10 @@ export default function TuViIztroPage() {
   );
 
   const handleInterpret = useCallback(async () => {
+    if (isGuest) {
+      openUpgrade();
+      return;
+    }
     if (hasAccess && credits > 0) {
       await loadAnalysis(false);
       return;
@@ -491,7 +497,20 @@ export default function TuViIztroPage() {
       return;
     }
     setShowPayment(true);
-  }, [hasAccess, credits, canUseFreeTrial, loadAnalysis]);
+  }, [hasAccess, credits, canUseFreeTrial, loadAnalysis, isGuest, openUpgrade]);
+
+  // Guard: open VietQR for users, UpgradeModal for guests
+  const openPaymentOrUpgrade = useCallback(() => {
+    if (isGuest) {
+      openUpgrade();
+      return;
+    }
+    if (!user) {
+      window.location.href = "/auth?redirect=" + encodeURIComponent(window.location.pathname);
+      return;
+    }
+    setShowPayment(true);
+  }, [isGuest, openUpgrade, user]);
 
   const handlePaymentSuccess = () => {
     setShowPayment(false);
@@ -679,7 +698,7 @@ export default function TuViIztroPage() {
             variant="gold"
             onClick={() => {
               setAnalysisError(false);
-              loadAnalysis();
+              handleInterpret();
             }}
           >
                    🔄 Thử lại ngay
@@ -734,13 +753,7 @@ export default function TuViIztroPage() {
                     variant="gold"
                     size="lg"
                     className="w-full"
-                    onClick={() => {
-                      if (!user) {
-                        window.location.href = "/auth?redirect=" + encodeURIComponent(window.location.pathname);
-                        return;
-                      }
-                      setShowPayment(true);
-                    }}
+                    onClick={openPaymentOrUpgrade}
                   >
                     <Lock className="w-4 h-4 mr-2" />
                     Mua Credits
@@ -788,7 +801,7 @@ export default function TuViIztroPage() {
                    🔄 Luận giải lại ({credits} credits còn lại)
                 </Button>
               ) : everPurchased && !hasAccess ? (
-                <Button variant="gold" size="sm" className="w-full text-xs" onClick={() => setShowPayment(true)}>
+                <Button variant="gold" size="sm" className="w-full text-xs" onClick={openPaymentOrUpgrade}>
                   Hết credits · Mua thêm
                 </Button>
               ) : null}
@@ -846,13 +859,7 @@ export default function TuViIztroPage() {
                   variant="gold"
                   size="lg"
                   className="w-full mb-3"
-                  onClick={() => {
-                    if (!user) {
-                      window.location.href = "/auth?redirect=" + encodeURIComponent(window.location.pathname);
-                      return;
-                    }
-                    setShowPayment(true);
-                  }}
+                  onClick={openPaymentOrUpgrade}
                 >
                   <Lock className="w-4 h-4 mr-2" />
                   Mua Credits
@@ -899,7 +906,7 @@ export default function TuViIztroPage() {
                       </p>
                     </div>
                   </div>
-                  <Button variant="gold" size="sm" onClick={() => setShowPayment(true)} className="shrink-0">
+                  <Button variant="gold" size="sm" onClick={openPaymentOrUpgrade} className="shrink-0">
                     <CreditCard className="w-4 h-4 mr-1.5" />
                     Mua thêm
                   </Button>
