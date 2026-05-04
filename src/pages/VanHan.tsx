@@ -311,6 +311,11 @@ const VanHan = () => {
     if (selectedChart) loadCredits();
   }, [activeTab, selectedChart]);
 
+  // Auto-exit demo when credits become available
+  useEffect(() => {
+    if (demoMode && hasCredits) exitDemo();
+  }, [demoMode, hasCredits, exitDemo]);
+
   // ══════════════════════════════════════════════════════════════
   // AUTO-OPEN: If user has pending payment for current tab's
   // feature → auto-open standalone payment modal (QR immediately)
@@ -354,6 +359,7 @@ const VanHan = () => {
     setTimeOffset(0);
     setStreamingForTab(null);
     setCheckedPendingPayment(false);
+    if (demoMode) exitDemo();
   }, [activeTab]);
 
   // ══════════════════════════════════════════════════════════════
