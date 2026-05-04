@@ -29,6 +29,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useDemoExample, type DemoFeature } from "@/hooks/useDemoExample";
 import { DemoBanner } from "@/components/DemoBanner";
+import { DemoSkeleton } from "@/components/DemoSkeleton";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
 import { getISOWeek, startOfISOWeek, endOfISOWeek, addWeeks } from "date-fns";
@@ -748,6 +749,15 @@ const VanHan = () => {
 
   // ── CHANGE 4: Render AI result with streaming + freemium states ──
   const renderAiResult = () => {
+    // ── DEMO LOADING: skeleton while fetching sample ──
+    if (demoLoading && !demoMode) {
+      return (
+        <div id="van-han-result">
+          <DemoSkeleton title="Đang tải vận hạn mẫu..." lines={8} />
+        </div>
+      );
+    }
+
     // ── DEMO MODE: show sample AI output to guests / 0-credit users ──
     if (demoMode && demoData) {
       return (
