@@ -940,14 +940,30 @@ const BoiQue = () => {
     setChangingLineIndexes([]);
   };
   const handleShare = () => {
-    const shareText = displayText;
-    if (shareText) {
-      navigator.clipboard.writeText(shareText);
+    const inDemo = demoMode && !!demoData && !displayText && !result;
+    let shareText = "";
+    if (displayText) {
+      shareText = displayText;
     } else if (result) {
-      navigator.clipboard.writeText(
-        `🎴 Bói Quẻ Dịch\nQuẻ ${result.id} - ${result.name} ${result.symbol}\n${result.summary}`,
-      );
+      shareText = `🎴 Bói Quẻ Dịch\nQuẻ ${result.id} - ${result.name} ${result.symbol}\n${result.summary}`;
+    } else if (inDemo && demoData) {
+      shareText = `🔍 Ví dụ mẫu — 🎴 Bói Quẻ Dịch\n\n${demoData.demo_output}\n\n🔮 Xem tại: ai-tuvi.lovable.app`;
     }
+    if (!shareText) return;
+    if (navigator.share) {
+      navigator
+        .share({
+          title: inDemo ? "Bói Quẻ - Ví dụ mẫu" : "Bói Quẻ Dịch - Tử Vi App",
+          text: shareText,
+          url: "https://ai-tuvi.lovable.app",
+        })
+        .catch(() => {
+          navigator.clipboard.writeText(shareText);
+          toast.success("Đã sao chép!");
+        });
+      return;
+    }
+    navigator.clipboard.writeText(shareText);
     toast.success("Đã sao chép!");
   };
   const handlePaymentSuccess = () => {
