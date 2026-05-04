@@ -13,6 +13,8 @@ import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import AuthPromptCard from "@/components/AuthPromptCard";
 import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
+import { useDemoExample } from "@/hooks/useDemoExample";
+import { DemoBanner } from "@/components/DemoBanner";
 
 const fortuneStyles: Record<string, { bg: string; border: string; badge: string; badgeText: string }> = {
   excellent: {
@@ -61,6 +63,7 @@ function truncateToWords(text: string, maxWords: number): { preview: string; isT
 const BoiKieu = () => {
   const { user, isGuest } = useAuth();
   const { openUpgrade } = useUpgradeModal();
+  const { demoData, demoMode, demoLoading, fetchDemo, exitDemo } = useDemoExample();
   const [question, setQuestion] = useState("");
   const [verse, setVerse] = useState<any>(null);
   const [isShaking, setIsShaking] = useState(false);
@@ -127,15 +130,17 @@ const BoiKieu = () => {
       toast.error("Vui lòng nhập câu hỏi");
       return;
     }
-    if (isGuest) {
-      openUpgrade();
-      return;
-    }
     if (verses.length === 0) {
       toast.error("Chưa tải được câu Kiều, thử lại sau");
       return;
     }
+    // Guest OR registered user with 0 credits & never purchased → demo
+    if (isGuest || (!canGieoQue && !everPurchased)) {
+      await fetchDemo("boi_kieu");
+      return;
+    }
     if (!canGieoQue) {
+      // Logged-in, previously purchased, ran out → QR
       setShowPayment(true);
       return;
     }
@@ -218,6 +223,11 @@ const BoiKieu = () => {
     }
     setShowPayment(true);
   };
+
+  // Auto-exit demo when credits arrive
+  useEffect(() => {
+    if (demoMode && hasCredits) exitDemo();
+  }, [demoMode, hasCredits, exitDemo]);
 
   const handleShare = async (type: "verse" | "full") => {
     if (!verse) return;
