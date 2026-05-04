@@ -72,3 +72,8 @@ export function DemoBanner({ data, isGuest, onGuestCta, onBuyCta, variant = "top
 }
 
 export default DemoBanner;
+export const DemoBannerTop = (props: Omit<DemoBannerProps, 'variant'>) => 
+  <DemoBanner {...props} variant="top" />;
+
+export const DemoBannerBottom = (props: Omit<DemoBannerProps, 'variant'>) =>
+  <DemoBanner {...props} variant="bottom" />;
