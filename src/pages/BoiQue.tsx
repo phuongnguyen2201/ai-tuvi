@@ -1,6 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import PageLayout from "@/components/PageLayout";
-import PaymentGate from "@/components/PaymentGate";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -27,7 +26,6 @@ import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useDemoExample } from "@/hooks/useDemoExample";
 import { DemoBanner } from "@/components/DemoBanner";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
-import AuthPromptCard from "@/components/AuthPromptCard";
 import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
 
 const QUE_DATA = [
