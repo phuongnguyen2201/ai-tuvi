@@ -1285,7 +1285,15 @@ const VanHan = () => {
         {/* Content - only if chart selected */}
         {selectedChart && (
           <>
-            {currentResult || isAnalyzing || isStreamingAI || activeStreamedText || everPurchased || canAnalyze ? (
+            {currentResult ||
+            isAnalyzing ||
+            isStreamingAI ||
+            activeStreamedText ||
+            everPurchased ||
+            canAnalyze ||
+            isGuest ||
+            demoMode ||
+            demoLoading ? (
               <div className="space-y-4">
                 {hasCredits && (
                   <div className="text-xs text-primary/70 text-center">
