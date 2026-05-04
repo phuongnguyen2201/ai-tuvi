@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import PageLayout from "@/components/PageLayout";
-import PaymentGate from "@/components/PaymentGate";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +10,6 @@ import { hapticImpact, hapticSuccess } from "@/utils/native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
-import AuthPromptCard from "@/components/AuthPromptCard";
 import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
 import { useDemoExample } from "@/hooks/useDemoExample";
 import { DemoBanner } from "@/components/DemoBanner";
