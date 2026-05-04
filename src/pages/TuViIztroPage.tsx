@@ -683,6 +683,17 @@ export default function TuViIztroPage() {
               Luận giải mẫu — {demoData.demo_person_name}
             </h2>
             <div className="space-y-1">{renderAnalysisMarkdown(demoData.demo_output)}</div>
+            <div className="flex gap-2 mt-5 pt-4 border-t border-primary/10">
+              <Button
+                variant="goldOutline"
+                size="sm"
+                className="flex-1 text-xs"
+                onClick={() => handleShareDemo()}
+              >
+                <Share2 className="w-3.5 h-3.5 mr-1" />
+                Chia sẻ ví dụ mẫu
+              </Button>
+            </div>
           </Card>
           <DemoBanner
             data={demoData}
