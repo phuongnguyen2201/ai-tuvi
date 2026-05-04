@@ -565,7 +565,7 @@ const BoiKieu = () => {
       <div className="flex flex-col items-center gap-3 py-4">
         <button
           onClick={handleGieoQue}
-          disabled={isShaking || isAnalyzing || isStreamingAI || !canGieoQue}
+          disabled={isShaking || isAnalyzing || isStreamingAI || demoLoading}
           className={cn(
             "relative w-32 h-32 rounded-full",
             "bg-gradient-to-br from-primary to-primary/70",
