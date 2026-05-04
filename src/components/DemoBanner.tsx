@@ -1,4 +1,4 @@
-import { Sparkles, Search, CreditCard, UserPlus } from "lucide-react";
+import { Sparkles, CreditCard, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { buildDemoBannerText, type DemoData } from "@/hooks/useDemoExample";
 
