@@ -648,6 +648,36 @@ export default function TuViIztroPage() {
   const renderAnalysisSection = () => {
     const displayText = cachedAnalysis || streamedText;
 
+    // ── DEMO MODE: show sample output for guests / 0-credit users ──
+    if (demoMode && demoData) {
+      return (
+        <div id="analysis-result" className="space-y-6">
+          <ChartInterpretationDisplay chart={chart!} />
+          <DemoBanner
+            data={demoData}
+            isGuest={isGuest}
+            onGuestCta={openUpgrade}
+            onBuyCta={openPaymentOrUpgrade}
+            variant="top"
+          />
+          <Card className="p-6 bg-gradient-to-br from-surface-3 to-surface-2 border border-primary/20">
+            <h2 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">
+              <Sparkles className="w-5 h-5" />
+              Luận giải mẫu — {demoData.demo_person_name}
+            </h2>
+            <div className="space-y-1">{renderAnalysisMarkdown(demoData.demo_output)}</div>
+          </Card>
+          <DemoBanner
+            data={demoData}
+            isGuest={isGuest}
+            onGuestCta={openUpgrade}
+            onBuyCta={openPaymentOrUpgrade}
+            variant="bottom"
+          />
+        </div>
+      );
+    }
+
     // ── STATE 1: STREAMING ──
     if ((isAnalyzing || isStreamingAI) && !cachedAnalysis) {
       return (
