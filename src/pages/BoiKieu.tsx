@@ -653,26 +653,8 @@ const BoiKieu = () => {
           </p>
         </div>
 
-        {canGieoQue || displayText || everPurchased ? (
-          mainContent
-        ) : !user ? (
-          <AuthPromptCard
-            title="Đăng nhập để tiếp tục"
-            description="Đăng ký tài khoản miễn phí để nhận 1 credit dùng thử!"
-          />
-        ) : (
-          <PaymentGate
-            feature="boi_kieu"
-            title="Mua Credits"
-            price="39.000đ"
-            description="Gói 3 credits — dùng cho bất kỳ tính năng nào"
-            onUnlocked={() => {
-              loadCredits();
-            }}
-          >
-            {mainContent}
-          </PaymentGate>
-        )}
+        {/* Always show main content so guests/0-credit users can preview a demo before paying */}
+        {mainContent}
 
         <VietQRPaymentModal
           open={showPayment}
