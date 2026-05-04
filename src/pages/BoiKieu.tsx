@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import PageLayout from "@/components/PageLayout";
-import PaymentGate from "@/components/PaymentGate";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,8 +10,9 @@ import { hapticImpact, hapticSuccess } from "@/utils/native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
-import AuthPromptCard from "@/components/AuthPromptCard";
 import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
+import { useDemoExample } from "@/hooks/useDemoExample";
+import { DemoBanner } from "@/components/DemoBanner";
 
 const fortuneStyles: Record<string, { bg: string; border: string; badge: string; badgeText: string }> = {
   excellent: {
@@ -61,6 +61,7 @@ function truncateToWords(text: string, maxWords: number): { preview: string; isT
 const BoiKieu = () => {
   const { user, isGuest } = useAuth();
   const { openUpgrade } = useUpgradeModal();
+  const { demoData, demoMode, demoLoading, fetchDemo, exitDemo } = useDemoExample();
   const [question, setQuestion] = useState("");
   const [verse, setVerse] = useState<any>(null);
   const [isShaking, setIsShaking] = useState(false);
@@ -127,15 +128,17 @@ const BoiKieu = () => {
       toast.error("Vui lòng nhập câu hỏi");
       return;
     }
-    if (isGuest) {
-      openUpgrade();
-      return;
-    }
     if (verses.length === 0) {
       toast.error("Chưa tải được câu Kiều, thử lại sau");
       return;
     }
+    // Guest OR registered user with 0 credits & never purchased → demo
+    if (isGuest || (!canGieoQue && !everPurchased)) {
+      await fetchDemo("boi_kieu");
+      return;
+    }
     if (!canGieoQue) {
+      // Logged-in, previously purchased, ran out → QR
       setShowPayment(true);
       return;
     }
@@ -218,6 +221,11 @@ const BoiKieu = () => {
     }
     setShowPayment(true);
   };
+
+  // Auto-exit demo when credits arrive
+  useEffect(() => {
+    if (demoMode && hasCredits) exitDemo();
+  }, [demoMode, hasCredits, exitDemo]);
 
   const handleShare = async (type: "verse" | "full") => {
     if (!verse) return;
@@ -555,7 +563,7 @@ const BoiKieu = () => {
       <div className="flex flex-col items-center gap-3 py-4">
         <button
           onClick={handleGieoQue}
-          disabled={isShaking || isAnalyzing || isStreamingAI || !canGieoQue}
+          disabled={isShaking || isAnalyzing || isStreamingAI || demoLoading}
           className={cn(
             "relative w-32 h-32 rounded-full",
             "bg-gradient-to-br from-primary to-primary/70",
@@ -591,7 +599,35 @@ const BoiKieu = () => {
         </div>
       )}
 
-      {renderAiResult()}
+      {demoMode && demoData ? (
+        <div className="space-y-4">
+          <DemoBanner
+            data={demoData}
+            isGuest={isGuest}
+            onGuestCta={openUpgrade}
+            onBuyCta={openPaymentOrUpgrade}
+            variant="top"
+          />
+          <div className="rounded-2xl p-5 bg-gradient-to-br from-secondary/5 to-surface-2 border border-secondary/20">
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="w-5 h-5 text-secondary" />
+              <h3 className="font-display text-lg text-secondary">
+                Luận giải mẫu — {demoData.demo_person_name}
+              </h3>
+            </div>
+            <div className="space-y-1">{renderMarkdown(demoData.demo_output)}</div>
+          </div>
+          <DemoBanner
+            data={demoData}
+            isGuest={isGuest}
+            onGuestCta={openUpgrade}
+            onBuyCta={openPaymentOrUpgrade}
+            variant="bottom"
+          />
+        </div>
+      ) : (
+        renderAiResult()
+      )}
 
       {!verse && !isShaking && !isAnalyzing && !isStreamingAI && canGieoQue && (
         <p className="text-center text-sm text-muted-foreground">
@@ -615,26 +651,8 @@ const BoiKieu = () => {
           </p>
         </div>
 
-        {canGieoQue || displayText || everPurchased ? (
-          mainContent
-        ) : !user ? (
-          <AuthPromptCard
-            title="Đăng nhập để tiếp tục"
-            description="Đăng ký tài khoản miễn phí để nhận 1 credit dùng thử!"
-          />
-        ) : (
-          <PaymentGate
-            feature="boi_kieu"
-            title="Mua Credits"
-            price="39.000đ"
-            description="Gói 3 credits — dùng cho bất kỳ tính năng nào"
-            onUnlocked={() => {
-              loadCredits();
-            }}
-          >
-            {mainContent}
-          </PaymentGate>
-        )}
+        {/* Always show main content so guests/0-credit users can preview a demo before paying */}
+        {mainContent}
 
         <VietQRPaymentModal
           open={showPayment}

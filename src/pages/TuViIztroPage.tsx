@@ -29,6 +29,8 @@ import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import AuthPromptCard from "@/components/AuthPromptCard";
+import { useDemoExample } from "@/hooks/useDemoExample";
+import { DemoBanner } from "@/components/DemoBanner";
 
 // ── Helpers ──
 
@@ -126,6 +128,7 @@ const LUNAR_HOURS = [
 export default function TuViIztroPage() {
   const { user, isGuest } = useAuth();
   const { openUpgrade } = useUpgradeModal();
+  const { demoData, demoMode, demoLoading, fetchDemo, exitDemo } = useDemoExample();
   const [chart, setChart] = useState<TuViChartData | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -468,16 +471,31 @@ export default function TuViIztroPage() {
   );
 
   const handleInterpret = useCallback(async () => {
-    if (isGuest) {
-      openUpgrade();
-      return;
-    }
     if (hasAccess && credits > 0) {
       await loadAnalysis();
       return;
     }
+    // Guest OR logged-in user with 0 credits and never purchased → show demo instead
+    if (isGuest || (!hasAccess && !everPurchased)) {
+      await fetchDemo("luan_giai");
+      return;
+    }
+    // Logged-in user who previously purchased but ran out → straight to QR
     setShowPayment(true);
-  }, [hasAccess, credits, loadAnalysis, isGuest, openUpgrade]);
+  }, [hasAccess, credits, loadAnalysis, isGuest, everPurchased, fetchDemo]);
+
+  // Auto-exit demo when user buys credits
+  useEffect(() => {
+    if (demoMode && hasAccess && credits > 0) {
+      exitDemo();
+    }
+  }, [demoMode, hasAccess, credits, exitDemo]);
+
+  // Exit demo when form is resubmitted (new chart)
+  useEffect(() => {
+    if (isFormDirty && demoMode) exitDemo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chart]);
 
   // Guard: open VietQR for users, UpgradeModal for guests
   const openPaymentOrUpgrade = useCallback(() => {
@@ -635,6 +653,36 @@ export default function TuViIztroPage() {
   // ── Render analysis section with all states ──
   const renderAnalysisSection = () => {
     const displayText = cachedAnalysis || streamedText;
+
+    // ── DEMO MODE: show sample output for guests / 0-credit users ──
+    if (demoMode && demoData) {
+      return (
+        <div id="analysis-result" className="space-y-6">
+          <ChartInterpretationDisplay chart={chart!} />
+          <DemoBanner
+            data={demoData}
+            isGuest={isGuest}
+            onGuestCta={openUpgrade}
+            onBuyCta={openPaymentOrUpgrade}
+            variant="top"
+          />
+          <Card className="p-6 bg-gradient-to-br from-surface-3 to-surface-2 border border-primary/20">
+            <h2 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">
+              <Sparkles className="w-5 h-5" />
+              Luận giải mẫu — {demoData.demo_person_name}
+            </h2>
+            <div className="space-y-1">{renderAnalysisMarkdown(demoData.demo_output)}</div>
+          </Card>
+          <DemoBanner
+            data={demoData}
+            isGuest={isGuest}
+            onGuestCta={openUpgrade}
+            onBuyCta={openPaymentOrUpgrade}
+            variant="bottom"
+          />
+        </div>
+      );
+    }
 
     // ── STATE 1: STREAMING ──
     if ((isAnalyzing || isStreamingAI) && !cachedAnalysis) {
@@ -817,20 +865,43 @@ export default function TuViIztroPage() {
               </>
             ) : (
               <>
-                <p className="text-2xl font-bold text-primary mb-2">39.000đ</p>
-                <p className="text-sm text-muted-foreground mb-5">
-                  3 credits — dùng cho luận giải, bói Kiều, bói Quẻ, vận hạn.
-                </p>
-                <Button
-                  variant="gold"
-                  size="lg"
-                  className="w-full mb-3"
-                  onClick={openPaymentOrUpgrade}
-                >
-                  <Lock className="w-4 h-4 mr-2" />
-                  Mua Credits
-                </Button>
-                <p className="text-xs text-muted-foreground">Thanh toán nhanh qua ngân hàng</p>
+                {everPurchased && !hasAccess ? (
+                  <>
+                    <p className="text-2xl font-bold text-primary mb-2">39.000đ</p>
+                    <p className="text-sm text-muted-foreground mb-5">
+                      Bạn đã hết credits. Mua thêm để tiếp tục luận giải.
+                    </p>
+                    <Button
+                      variant="gold"
+                      size="lg"
+                      className="w-full mb-3"
+                      onClick={openPaymentOrUpgrade}
+                    >
+                      <Lock className="w-4 h-4 mr-2" />
+                      Mua Credits
+                    </Button>
+                    <p className="text-xs text-muted-foreground">Thanh toán nhanh qua ngân hàng</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground mb-5">
+                      Xem ví dụ mẫu luận giải AI chi tiết để hình dung trước khi mua credit.
+                    </p>
+                    <Button
+                      variant="gold"
+                      size="lg"
+                      className="w-full mb-3"
+                      onClick={handleInterpret}
+                      disabled={demoLoading}
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      {demoLoading ? "Đang tải ví dụ..." : "Xem luận giải mẫu"}
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      Miễn phí · Xem trước khi mua credit
+                    </p>
+                  </>
+                )}
               </>
             )}
           </Card>

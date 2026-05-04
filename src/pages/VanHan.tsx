@@ -27,6 +27,8 @@ import {
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
+import { useDemoExample, type DemoFeature } from "@/hooks/useDemoExample";
+import { DemoBanner } from "@/components/DemoBanner";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
 import { getISOWeek, startOfISOWeek, endOfISOWeek, addWeeks } from "date-fns";
@@ -215,6 +217,7 @@ function truncateToWords(text: string, maxWords: number): { preview: string; isT
 const VanHan = () => {
   const { user, isGuest } = useAuth();
   const { openUpgrade } = useUpgradeModal();
+  const { demoData, demoMode, demoLoading, fetchDemo, exitDemo } = useDemoExample();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TimeFrame>("year");
   const [timeOffset, setTimeOffset] = useState(0);
@@ -308,6 +311,11 @@ const VanHan = () => {
     if (selectedChart) loadCredits();
   }, [activeTab, selectedChart]);
 
+  // Auto-exit demo when credits become available
+  useEffect(() => {
+    if (demoMode && hasCredits) exitDemo();
+  }, [demoMode, hasCredits, exitDemo]);
+
   // ══════════════════════════════════════════════════════════════
   // AUTO-OPEN: If user has pending payment for current tab's
   // feature → auto-open standalone payment modal (QR immediately)
@@ -351,6 +359,7 @@ const VanHan = () => {
     setTimeOffset(0);
     setStreamingForTab(null);
     setCheckedPendingPayment(false);
+    if (demoMode) exitDemo();
   }, [activeTab]);
 
   // ══════════════════════════════════════════════════════════════
@@ -461,8 +470,9 @@ const VanHan = () => {
   // ── CHANGE 3: Analyze with STREAMING — deducts 1 credit ──
   const handleAnalyze = async () => {
     if (!selectedChart) return;
-    if (isGuest) {
-      openUpgrade();
+    if (isGuest || (!hasCredits && !everPurchased)) {
+      const feature = `van_han_${activeTab}` as DemoFeature;
+      await fetchDemo(feature);
       return;
     }
     if (!hasCredits) return;
@@ -738,6 +748,59 @@ const VanHan = () => {
 
   // ── CHANGE 4: Render AI result with streaming + freemium states ──
   const renderAiResult = () => {
+    // ── DEMO MODE: show sample AI output to guests / 0-credit users ──
+    if (demoMode && demoData) {
+      return (
+        <div id="van-han-result" className="space-y-4">
+          <DemoBanner
+            data={demoData}
+            isGuest={isGuest}
+            onGuestCta={openUpgrade}
+            onBuyCta={() => {
+              if (isGuest) {
+                openUpgrade();
+                return;
+              }
+              if (!user) {
+                window.location.href =
+                  "/auth?redirect=" + encodeURIComponent(window.location.pathname);
+                return;
+              }
+              setShowPaymentModal(true);
+            }}
+            variant="top"
+          />
+          <div className="rounded-2xl p-5 bg-gradient-to-br from-secondary/5 to-surface-2 border border-secondary/20">
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="w-5 h-5 text-secondary" />
+              <h3 className="font-display text-lg text-secondary">
+                Luận giải mẫu — {demoData.demo_person_name}
+              </h3>
+            </div>
+            <div className="space-y-1">{renderMarkdown(demoData.demo_output)}</div>
+          </div>
+          <DemoBanner
+            data={demoData}
+            isGuest={isGuest}
+            onGuestCta={openUpgrade}
+            onBuyCta={() => {
+              if (isGuest) {
+                openUpgrade();
+                return;
+              }
+              if (!user) {
+                window.location.href =
+                  "/auth?redirect=" + encodeURIComponent(window.location.pathname);
+                return;
+              }
+              setShowPaymentModal(true);
+            }}
+            variant="bottom"
+          />
+        </div>
+      );
+    }
+
     // ── STATE A: STREAMING ──
     if ((isAnalyzing || isStreamingAI) && !currentResult) {
       return (
@@ -792,12 +855,23 @@ const VanHan = () => {
 
       return (
         <div id="van-han-result" className="text-center py-6">
-          <Button variant="gold" size="lg" onClick={handleAnalyze} disabled={!canAnalyze}>
+          <Button
+            variant="gold"
+            size="lg"
+            onClick={handleAnalyze}
+            disabled={demoLoading || (isGuest === false && user != null && !canAnalyze && everPurchased)}
+          >
             <Sparkles className="w-5 h-5 mr-2" />
-            {`Luận Giải AI ${timeInfo.label}`}
+            {canAnalyze
+              ? `Luận Giải AI ${timeInfo.label}`
+              : demoLoading
+                ? "Đang tải ví dụ..."
+                : `Xem ví dụ mẫu (${timeInfo.label})`}
           </Button>
           <p className="text-xs text-muted-foreground mt-2">
-            Phân tích chuyên sâu bằng AI dựa trên lá số của bạn
+            {canAnalyze
+              ? "Phân tích chuyên sâu bằng AI dựa trên lá số của bạn"
+              : "Xem ví dụ mẫu trước khi mua credit"}
           </p>
         </div>
       );
@@ -1211,7 +1285,15 @@ const VanHan = () => {
         {/* Content - only if chart selected */}
         {selectedChart && (
           <>
-            {currentResult || isAnalyzing || isStreamingAI || activeStreamedText || everPurchased || canAnalyze ? (
+            {currentResult ||
+            isAnalyzing ||
+            isStreamingAI ||
+            activeStreamedText ||
+            everPurchased ||
+            canAnalyze ||
+            isGuest ||
+            demoMode ||
+            demoLoading ? (
               <div className="space-y-4">
                 {hasCredits && (
                   <div className="text-xs text-primary/70 text-center">
