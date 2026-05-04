@@ -748,6 +748,59 @@ const VanHan = () => {
 
   // ── CHANGE 4: Render AI result with streaming + freemium states ──
   const renderAiResult = () => {
+    // ── DEMO MODE: show sample AI output to guests / 0-credit users ──
+    if (demoMode && demoData) {
+      return (
+        <div id="van-han-result" className="space-y-4">
+          <DemoBanner
+            data={demoData}
+            isGuest={isGuest}
+            onGuestCta={openUpgrade}
+            onBuyCta={() => {
+              if (isGuest) {
+                openUpgrade();
+                return;
+              }
+              if (!user) {
+                window.location.href =
+                  "/auth?redirect=" + encodeURIComponent(window.location.pathname);
+                return;
+              }
+              setShowPaymentModal(true);
+            }}
+            variant="top"
+          />
+          <div className="rounded-2xl p-5 bg-gradient-to-br from-secondary/5 to-surface-2 border border-secondary/20">
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="w-5 h-5 text-secondary" />
+              <h3 className="font-display text-lg text-secondary">
+                Luận giải mẫu — {demoData.demo_person_name}
+              </h3>
+            </div>
+            <div className="space-y-1">{renderMarkdown(demoData.demo_output)}</div>
+          </div>
+          <DemoBanner
+            data={demoData}
+            isGuest={isGuest}
+            onGuestCta={openUpgrade}
+            onBuyCta={() => {
+              if (isGuest) {
+                openUpgrade();
+                return;
+              }
+              if (!user) {
+                window.location.href =
+                  "/auth?redirect=" + encodeURIComponent(window.location.pathname);
+                return;
+              }
+              setShowPaymentModal(true);
+            }}
+            variant="bottom"
+          />
+        </div>
+      );
+    }
+
     // ── STATE A: STREAMING ──
     if ((isAnalyzing || isStreamingAI) && !currentResult) {
       return (
