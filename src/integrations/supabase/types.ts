@@ -345,6 +345,45 @@ export type Database = {
           },
         ]
       }
+      demo_examples: {
+        Row: {
+          created_at: string | null
+          demo_birth_date: string
+          demo_birth_hour: string
+          demo_gender: string
+          demo_input: Json
+          demo_output: string | null
+          demo_person_name: string
+          feature: string
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          demo_birth_date: string
+          demo_birth_hour: string
+          demo_gender: string
+          demo_input?: Json
+          demo_output?: string | null
+          demo_person_name: string
+          feature: string
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          demo_birth_date?: string
+          demo_birth_hour?: string
+          demo_gender?: string
+          demo_input?: Json
+          demo_output?: string | null
+          demo_person_name?: string
+          feature?: string
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       kieu_analyses: {
         Row: {
           analysis_result: string | null
