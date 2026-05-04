@@ -31,6 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import AuthPromptCard from "@/components/AuthPromptCard";
 import { useDemoExample } from "@/hooks/useDemoExample";
 import { DemoBanner } from "@/components/DemoBanner";
+import { DemoSkeleton } from "@/components/DemoSkeleton";
 
 // ── Helpers ──
 
@@ -653,6 +654,16 @@ export default function TuViIztroPage() {
   // ── Render analysis section with all states ──
   const renderAnalysisSection = () => {
     const displayText = cachedAnalysis || streamedText;
+
+    // ── DEMO LOADING: skeleton while fetching the sample ──
+    if (demoLoading && !demoMode) {
+      return (
+        <div id="analysis-result" className="space-y-6">
+          {chart && <ChartInterpretationDisplay chart={chart} />}
+          <DemoSkeleton title="Đang tải luận giải mẫu..." lines={10} />
+        </div>
+      );
+    }
 
     // ── DEMO MODE: show sample output for guests / 0-credit users ──
     if (demoMode && demoData) {
