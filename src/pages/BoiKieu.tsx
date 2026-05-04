@@ -229,13 +229,28 @@ const BoiKieu = () => {
   }, [demoMode, hasCredits, exitDemo]);
 
   const handleShare = async (type: "verse" | "full") => {
-    if (!verse) return;
+    const inDemo = demoMode && !!demoData && !verse;
+    if (!verse && !inDemo) return;
+
+    const verseText = verse?.verse;
+    const questionText = inDemo ? "Câu hỏi mẫu" : question;
+    const prefix = inDemo ? "🔍 Ví dụ mẫu — 📜 Bói Kiều" : "📜 Bói Kiều";
+
     let shareText = "";
     if (type === "verse") {
-      shareText = `📜 Bói Kiều\n\n❓ ${question}\n\n"${verse.verse}"\n\n🔮 Xem tại: ai-tuvi.lovable.app`;
+      if (verseText) {
+        shareText = `${prefix}\n\n❓ ${questionText}\n\n"${verseText}"\n\n🔮 Xem tại: ai-tuvi.lovable.app`;
+      } else if (inDemo && demoData) {
+        // Demo without a drawn verse — share the first quoted line if present, else the intro.
+        const firstQuote = demoData.demo_output.match(/"([^"\n]+)"/)?.[1];
+        shareText = `${prefix}\n\n${firstQuote ? `"${firstQuote}"` : demoData.demo_output.split("\n")[0]}\n\n🔮 Xem tại: ai-tuvi.lovable.app`;
+      } else {
+        return;
+      }
     } else {
-      if (!displayText) return;
-      const cleaned = displayText
+      const fullSource = displayText || (inDemo && demoData ? demoData.demo_output : "");
+      if (!fullSource) return;
+      const cleaned = fullSource
         .replace(/^#{1,3} /gm, "")
         .replace(/\*\*(.*?)\*\*/g, "$1")
         .replace(/\*(.*?)\*/g, "$1")
@@ -243,11 +258,16 @@ const BoiKieu = () => {
         .replace(/^> /gm, "")
         .replace(/\n{3,}/g, "\n\n")
         .trim();
-      shareText = `📜 Bói Kiều\n\n❓ ${question}\n\n"${verse.verse}"\n\n${cleaned}\n\n🔮 Xem tại: ai-tuvi.lovable.app`;
+      const versePart = verseText ? `\n\n"${verseText}"` : "";
+      shareText = `${prefix}\n\n❓ ${questionText}${versePart}\n\n${cleaned}\n\n🔮 Xem tại: ai-tuvi.lovable.app`;
     }
     if (navigator.share) {
       try {
-        await navigator.share({ title: "Bói Kiều - Tử Vi App", text: shareText, url: "https://ai-tuvi.lovable.app" });
+        await navigator.share({
+          title: inDemo ? "Bói Kiều - Ví dụ mẫu" : "Bói Kiều - Tử Vi App",
+          text: shareText,
+          url: "https://ai-tuvi.lovable.app",
+        });
         return;
       } catch {}
     }
@@ -619,6 +639,12 @@ const BoiKieu = () => {
               </h3>
             </div>
             <div className="space-y-1">{renderMarkdown(demoData.demo_output)}</div>
+            <div className="flex gap-2 mt-5">
+              <Button variant="goldOutline" size="sm" onClick={() => handleShare("full")} className="flex-1 text-xs">
+                <Share2 className="w-3.5 h-3.5 mr-1" />
+                Chia sẻ ví dụ mẫu
+              </Button>
+            </div>
           </div>
           <DemoBanner
             data={demoData}

@@ -651,25 +651,30 @@ const VanHan = () => {
   };
 
   const handleShare = async (type: "full" | "quote") => {
-    if (!currentResult) return;
+    // Prefer real result; fall back to demo output when in demo mode.
+    const sourceText = currentResult || (demoMode && demoData ? demoData.demo_output : "");
+    if (!sourceText) return;
+
+    const isDemo = !currentResult && demoMode && !!demoData;
+    const labelPrefix = isDemo ? `🔍 Ví dụ mẫu — ${timeInfo.label}` : `✨ ${timeInfo.label}`;
 
     let shareText = "";
     if (type === "full") {
-      const cleaned = cleanMarkdown(currentResult);
-      shareText = `✨ ${timeInfo.label} - Tử Vi App\n\n${cleaned}\n\n🔮 Xem tại: ai-tuvi.lovable.app`;
+      const cleaned = cleanMarkdown(sourceText);
+      shareText = `${labelPrefix} - Tử Vi App\n\n${cleaned}\n\n🔮 Xem tại: ai-tuvi.lovable.app`;
     } else {
-      const chamNgon = extractChamNgon(currentResult);
+      const chamNgon = extractChamNgon(sourceText);
       if (!chamNgon) {
         toast.error("Không tìm thấy câu châm ngôn");
         return;
       }
-      shareText = `✨ ${chamNgon}\n\n🔮 Xem tại: ai-tuvi.lovable.app`;
+      shareText = `${isDemo ? "🔍 Ví dụ mẫu · " : ""}✨ ${chamNgon}\n\n🔮 Xem tại: ai-tuvi.lovable.app`;
     }
 
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Tử Vi - ${timeInfo.label}`,
+          title: isDemo ? `Ví dụ mẫu - ${timeInfo.label}` : `Tử Vi - ${timeInfo.label}`,
           text: shareText,
           url: "https://ai-tuvi.lovable.app",
         });
@@ -788,6 +793,16 @@ const VanHan = () => {
               </h3>
             </div>
             <div className="space-y-1">{renderMarkdown(demoData.demo_output)}</div>
+            <div className="flex gap-2 mt-5">
+              <Button variant="ghost" size="sm" onClick={() => handleShare("quote")} className="flex-1 text-xs">
+                <Share2 className="w-3.5 h-3.5 mr-1" />
+                Chia sẻ châm ngôn
+              </Button>
+              <Button variant="goldOutline" size="sm" onClick={() => handleShare("full")} className="flex-1 text-xs">
+                <Share2 className="w-3.5 h-3.5 mr-1" />
+                Chia sẻ ví dụ mẫu
+              </Button>
+            </div>
           </div>
           <DemoBanner
             data={demoData}

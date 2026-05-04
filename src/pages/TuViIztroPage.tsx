@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Loader2, Sparkles, Lock, History, ChevronDown, ChevronUp, CreditCard } from "lucide-react";
+import { CalendarIcon, Loader2, Sparkles, Lock, History, ChevronDown, ChevronUp, CreditCard, Share2 } from "lucide-react";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -130,6 +130,35 @@ export default function TuViIztroPage() {
   const { user, isGuest } = useAuth();
   const { openUpgrade } = useUpgradeModal();
   const { demoData, demoMode, demoLoading, fetchDemo, exitDemo } = useDemoExample();
+
+  const handleShareDemo = async () => {
+    if (!demoData) return;
+    const cleaned = demoData.demo_output
+      .replace(/^#{1,3} /gm, "")
+      .replace(/\*\*(.*?)\*\*/g, "$1")
+      .replace(/\*(.*?)\*/g, "$1")
+      .replace(/^[-•] /gm, "• ")
+      .replace(/^> /gm, "")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+    const shareText = `🔍 Ví dụ mẫu — Luận giải Tử Vi\n\n${cleaned}\n\n🔮 Xem tại: ai-tuvi.lovable.app`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Luận giải Tử Vi - Ví dụ mẫu",
+          text: shareText,
+          url: "https://ai-tuvi.lovable.app",
+        });
+        return;
+      } catch {}
+    }
+    try {
+      await navigator.clipboard.writeText(shareText);
+      toast.success("📋 Đã sao chép ví dụ mẫu!");
+    } catch {
+      toast.error("Không thể chia sẻ. Vui lòng thử lại.");
+    }
+  };
   const [chart, setChart] = useState<TuViChartData | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -683,6 +712,17 @@ export default function TuViIztroPage() {
               Luận giải mẫu — {demoData.demo_person_name}
             </h2>
             <div className="space-y-1">{renderAnalysisMarkdown(demoData.demo_output)}</div>
+            <div className="flex gap-2 mt-5 pt-4 border-t border-primary/10">
+              <Button
+                variant="goldOutline"
+                size="sm"
+                className="flex-1 text-xs"
+                onClick={() => handleShareDemo()}
+              >
+                <Share2 className="w-3.5 h-3.5 mr-1" />
+                Chia sẻ ví dụ mẫu
+              </Button>
+            </div>
           </Card>
           <DemoBanner
             data={demoData}
