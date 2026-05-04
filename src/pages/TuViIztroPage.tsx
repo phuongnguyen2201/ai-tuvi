@@ -859,20 +859,43 @@ export default function TuViIztroPage() {
               </>
             ) : (
               <>
-                <p className="text-2xl font-bold text-primary mb-2">39.000đ</p>
-                <p className="text-sm text-muted-foreground mb-5">
-                  3 credits — dùng cho luận giải, bói Kiều, bói Quẻ, vận hạn.
-                </p>
-                <Button
-                  variant="gold"
-                  size="lg"
-                  className="w-full mb-3"
-                  onClick={openPaymentOrUpgrade}
-                >
-                  <Lock className="w-4 h-4 mr-2" />
-                  Mua Credits
-                </Button>
-                <p className="text-xs text-muted-foreground">Thanh toán nhanh qua ngân hàng</p>
+                {everPurchased && !hasAccess ? (
+                  <>
+                    <p className="text-2xl font-bold text-primary mb-2">39.000đ</p>
+                    <p className="text-sm text-muted-foreground mb-5">
+                      Bạn đã hết credits. Mua thêm để tiếp tục luận giải.
+                    </p>
+                    <Button
+                      variant="gold"
+                      size="lg"
+                      className="w-full mb-3"
+                      onClick={openPaymentOrUpgrade}
+                    >
+                      <Lock className="w-4 h-4 mr-2" />
+                      Mua Credits
+                    </Button>
+                    <p className="text-xs text-muted-foreground">Thanh toán nhanh qua ngân hàng</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground mb-5">
+                      Xem ví dụ mẫu luận giải AI chi tiết để hình dung trước khi mua credit.
+                    </p>
+                    <Button
+                      variant="gold"
+                      size="lg"
+                      className="w-full mb-3"
+                      onClick={handleInterpret}
+                      disabled={demoLoading}
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      {demoLoading ? "Đang tải ví dụ..." : "Xem luận giải mẫu"}
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      Miễn phí · Xem trước khi mua credit
+                    </p>
+                  </>
+                )}
               </>
             )}
           </Card>
