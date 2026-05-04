@@ -1206,39 +1206,63 @@ const BoiQue = () => {
             </div>
           )}
 
-          {!result &&
-            (canGieoQue ? (
-              <>
-                <Button
-                  variant="gold"
-                  size="lg"
-                  className="w-full"
-                  onClick={handleGieoQue}
-                  disabled={isAnimating || isStreamingAI || !question.trim()}
-                >
-                  {isAnimating ? "Đang gieo quẻ..." : "Gieo Quẻ"}
-                </Button>
-                <p className="text-center text-xs text-muted-foreground">{usesLabel}</p>
-              </>
-            ) : !user ? (
-              <AuthPromptCard
-                title="Đăng nhập để tiếp tục"
-                description="Đăng ký tài khoản miễn phí để nhận 1 credit dùng thử!"
-              />
-            ) : !everPurchased ? (
-              <PaymentGate
-                feature="boi_que"
-                title="Mua Credits - 39.000đ"
-                description="3 credits — dùng cho bất kỳ tính năng nào"
-                onUnlocked={() => {
-                  loadCredits();
-                }}
+          {!result && !demoMode && (
+            <>
+              <Button
+                variant="gold"
+                size="lg"
+                className="w-full"
+                onClick={handleGieoQue}
+                disabled={isAnimating || isStreamingAI || !question.trim() || demoLoading}
               >
-                 <Button disabled variant="gold" size="lg" className="w-full">
-                   Gieo Quẻ
-                 </Button>
-              </PaymentGate>
-            ) : null)}
+                {isAnimating
+                  ? "Đang gieo quẻ..."
+                  : demoLoading
+                    ? "Đang tải ví dụ..."
+                    : canGieoQue
+                      ? "Gieo Quẻ"
+                      : "Xem ví dụ mẫu"}
+              </Button>
+              <p className="text-center text-xs text-muted-foreground">
+                {canGieoQue
+                  ? usesLabel
+                  : isGuest
+                    ? "Xem trước luận giải mẫu — miễn phí"
+                    : "Xem ví dụ mẫu trước khi mua credit"}
+              </p>
+            </>
+          )}
+
+          {demoMode && demoData && (
+            <div className="space-y-4">
+              <DemoBanner
+                data={demoData}
+                isGuest={isGuest}
+                onGuestCta={openUpgrade}
+                onBuyCta={openPaymentOrUpgrade}
+                variant="top"
+              />
+              <div className="rounded-2xl p-5 bg-gradient-to-br from-surface-3 to-surface-2 border border-gold/20">
+                <div className="flex items-center gap-2 mb-4">
+                  <Sparkles className="w-5 h-5 text-gold" />
+                  <h3 className="font-display text-lg text-gold">
+                    Luận giải mẫu — {demoData.demo_person_name}
+                  </h3>
+                </div>
+                <div className="space-y-1">{renderMarkdown(demoData.demo_output)}</div>
+              </div>
+              <DemoBanner
+                data={demoData}
+                isGuest={isGuest}
+                onGuestCta={openUpgrade}
+                onBuyCta={openPaymentOrUpgrade}
+                variant="bottom"
+              />
+              <Button variant="ghost" size="sm" className="w-full" onClick={exitDemo}>
+                ← Đóng ví dụ mẫu
+              </Button>
+            </div>
+          )}
         </div>
 
         {result && style && (
