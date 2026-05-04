@@ -217,6 +217,7 @@ function truncateToWords(text: string, maxWords: number): { preview: string; isT
 const VanHan = () => {
   const { user, isGuest } = useAuth();
   const { openUpgrade } = useUpgradeModal();
+  const { demoData, demoMode, demoLoading, fetchDemo, exitDemo } = useDemoExample();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TimeFrame>("year");
   const [timeOffset, setTimeOffset] = useState(0);
@@ -463,8 +464,9 @@ const VanHan = () => {
   // ── CHANGE 3: Analyze with STREAMING — deducts 1 credit ──
   const handleAnalyze = async () => {
     if (!selectedChart) return;
-    if (isGuest) {
-      openUpgrade();
+    if (isGuest || (!hasCredits && !everPurchased)) {
+      const feature = `van_han_${activeTab}` as DemoFeature;
+      await fetchDemo(feature);
       return;
     }
     if (!hasCredits) return;
