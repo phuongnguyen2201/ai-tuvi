@@ -13,6 +13,7 @@ import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
 import { useDemoExample } from "@/hooks/useDemoExample";
 import { DemoBanner } from "@/components/DemoBanner";
+import { DemoSkeleton } from "@/components/DemoSkeleton";
 
 const fortuneStyles: Record<string, { bg: string; border: string; badge: string; badgeText: string }> = {
   excellent: {
@@ -599,7 +600,9 @@ const BoiKieu = () => {
         </div>
       )}
 
-      {demoMode && demoData ? (
+      {demoLoading && !demoMode ? (
+        <DemoSkeleton title="Đang tải quẻ Kiều mẫu..." lines={6} />
+      ) : demoMode && demoData ? (
         <div className="space-y-4">
           <DemoBanner
             data={demoData}
