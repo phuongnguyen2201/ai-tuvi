@@ -698,6 +698,7 @@ function renderBold(text: string): React.ReactNode {
 const BoiQue = () => {
   const { user, isGuest } = useAuth();
   const { openUpgrade } = useUpgradeModal();
+  const { demoData, demoMode, demoLoading, fetchDemo, exitDemo } = useDemoExample();
   const [question, setQuestion] = useState("");
   const [result, setResult] = useState<(typeof QUE_DATA)[0] | null>(null);
   const [hexLines, setHexLines] = useState<string[]>([]);
@@ -884,8 +885,8 @@ const BoiQue = () => {
       toast.error("Vui lòng nhập câu hỏi trước khi gieo quẻ");
       return;
     }
-    if (isGuest) {
-      openUpgrade();
+    if (isGuest || (!canGieoQue && !everPurchased)) {
+      fetchDemo("boi_que");
       return;
     }
     if (!canGieoQue) {
@@ -966,6 +967,11 @@ const BoiQue = () => {
     }
     setShowPayment(true);
   };
+
+  // Auto-exit demo when credits arrive
+  useEffect(() => {
+    if (demoMode && hasCredits) exitDemo();
+  }, [demoMode, hasCredits, exitDemo]);
 
   const style = result ? fortuneConfig[result.fortune as keyof typeof fortuneConfig] : null;
 
