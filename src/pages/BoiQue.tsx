@@ -24,6 +24,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
+import { useDemoExample } from "@/hooks/useDemoExample";
+import { DemoBanner } from "@/components/DemoBanner";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import AuthPromptCard from "@/components/AuthPromptCard";
 import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
