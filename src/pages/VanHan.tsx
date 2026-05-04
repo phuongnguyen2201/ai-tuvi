@@ -651,25 +651,30 @@ const VanHan = () => {
   };
 
   const handleShare = async (type: "full" | "quote") => {
-    if (!currentResult) return;
+    // Prefer real result; fall back to demo output when in demo mode.
+    const sourceText = currentResult || (demoMode && demoData ? demoData.demo_output : "");
+    if (!sourceText) return;
+
+    const isDemo = !currentResult && demoMode && !!demoData;
+    const labelPrefix = isDemo ? `🔍 Ví dụ mẫu — ${timeInfo.label}` : `✨ ${timeInfo.label}`;
 
     let shareText = "";
     if (type === "full") {
-      const cleaned = cleanMarkdown(currentResult);
-      shareText = `✨ ${timeInfo.label} - Tử Vi App\n\n${cleaned}\n\n🔮 Xem tại: ai-tuvi.lovable.app`;
+      const cleaned = cleanMarkdown(sourceText);
+      shareText = `${labelPrefix} - Tử Vi App\n\n${cleaned}\n\n🔮 Xem tại: ai-tuvi.lovable.app`;
     } else {
-      const chamNgon = extractChamNgon(currentResult);
+      const chamNgon = extractChamNgon(sourceText);
       if (!chamNgon) {
         toast.error("Không tìm thấy câu châm ngôn");
         return;
       }
-      shareText = `✨ ${chamNgon}\n\n🔮 Xem tại: ai-tuvi.lovable.app`;
+      shareText = `${isDemo ? "🔍 Ví dụ mẫu · " : ""}✨ ${chamNgon}\n\n🔮 Xem tại: ai-tuvi.lovable.app`;
     }
 
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Tử Vi - ${timeInfo.label}`,
+          title: isDemo ? `Ví dụ mẫu - ${timeInfo.label}` : `Tử Vi - ${timeInfo.label}`,
           text: shareText,
           url: "https://ai-tuvi.lovable.app",
         });
