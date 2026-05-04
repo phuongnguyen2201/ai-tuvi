@@ -29,6 +29,8 @@ import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import AuthPromptCard from "@/components/AuthPromptCard";
+import { useDemoExample } from "@/hooks/useDemoExample";
+import { DemoBanner } from "@/components/DemoBanner";
 
 // ── Helpers ──
 
@@ -126,6 +128,7 @@ const LUNAR_HOURS = [
 export default function TuViIztroPage() {
   const { user, isGuest } = useAuth();
   const { openUpgrade } = useUpgradeModal();
+  const { demoData, demoMode, demoLoading, fetchDemo, exitDemo } = useDemoExample();
   const [chart, setChart] = useState<TuViChartData | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -468,16 +471,25 @@ export default function TuViIztroPage() {
   );
 
   const handleInterpret = useCallback(async () => {
-    if (isGuest) {
-      openUpgrade();
-      return;
-    }
     if (hasAccess && credits > 0) {
       await loadAnalysis();
       return;
     }
+    // Guest OR logged-in user with 0 credits and never purchased → show demo instead
+    if (isGuest || (!hasAccess && !everPurchased)) {
+      await fetchDemo("luan_giai");
+      return;
+    }
+    // Logged-in user who previously purchased but ran out → straight to QR
     setShowPayment(true);
-  }, [hasAccess, credits, loadAnalysis, isGuest, openUpgrade]);
+  }, [hasAccess, credits, loadAnalysis, isGuest, everPurchased, fetchDemo]);
+
+  // Auto-exit demo when user buys credits
+  useEffect(() => {
+    if (demoMode && hasAccess && credits > 0) {
+      exitDemo();
+    }
+  }, [demoMode, hasAccess, credits, exitDemo]);
 
   // Guard: open VietQR for users, UpgradeModal for guests
   const openPaymentOrUpgrade = useCallback(() => {
