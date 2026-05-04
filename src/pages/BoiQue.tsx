@@ -25,6 +25,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useDemoExample } from "@/hooks/useDemoExample";
 import { DemoBanner } from "@/components/DemoBanner";
+import { DemoSkeleton } from "@/components/DemoSkeleton";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
 
@@ -1229,6 +1230,10 @@ const BoiQue = () => {
                     : "Xem ví dụ mẫu trước khi mua credit"}
               </p>
             </>
+          )}
+
+          {demoLoading && !demoMode && (
+            <DemoSkeleton title="Đang tải quẻ mẫu..." lines={6} />
           )}
 
           {demoMode && demoData && (
