@@ -491,6 +491,12 @@ export default function TuViIztroPage() {
     }
   }, [demoMode, hasAccess, credits, exitDemo]);
 
+  // Exit demo when form is resubmitted (new chart)
+  useEffect(() => {
+    if (isFormDirty && demoMode) exitDemo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chart]);
+
   // Guard: open VietQR for users, UpgradeModal for guests
   const openPaymentOrUpgrade = useCallback(() => {
     if (isGuest) {
