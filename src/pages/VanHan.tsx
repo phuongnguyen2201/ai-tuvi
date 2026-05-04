@@ -793,6 +793,16 @@ const VanHan = () => {
               </h3>
             </div>
             <div className="space-y-1">{renderMarkdown(demoData.demo_output)}</div>
+            <div className="flex gap-2 mt-5">
+              <Button variant="ghost" size="sm" onClick={() => handleShare("quote")} className="flex-1 text-xs">
+                <Share2 className="w-3.5 h-3.5 mr-1" />
+                Chia sẻ châm ngôn
+              </Button>
+              <Button variant="goldOutline" size="sm" onClick={() => handleShare("full")} className="flex-1 text-xs">
+                <Share2 className="w-3.5 h-3.5 mr-1" />
+                Chia sẻ ví dụ mẫu
+              </Button>
+            </div>
           </div>
           <DemoBanner
             data={demoData}
