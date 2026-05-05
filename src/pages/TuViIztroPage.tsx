@@ -758,13 +758,20 @@ export default function TuViIztroPage() {
               </Button>
             </div>
           </Card>
-          <DemoBanner
-            data={demoData}
-            isGuest={isGuest}
-            onGuestCta={openUpgrade}
-            onBuyCta={openPaymentOrUpgrade}
-            variant="bottom"
-          />
+          {!hasAccess && (
+            <DemoBanner
+              data={demoData}
+              isGuest={isGuest}
+              onGuestCta={openUpgrade}
+              onBuyCta={openPaymentOrUpgrade}
+              variant="bottom"
+            />
+          )}
+          {hasAccess && (
+            <Button variant="ghost" size="sm" className="w-full" onClick={exitDemo}>
+              Đóng ví dụ mẫu
+            </Button>
+          )}
         </div>
       );
     }
