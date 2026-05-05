@@ -726,7 +726,7 @@ export default function TuViIztroPage() {
     if (demoMode && demoData) {
       return (
         <div id="analysis-result" className="space-y-6">
-          <ChartInterpretationDisplay chart={chart!} />
+          {chart && <ChartInterpretationDisplay chart={chart} />}
           <DemoBanner
             data={demoData}
             isGuest={isGuest}
