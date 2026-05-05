@@ -29,6 +29,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useDemoExample, type DemoFeature } from "@/hooks/useDemoExample";
 import { DemoBanner } from "@/components/DemoBanner";
+import { PinnedDemoEntry } from "@/components/PinnedDemoEntry";
 import { DemoSkeleton } from "@/components/DemoSkeleton";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
