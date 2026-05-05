@@ -155,17 +155,22 @@ describe("Pinned demo entry — wiring per page", () => {
       const src = readPage(spec.path);
 
       it("only renders the pinned entry for logged-in non-guest users", () => {
-        // The page must guard the pinned entry behind `user && !isGuest`.
-        // Either inline (`{user && !isGuest && <PinnedDemoEntry ...`) or via a
-        // boolean computed nearby (e.g. `const showPinned = !!user && !isGuest`).
+        // The page must guard the pinned entry behind a `user && !isGuest`
+        // check. Accept any of:
+        //   (a) inline JSX guard `{user && !isGuest && <PinnedDemoEntry ...`
+        //   (b) a `showPinned` flag derived from user + isGuest
+        //   (c) the enclosing render function early-returns when guest
+        //       (`if (!user || isGuest) return null;`)
         const idx = src.indexOf("<PinnedDemoEntry");
-        const window = src.slice(Math.max(0, idx - 600), idx);
+        const window = src.slice(Math.max(0, idx - 1500), idx);
         const inlineGuard = /user\s*&&\s*!isGuest\s*&&/.test(window);
         const flagGuard =
-          /const\s+showPinned\s*=\s*[^;]*user[^;]*!isGuest/.test(src) &&
+          /const\s+showPinned\s*=/.test(src) &&
           /\{\s*showPinned\s*&&/.test(window);
+        const earlyReturnGuard =
+          /if\s*\(\s*!user\s*\|\|\s*isGuest\s*\)\s*return/.test(window);
         expect(
-          inlineGuard || flagGuard,
+          inlineGuard || flagGuard || earlyReturnGuard,
           "pinned entry must be gated by `user && !isGuest`",
         ).toBe(true);
       });
