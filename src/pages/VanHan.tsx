@@ -314,11 +314,6 @@ const VanHan = () => {
     if (selectedChart) loadCredits();
   }, [activeTab, selectedChart]);
 
-  // Auto-exit demo when credits become available
-  useEffect(() => {
-    if (demoMode && hasCredits) exitDemo();
-  }, [demoMode, hasCredits, exitDemo]);
-
   // Auto-load demo for logged-in users with 0 credits (never purchased)
   // Re-fires when activeTab changes so each tab shows its own demo.
   useEffect(() => {
