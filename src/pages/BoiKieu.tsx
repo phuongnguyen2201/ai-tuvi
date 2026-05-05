@@ -477,36 +477,38 @@ const BoiKieu = () => {
   const mainContent = (
     <div className="space-y-5">
       {user && !isGuest && (
-        <div>
-          <button
-            onClick={() => setShowHistory(!showHistory)}
-            className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border bg-surface-3 text-sm"
-          >
-            <span className="flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-gold" />
-              Lịch sử luận giải ({history.length} lần)
-            </span>
-            <span>{showHistory ? "▲" : "▼"}</span>
-          </button>
-          {showHistory && (
-            <div className="mt-2 space-y-2">
-              <PinnedDemoEntry
-                isViewing={demoMode && !verse && !result && !viewingHistoryId}
-                loading={demoLoading}
-                onClick={async () => {
-                  setVerse(null);
-                  setResult(null);
-                  setViewingHistoryId(null);
-                  setShowHistory(false);
-                  await fetchDemo("boi_kieu");
-                  setTimeout(() => {
-                    document
-                      .getElementById("boikieu-demo-anchor")
-                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }, 50);
-                }}
-              />
-              {history.map((item) => {
+        <div className="space-y-2">
+          <PinnedDemoEntry
+            isViewing={demoMode && !verse && !result && !viewingHistoryId}
+            loading={demoLoading}
+            onClick={async () => {
+              setVerse(null);
+              setResult(null);
+              setViewingHistoryId(null);
+              setShowHistory(false);
+              await fetchDemo("boi_kieu");
+              setTimeout(() => {
+                document
+                  .getElementById("boikieu-demo-anchor")
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }, 50);
+            }}
+          />
+          {history.length > 0 && (
+            <>
+              <button
+                onClick={() => setShowHistory(!showHistory)}
+                className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border bg-surface-3 text-sm"
+              >
+                <span className="flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-gold" />
+                  Lịch sử luận giải ({history.length} lần)
+                </span>
+                <span>{showHistory ? "▲" : "▼"}</span>
+              </button>
+              {showHistory && (
+                <div className="space-y-2">
+                  {history.map((item) => {
                 const isViewing = viewingHistoryId === item.id;
                 return (
                   <div
@@ -569,7 +571,9 @@ const BoiKieu = () => {
                   </div>
                 );
               })}
-            </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

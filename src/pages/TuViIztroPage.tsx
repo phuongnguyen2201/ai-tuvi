@@ -610,40 +610,42 @@ export default function TuViIztroPage() {
     const showPinned = true;
 
     return (
-      <div className="rounded-2xl bg-slate-900/80 border border-amber-600/30 overflow-hidden">
-        <button
-          onClick={() => setShowHistory(!showHistory)}
-          className="w-full flex items-center justify-between p-4 text-left hover:bg-slate-800/50 transition-colors"
-        >
-          <span className="flex items-center gap-2 text-amber-300 font-semibold">
-            <History className="w-4 h-4" />
-            Lá số & luận giải đã lập ({chartHistory.length})
-          </span>
-          {showHistory ? (
-            <ChevronUp className="w-4 h-4 text-gray-400" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-gray-400" />
-          )}
-        </button>
+      <div className="space-y-2">
+        {showPinned && (
+          <PinnedDemoEntry
+            isViewing={demoMode}
+            loading={demoLoading}
+            onClick={() => {
+              setViewingHistoryId(null);
+              setShowHistory(false);
+              fetchDemo("luan_giai");
+              setTimeout(() => {
+                document
+                  .getElementById("analysis-result")
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }, 50);
+            }}
+          />
+        )}
+        {chartHistory.length > 0 && (
+        <div className="rounded-2xl bg-slate-900/80 border border-amber-600/30 overflow-hidden">
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="w-full flex items-center justify-between p-4 text-left hover:bg-slate-800/50 transition-colors"
+          >
+            <span className="flex items-center gap-2 text-amber-300 font-semibold">
+              <History className="w-4 h-4" />
+              Lá số & luận giải đã lập ({chartHistory.length})
+            </span>
+            {showHistory ? (
+              <ChevronUp className="w-4 h-4 text-gray-400" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-gray-400" />
+            )}
+          </button>
 
         {showHistory && (
           <div className="px-4 pb-4 space-y-2 max-h-[50vh] overflow-y-auto">
-            {showPinned && (
-              <PinnedDemoEntry
-                isViewing={demoMode}
-                loading={demoLoading}
-                onClick={() => {
-                  setViewingHistoryId(null);
-                  setShowHistory(false);
-                  fetchDemo("luan_giai");
-                  setTimeout(() => {
-                    document
-                      .getElementById("analysis-result")
-                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }, 50);
-                }}
-              />
-            )}
             {historyLoading ? (
               <div className="flex items-center justify-center py-4">
                 <Loader2 className="w-5 h-5 animate-spin text-amber-400" />
@@ -702,6 +704,8 @@ export default function TuViIztroPage() {
               })
             )}
           </div>
+        )}
+        </div>
         )}
       </div>
     );

@@ -1062,42 +1062,44 @@ const VanHan = () => {
     const tabLabel = activeTab === "week" ? "tuần" : activeTab === "month" ? "tháng" : "năm";
 
     return (
-      <div className="rounded-2xl bg-surface-3 border border-border overflow-hidden">
-        <button
-          onClick={() => setShowHistory(!showHistory)}
-          className="w-full flex items-center justify-between p-4 text-left hover:bg-surface-4 transition-colors"
-        >
-          <span className="flex items-center gap-2 text-primary font-semibold text-sm">
-            <History className="w-4 h-4" />
-            Luận giải theo {tabLabel} đã thực hiện ({filtered.length})
-          </span>
-          {showHistory ? (
-            <ChevronUp className="w-4 h-4 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-muted-foreground" />
-          )}
-        </button>
+      <div className="space-y-2">
+        {showPinned && (
+          <PinnedDemoEntry
+            isViewing={demoMode && !currentResult && !activeStreamedText && !viewingHistoryId}
+            loading={demoLoading}
+            onClick={() => {
+              setCurrentResult(null);
+              setViewingHistoryId(null);
+              setShowHistory(false);
+              const feature = `van_han_${activeTab}` as DemoFeature;
+              fetchDemo(feature);
+              setTimeout(() => {
+                document
+                  .getElementById("van-han-result")
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }, 50);
+            }}
+          />
+        )}
+        {filtered.length > 0 && (
+        <div className="rounded-2xl bg-surface-3 border border-border overflow-hidden">
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="w-full flex items-center justify-between p-4 text-left hover:bg-surface-4 transition-colors"
+          >
+            <span className="flex items-center gap-2 text-primary font-semibold text-sm">
+              <History className="w-4 h-4" />
+              Luận giải theo {tabLabel} đã thực hiện ({filtered.length})
+            </span>
+            {showHistory ? (
+              <ChevronUp className="w-4 h-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            )}
+          </button>
 
         {showHistory && (
           <div className="px-4 pb-4 space-y-2 max-h-[40vh] overflow-y-auto">
-            {showPinned && (
-              <PinnedDemoEntry
-                isViewing={demoMode && !currentResult && !activeStreamedText && !viewingHistoryId}
-                loading={demoLoading}
-                onClick={() => {
-                  setCurrentResult(null);
-                  setViewingHistoryId(null);
-                  setShowHistory(false);
-                  const feature = `van_han_${activeTab}` as DemoFeature;
-                  fetchDemo(feature);
-                  setTimeout(() => {
-                    document
-                      .getElementById("van-han-result")
-                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }, 50);
-                }}
-              />
-            )}
             {historyLoading ? (
               <div className="flex items-center justify-center py-4">
                 <Loader2 className="w-5 h-5 animate-spin text-primary" />
@@ -1152,6 +1154,8 @@ const VanHan = () => {
               })
             )}
           </div>
+        )}
+        </div>
         )}
       </div>
     );
