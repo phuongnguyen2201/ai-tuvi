@@ -767,7 +767,7 @@ const VanHan = () => {
   // ── CHANGE 4: Render AI result with streaming + freemium states ──
   const renderAiResult = () => {
     // ── DEMO LOADING: skeleton while fetching sample ──
-    if (demoLoading && !demoMode) {
+    if (demoLoading && !demoMode && !currentResult && !activeStreamedText && !viewingHistoryId) {
       return (
         <div id="van-han-result">
           <DemoSkeleton title="Đang tải vận hạn mẫu..." lines={8} />
@@ -776,7 +776,7 @@ const VanHan = () => {
     }
 
     // ── DEMO MODE: show sample AI output to guests / 0-credit users ──
-    if (demoMode && demoData) {
+    if (demoMode && demoData && !currentResult && !activeStreamedText && !viewingHistoryId) {
       return (
         <div id="van-han-result" className="space-y-4">
           <DemoBanner
