@@ -231,11 +231,12 @@ const BoiKieu = () => {
   // Auto-load demo for logged-in users with 0 credits (never purchased)
   useEffect(() => {
     if (!user || isGuest) return;
-    if (hasCredits || everPurchased) return;
+    if (hasCredits) return;
     if (demoMode || demoLoading) return;
     if (verse || result) return;
+    if (viewingHistoryId) return;
     fetchDemo("boi_kieu");
-  }, [user, isGuest, hasCredits, everPurchased, demoMode, demoLoading, verse, result, fetchDemo]);
+  }, [user, isGuest, hasCredits, demoMode, demoLoading, verse, result, viewingHistoryId, fetchDemo]);
 
   const handleShare = async (type: "verse" | "full") => {
     const inDemo = demoMode && !!demoData && !verse;
@@ -629,9 +630,9 @@ const BoiKieu = () => {
         </div>
       )}
 
-      {demoLoading && !demoMode ? (
+      {demoLoading && !demoMode && !verse && !result && !viewingHistoryId ? (
         <DemoSkeleton title="Đang tải quẻ Kiều mẫu..." lines={6} />
-      ) : demoMode && demoData ? (
+      ) : demoMode && demoData && !verse && !result && !viewingHistoryId ? (
         <div className="space-y-4">
           <DemoBanner
             data={demoData}
