@@ -708,7 +708,7 @@ export default function TuViIztroPage() {
     }
 
     // ── DEMO MODE: show sample output for guests / 0-credit users ──
-    if (demoMode && demoData) {
+    if (demoMode && demoData && !cachedAnalysis && !streamedText && !viewingHistoryId) {
       return (
         <div id="analysis-result" className="space-y-6">
           <ChartInterpretationDisplay chart={chart!} />
