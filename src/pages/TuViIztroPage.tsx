@@ -564,6 +564,7 @@ export default function TuViIztroPage() {
     setIsLoading(true);
     setCachedAnalysis(null);
     setAnalysisError(false);
+    setViewingHistoryId(null);
 
     try {
       const input: BirthInput = {
