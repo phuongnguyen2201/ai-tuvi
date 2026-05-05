@@ -516,13 +516,6 @@ export default function TuViIztroPage() {
     setShowPayment(true);
   }, [hasAccess, credits, loadAnalysis, isGuest, everPurchased, fetchDemo]);
 
-  // Auto-exit demo when user buys credits
-  useEffect(() => {
-    if (demoMode && hasAccess && credits > 0) {
-      exitDemo();
-    }
-  }, [demoMode, hasAccess, credits, exitDemo]);
-
   // Auto-load demo for logged-in users with 0 credits (never purchased)
   useEffect(() => {
     if (!user || isGuest) return;
