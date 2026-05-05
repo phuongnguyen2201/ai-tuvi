@@ -228,6 +228,15 @@ const BoiKieu = () => {
     if (demoMode && hasCredits) exitDemo();
   }, [demoMode, hasCredits, exitDemo]);
 
+  // Auto-load demo for logged-in users with 0 credits (never purchased)
+  useEffect(() => {
+    if (!user || isGuest) return;
+    if (hasCredits || everPurchased) return;
+    if (demoMode || demoLoading) return;
+    if (verse || result) return;
+    fetchDemo("boi_kieu");
+  }, [user, isGuest, hasCredits, everPurchased, demoMode, demoLoading, verse, result, fetchDemo]);
+
   const handleShare = async (type: "verse" | "full") => {
     const inDemo = demoMode && !!demoData && !verse;
     if (!verse && !inDemo) return;

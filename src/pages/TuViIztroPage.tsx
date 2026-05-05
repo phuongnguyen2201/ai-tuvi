@@ -521,6 +521,16 @@ export default function TuViIztroPage() {
     }
   }, [demoMode, hasAccess, credits, exitDemo]);
 
+  // Auto-load demo for logged-in users with 0 credits (never purchased)
+  useEffect(() => {
+    if (!user || isGuest) return;
+    if (accessLoading) return;
+    if (hasAccess || everPurchased) return;
+    if (demoMode || demoLoading) return;
+    if (cachedAnalysis || streamedText) return;
+    fetchDemo("luan_giai");
+  }, [user, isGuest, accessLoading, hasAccess, everPurchased, demoMode, demoLoading, cachedAnalysis, streamedText, fetchDemo]);
+
   // Exit demo when form is resubmitted (new chart)
   useEffect(() => {
     if (isFormDirty && demoMode) exitDemo();
