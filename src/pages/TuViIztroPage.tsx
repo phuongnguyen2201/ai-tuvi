@@ -528,8 +528,9 @@ export default function TuViIztroPage() {
     if (hasAccess || everPurchased) return;
     if (demoMode || demoLoading) return;
     if (cachedAnalysis || streamedText) return;
+    if (!chart) return; // demo renders inside the chart result section
     fetchDemo("luan_giai");
-  }, [user, isGuest, accessLoading, hasAccess, everPurchased, demoMode, demoLoading, cachedAnalysis, streamedText, fetchDemo]);
+  }, [user, isGuest, accessLoading, hasAccess, everPurchased, demoMode, demoLoading, cachedAnalysis, streamedText, chart, fetchDemo]);
 
   // Exit demo when form is resubmitted (new chart)
   useEffect(() => {
