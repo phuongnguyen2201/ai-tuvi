@@ -31,6 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import AuthPromptCard from "@/components/AuthPromptCard";
 import { useDemoExample } from "@/hooks/useDemoExample";
 import { DemoBanner } from "@/components/DemoBanner";
+import { PinnedDemoEntry } from "@/components/PinnedDemoEntry";
 import { DemoSkeleton } from "@/components/DemoSkeleton";
 
 // ── Helpers ──
