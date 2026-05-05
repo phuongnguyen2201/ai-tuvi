@@ -815,24 +815,31 @@ const VanHan = () => {
               </Button>
             </div>
           </div>
-          <DemoBanner
-            data={demoData}
-            isGuest={isGuest}
-            onGuestCta={openUpgrade}
-            onBuyCta={() => {
-              if (isGuest) {
-                openUpgrade();
-                return;
-              }
-              if (!user) {
-                window.location.href =
-                  "/auth?redirect=" + encodeURIComponent(window.location.pathname);
-                return;
-              }
-              setShowPaymentModal(true);
-            }}
-            variant="bottom"
-          />
+          {!hasCredits && (
+            <DemoBanner
+              data={demoData}
+              isGuest={isGuest}
+              onGuestCta={openUpgrade}
+              onBuyCta={() => {
+                if (isGuest) {
+                  openUpgrade();
+                  return;
+                }
+                if (!user) {
+                  window.location.href =
+                    "/auth?redirect=" + encodeURIComponent(window.location.pathname);
+                  return;
+                }
+                setShowPaymentModal(true);
+              }}
+              variant="bottom"
+            />
+          )}
+          {hasCredits && (
+            <Button variant="ghost" size="sm" className="w-full" onClick={exitDemo}>
+              Đóng ví dụ mẫu
+            </Button>
+          )}
         </div>
       );
     }
