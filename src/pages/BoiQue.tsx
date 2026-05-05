@@ -28,6 +28,7 @@ import { DemoBanner } from "@/components/DemoBanner";
 import { DemoSkeleton } from "@/components/DemoSkeleton";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
+import AuthPromptCard from "@/components/AuthPromptCard";
 
 const QUE_DATA = [
   {
@@ -1202,6 +1203,14 @@ const BoiQue = () => {
         )}
 
         <div className="space-y-3">
+          {(!user || isGuest) ? (
+            <AuthPromptCard
+              variant="banner"
+              title="Đăng ký để xem ví dụ mẫu"
+              description="Đăng ký tài khoản miễn phí để xem ví dụ luận giải Bói Quẻ Kinh Dịch"
+            />
+          ) : (
+          <>
           <Textarea
             placeholder="Nhập câu hỏi của bạn... (VD: Tôi có nên đầu tư lúc này?)"
             value={question}
@@ -1297,6 +1306,8 @@ const BoiQue = () => {
                 ← Đóng ví dụ mẫu
               </Button>
             </div>
+          )}
+          </>
           )}
         </div>
 
