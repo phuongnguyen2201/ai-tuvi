@@ -346,6 +346,7 @@ export default function TuViIztroPage() {
 
     setViewingHistoryId(item.id);
     setShowHistory(false);
+    if (demoMode) exitDemo();
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
