@@ -18,17 +18,13 @@ interface DemoBannerProps {
  */
 export function DemoBanner({ data, isGuest, onGuestCta, onBuyCta, variant = "top" }: DemoBannerProps) {
   if (variant === "top") {
-    const cta = isGuest
-      ? "Đăng ký để xem cho lá số của bạn"
-      : "Mua credit để nhận luận giải cho lá số của bạn";
     return (
       <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-950/50 to-orange-950/30 p-4 flex items-start gap-3">
         <div className="shrink-0 w-9 h-9 rounded-full bg-amber-500/20 flex items-center justify-center text-lg">
           🔍
         </div>
         <div className="min-w-0 text-sm text-amber-100/90 leading-relaxed">
-          <span className="font-semibold text-amber-300">Ví dụ mẫu</span> · {buildDemoBannerText(data)}{" "}
-          <span className="text-amber-200/80">{cta}.</span>
+          <span className="font-semibold text-amber-300">Ví dụ mẫu</span> · {buildDemoBannerText(data, isGuest)}
         </div>
       </div>
     );
