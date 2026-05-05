@@ -991,11 +991,12 @@ const BoiQue = () => {
   // Auto-load demo for logged-in users with 0 credits (never purchased)
   useEffect(() => {
     if (!user || isGuest) return;
-    if (hasCredits || everPurchased) return;
+    if (hasCredits) return;
     if (demoMode || demoLoading) return;
     if (result || aiResult) return;
+    if (viewingHistoryId) return;
     fetchDemo("boi_que");
-  }, [user, isGuest, hasCredits, everPurchased, demoMode, demoLoading, result, aiResult, fetchDemo]);
+  }, [user, isGuest, hasCredits, demoMode, demoLoading, result, aiResult, viewingHistoryId, fetchDemo]);
 
   const style = result ? fortuneConfig[result.fortune as keyof typeof fortuneConfig] : null;
 
