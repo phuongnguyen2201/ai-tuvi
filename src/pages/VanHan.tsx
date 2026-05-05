@@ -1054,7 +1054,9 @@ const VanHan = () => {
   // ══════════════════════════════════════════════════════════════
   const renderHistoryPanel = () => {
     const filtered = analysisHistory.filter((a) => a.analysis_result && a.analysis_result.length > 50);
-    const showPinned = !!user && !isGuest && !!selectedChart;
+    // Pinned demo entry is always available to logged-in non-guests,
+    // regardless of whether a chart is selected or any real history exists.
+    const showPinned = !!user && !isGuest;
     if (filtered.length === 0 && !showPinned) return null;
 
     const tabLabel = activeTab === "week" ? "tuần" : activeTab === "month" ? "tháng" : "năm";
@@ -1351,6 +1353,11 @@ const VanHan = () => {
             loadCredits();
           }}
         />
+
+        {/* Demo result when there is no selected chart yet */}
+        {!selectedChart && (demoMode || demoLoading) && (
+          <div className="space-y-4">{renderAiResult()}</div>
+        )}
 
         {/* Content - only if chart selected */}
         {selectedChart && (

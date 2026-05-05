@@ -605,8 +605,9 @@ export default function TuViIztroPage() {
   // ── Render collapsible history panel ──
   const renderHistory = () => {
     if (!user || isGuest) return null;
-    const showPinned = !!chart;
-    if (chartHistory.length === 0 && !showPinned) return null;
+    // Pinned demo entry is always available to logged-in non-guests,
+    // regardless of whether a chart exists or any real history is present.
+    const showPinned = true;
 
     return (
       <div className="rounded-2xl bg-slate-900/80 border border-amber-600/30 overflow-hidden">
@@ -725,7 +726,7 @@ export default function TuViIztroPage() {
     if (demoMode && demoData) {
       return (
         <div id="analysis-result" className="space-y-6">
-          <ChartInterpretationDisplay chart={chart!} />
+          {chart && <ChartInterpretationDisplay chart={chart} />}
           <DemoBanner
             data={demoData}
             isGuest={isGuest}
@@ -1178,6 +1179,9 @@ export default function TuViIztroPage() {
             </form>
           </CardContent>
         </Card>
+
+        {/* Demo-only render when user has no chart yet but opened the pinned demo */}
+        {!chart && user && (demoMode || demoLoading) && renderAnalysisSection()}
 
         {/* Chart display + Analysis */}
         {chart && (
