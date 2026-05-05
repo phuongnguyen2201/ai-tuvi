@@ -1051,7 +1051,8 @@ const VanHan = () => {
   // ══════════════════════════════════════════════════════════════
   const renderHistoryPanel = () => {
     const filtered = analysisHistory.filter((a) => a.analysis_result && a.analysis_result.length > 50);
-    if (filtered.length === 0) return null;
+    const showPinned = !!user && !isGuest && !!selectedChart;
+    if (filtered.length === 0 && !showPinned) return null;
 
     const tabLabel = activeTab === "week" ? "tuần" : activeTab === "month" ? "tháng" : "năm";
 
@@ -1074,6 +1075,24 @@ const VanHan = () => {
 
         {showHistory && (
           <div className="px-4 pb-4 space-y-2 max-h-[40vh] overflow-y-auto">
+            {showPinned && (
+              <PinnedDemoEntry
+                isViewing={demoMode && !currentResult && !activeStreamedText && !viewingHistoryId}
+                loading={demoLoading}
+                onClick={() => {
+                  setCurrentResult(null);
+                  setViewingHistoryId(null);
+                  setShowHistory(false);
+                  const feature = `van_han_${activeTab}` as DemoFeature;
+                  fetchDemo(feature);
+                  setTimeout(() => {
+                    document
+                      .getElementById("van-han-result")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }, 50);
+                }}
+              />
+            )}
             {historyLoading ? (
               <div className="flex items-center justify-center py-4">
                 <Loader2 className="w-5 h-5 animate-spin text-primary" />
