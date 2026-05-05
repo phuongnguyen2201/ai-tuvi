@@ -698,7 +698,7 @@ export default function TuViIztroPage() {
     const displayText = cachedAnalysis || streamedText;
 
     // ── DEMO LOADING: skeleton while fetching the sample ──
-    if (demoLoading && !demoMode) {
+    if (demoLoading && !demoMode && !cachedAnalysis && !streamedText && !viewingHistoryId) {
       return (
         <div id="analysis-result" className="space-y-6">
           {chart && <ChartInterpretationDisplay chart={chart} />}
