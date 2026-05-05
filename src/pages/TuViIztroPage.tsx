@@ -710,8 +710,8 @@ export default function TuViIztroPage() {
   const renderAnalysisSection = () => {
     const displayText = cachedAnalysis || streamedText;
 
-    // ── DEMO LOADING: skeleton while fetching the sample ──
-    if (demoLoading && !demoMode && !cachedAnalysis && !streamedText && !viewingHistoryId) {
+    // ── DEMO LOADING: skeleton while fetching the sample (priority over cached) ──
+    if (demoLoading && !demoMode) {
       return (
         <div id="analysis-result" className="space-y-6">
           {chart && <ChartInterpretationDisplay chart={chart} />}
@@ -720,8 +720,9 @@ export default function TuViIztroPage() {
       );
     }
 
-    // ── DEMO MODE: show sample output for guests / 0-credit users ──
-    if (demoMode && demoData && !cachedAnalysis && !streamedText && !viewingHistoryId) {
+    // ── DEMO MODE: show sample output. When user opens via pinned entry,
+    //    demo takes precedence over cached/streamed/history result. ──
+    if (demoMode && demoData) {
       return (
         <div id="analysis-result" className="space-y-6">
           <ChartInterpretationDisplay chart={chart!} />
