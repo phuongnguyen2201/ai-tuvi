@@ -1304,13 +1304,15 @@ const BoiQue = () => {
                   </Button>
                 </div>
               </div>
-              <DemoBanner
-                data={demoData}
-                isGuest={isGuest}
-                onGuestCta={openUpgrade}
-                onBuyCta={openPaymentOrUpgrade}
-                variant="bottom"
-              />
+              {!hasCredits && (
+                <DemoBanner
+                  data={demoData}
+                  isGuest={isGuest}
+                  onGuestCta={openUpgrade}
+                  onBuyCta={openPaymentOrUpgrade}
+                  variant="bottom"
+                />
+              )}
               <Button variant="ghost" size="sm" className="w-full" onClick={exitDemo}>
                 ← Đóng ví dụ mẫu
               </Button>
