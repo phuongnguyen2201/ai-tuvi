@@ -1180,6 +1180,9 @@ export default function TuViIztroPage() {
           </CardContent>
         </Card>
 
+        {/* Demo-only render when user has no chart yet but opened the pinned demo */}
+        {!chart && user && (demoMode || demoLoading) && renderAnalysisSection()}
+
         {/* Chart display + Analysis */}
         {chart && (
           <div className="space-y-6">
