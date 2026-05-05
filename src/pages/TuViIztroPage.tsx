@@ -1166,8 +1166,8 @@ export default function TuViIztroPage() {
             {!user && (
               <AuthPromptCard
                 variant="banner"
-                title="Nhận 1 credit dùng thử miễn phí!"
-                description="Đăng ký tài khoản để AI phân tích chi tiết lá số của bạn"
+                title="Đăng ký để xem ví dụ luận giải"
+                description="Đăng ký tài khoản miễn phí để xem ví dụ luận giải AI chi tiết"
               />
             )}
 

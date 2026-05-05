@@ -32,6 +32,7 @@ import { DemoBanner } from "@/components/DemoBanner";
 import { DemoSkeleton } from "@/components/DemoSkeleton";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
+import AuthPromptCard from "@/components/AuthPromptCard";
 import { getISOWeek, startOfISOWeek, endOfISOWeek, addWeeks } from "date-fns";
 
 // ── Types ──
@@ -1232,6 +1233,14 @@ const VanHan = () => {
           <p className="text-sm text-muted-foreground">Phân tích chi tiết vận mệnh theo thời gian</p>
         </div>
 
+        {(!user || isGuest) ? (
+          <AuthPromptCard
+            variant="banner"
+            title="Đăng ký để xem ví dụ mẫu"
+            description="Đăng ký tài khoản miễn phí để xem ví dụ luận giải Vận Hạn"
+          />
+        ) : (
+        <>
         {/* Tab Selector */}
         <div className="flex rounded-xl bg-surface-3 border border-border p-1 gap-1">
           {TABS.map((tab) => (
@@ -1360,6 +1369,8 @@ const VanHan = () => {
               </PaymentGate>
             )}
           </>
+        )}
+        </>
         )}
       </div>
     </PageLayout>
