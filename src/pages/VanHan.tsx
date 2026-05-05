@@ -324,9 +324,10 @@ const VanHan = () => {
     if (hasCredits || everPurchased) return;
     if (demoMode || demoLoading) return;
     if (currentResult || activeStreamedText) return;
+    if (!selectedChart) return;
     const feature = `van_han_${activeTab}` as DemoFeature;
     fetchDemo(feature);
-  }, [user, isGuest, activeTab, hasCredits, everPurchased, demoMode, demoLoading, currentResult, activeStreamedText, fetchDemo]);
+  }, [user, isGuest, activeTab, selectedChart, hasCredits, everPurchased, demoMode, demoLoading, currentResult, activeStreamedText, fetchDemo]);
 
   // ══════════════════════════════════════════════════════════════
   // AUTO-OPEN: If user has pending payment for current tab's
