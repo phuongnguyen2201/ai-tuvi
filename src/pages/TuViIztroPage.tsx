@@ -610,7 +610,9 @@ export default function TuViIztroPage() {
 
   // ── Render collapsible history panel ──
   const renderHistory = () => {
-    if (!user || chartHistory.length === 0) return null;
+    if (!user || isGuest) return null;
+    const showPinned = !!chart;
+    if (chartHistory.length === 0 && !showPinned) return null;
 
     return (
       <div className="rounded-2xl bg-slate-900/80 border border-amber-600/30 overflow-hidden">
@@ -631,6 +633,23 @@ export default function TuViIztroPage() {
 
         {showHistory && (
           <div className="px-4 pb-4 space-y-2 max-h-[50vh] overflow-y-auto">
+            {showPinned && (
+              <PinnedDemoEntry
+                isViewing={demoMode && !cachedAnalysis && !streamedText && !viewingHistoryId}
+                loading={demoLoading}
+                onClick={() => {
+                  setCachedAnalysis(null);
+                  setViewingHistoryId(null);
+                  setShowHistory(false);
+                  fetchDemo("luan_giai");
+                  setTimeout(() => {
+                    document
+                      .getElementById("analysis-result")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }, 50);
+                }}
+              />
+            )}
             {historyLoading ? (
               <div className="flex items-center justify-center py-4">
                 <Loader2 className="w-5 h-5 animate-spin text-amber-400" />
