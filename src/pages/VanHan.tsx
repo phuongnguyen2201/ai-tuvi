@@ -321,13 +321,14 @@ const VanHan = () => {
   // Re-fires when activeTab changes so each tab shows its own demo.
   useEffect(() => {
     if (!user || isGuest) return;
-    if (hasCredits || everPurchased) return;
+    if (hasCredits) return;
     if (demoMode || demoLoading) return;
     if (currentResult || activeStreamedText) return;
+    if (viewingHistoryId) return;
     if (!selectedChart) return;
     const feature = `van_han_${activeTab}` as DemoFeature;
     fetchDemo(feature);
-  }, [user, isGuest, activeTab, selectedChart, hasCredits, everPurchased, demoMode, demoLoading, currentResult, activeStreamedText, fetchDemo]);
+  }, [user, isGuest, activeTab, selectedChart, hasCredits, demoMode, demoLoading, currentResult, activeStreamedText, viewingHistoryId, fetchDemo]);
 
   // ══════════════════════════════════════════════════════════════
   // AUTO-OPEN: If user has pending payment for current tab's
