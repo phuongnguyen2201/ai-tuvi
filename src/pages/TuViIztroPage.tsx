@@ -525,12 +525,13 @@ export default function TuViIztroPage() {
   useEffect(() => {
     if (!user || isGuest) return;
     if (accessLoading) return;
-    if (hasAccess || everPurchased) return;
+    if (hasAccess) return; // has credits → no demo
     if (demoMode || demoLoading) return;
-    if (cachedAnalysis || streamedText) return;
+    if (cachedAnalysis || streamedText) return; // has saved/streaming result
+    if (viewingHistoryId) return; // viewing a past analysis
     if (!chart) return; // demo renders inside the chart result section
     fetchDemo("luan_giai");
-  }, [user, isGuest, accessLoading, hasAccess, everPurchased, demoMode, demoLoading, cachedAnalysis, streamedText, chart, fetchDemo]);
+  }, [user, isGuest, accessLoading, hasAccess, demoMode, demoLoading, cachedAnalysis, streamedText, viewingHistoryId, chart, fetchDemo]);
 
   // Exit demo when form is resubmitted (new chart)
   useEffect(() => {
@@ -563,6 +564,7 @@ export default function TuViIztroPage() {
     setIsLoading(true);
     setCachedAnalysis(null);
     setAnalysisError(false);
+    setViewingHistoryId(null);
 
     try {
       const input: BirthInput = {
@@ -696,7 +698,7 @@ export default function TuViIztroPage() {
     const displayText = cachedAnalysis || streamedText;
 
     // ── DEMO LOADING: skeleton while fetching the sample ──
-    if (demoLoading && !demoMode) {
+    if (demoLoading && !demoMode && !cachedAnalysis && !streamedText && !viewingHistoryId) {
       return (
         <div id="analysis-result" className="space-y-6">
           {chart && <ChartInterpretationDisplay chart={chart} />}
@@ -706,7 +708,7 @@ export default function TuViIztroPage() {
     }
 
     // ── DEMO MODE: show sample output for guests / 0-credit users ──
-    if (demoMode && demoData) {
+    if (demoMode && demoData && !cachedAnalysis && !streamedText && !viewingHistoryId) {
       return (
         <div id="analysis-result" className="space-y-6">
           <ChartInterpretationDisplay chart={chart!} />

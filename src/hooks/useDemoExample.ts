@@ -64,8 +64,26 @@ function formatDateVN(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
-export function buildDemoBannerText(data: DemoData): string {
-  return `Đây là ví dụ mẫu cho lá số của ${data.demo_person_name} (${formatDateVN(
-    data.demo_birth_date,
-  )}, giờ ${data.demo_birth_hour}, ${data.demo_gender}).`;
+export function buildDemoBannerText(data: DemoData, isGuest: boolean = false): string {
+  const fullName = data.demo_person_name;
+  const intro = `${fullName} (${formatDateVN(data.demo_birth_date)}, giờ ${data.demo_birth_hour}, ${data.demo_gender})`;
+  const cta = isGuest
+    ? "Đăng ký để xem cho lá số của bạn"
+    : "Mua credit để nhận luận giải cho lá số của bạn";
+
+  switch (data.feature) {
+    case "boi_kieu":
+      return `Đây là ví dụ mẫu luận giải quẻ Kiều của ${fullName} với câu hỏi: "Công việc của tôi sắp tới sẽ thế nào". ${cta}.`;
+    case "boi_que":
+      return `Đây là ví dụ mẫu luận giải quẻ Kinh Dịch của ${fullName} với câu hỏi: "Tình duyên của tôi năm nay ra sao?". ${cta}.`;
+    case "van_han_week":
+      return `Đây là ví dụ mẫu luận giải Vận hạn tuần cho lá số của ${intro}. ${cta}.`;
+    case "van_han_month":
+      return `Đây là ví dụ mẫu luận giải Vận hạn tháng cho lá số của ${intro}. ${cta}.`;
+    case "van_han_year":
+      return `Đây là ví dụ mẫu luận giải Vận hạn Năm cho lá số của ${intro}. ${cta}.`;
+    case "luan_giai":
+    default:
+      return `Đây là ví dụ mẫu cho lá số của ${intro}. ${cta}.`;
+  }
 }
