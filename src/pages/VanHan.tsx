@@ -29,6 +29,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useDemoExample, type DemoFeature } from "@/hooks/useDemoExample";
 import { DemoBanner } from "@/components/DemoBanner";
+import { PinnedDemoEntry } from "@/components/PinnedDemoEntry";
 import { DemoSkeleton } from "@/components/DemoSkeleton";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
@@ -313,11 +314,6 @@ const VanHan = () => {
     if (selectedChart) loadCredits();
   }, [activeTab, selectedChart]);
 
-  // Auto-exit demo when credits become available
-  useEffect(() => {
-    if (demoMode && hasCredits) exitDemo();
-  }, [demoMode, hasCredits, exitDemo]);
-
   // Auto-load demo for logged-in users with 0 credits (never purchased)
   // Re-fires when activeTab changes so each tab shows its own demo.
   useEffect(() => {
@@ -475,6 +471,7 @@ const VanHan = () => {
     setViewingHistoryId(item.id);
 
     setShowHistory(false);
+    if (demoMode) exitDemo();
 
     // Scroll to result
     setTimeout(() => {
@@ -769,7 +766,7 @@ const VanHan = () => {
   // ── CHANGE 4: Render AI result with streaming + freemium states ──
   const renderAiResult = () => {
     // ── DEMO LOADING: skeleton while fetching sample ──
-    if (demoLoading && !demoMode && !currentResult && !activeStreamedText && !viewingHistoryId) {
+    if (demoLoading && !demoMode) {
       return (
         <div id="van-han-result">
           <DemoSkeleton title="Đang tải vận hạn mẫu..." lines={8} />
@@ -778,7 +775,7 @@ const VanHan = () => {
     }
 
     // ── DEMO MODE: show sample AI output to guests / 0-credit users ──
-    if (demoMode && demoData && !currentResult && !activeStreamedText && !viewingHistoryId) {
+    if (demoMode && demoData) {
       return (
         <div id="van-han-result" className="space-y-4">
           <DemoBanner
@@ -818,24 +815,31 @@ const VanHan = () => {
               </Button>
             </div>
           </div>
-          <DemoBanner
-            data={demoData}
-            isGuest={isGuest}
-            onGuestCta={openUpgrade}
-            onBuyCta={() => {
-              if (isGuest) {
-                openUpgrade();
-                return;
-              }
-              if (!user) {
-                window.location.href =
-                  "/auth?redirect=" + encodeURIComponent(window.location.pathname);
-                return;
-              }
-              setShowPaymentModal(true);
-            }}
-            variant="bottom"
-          />
+          {!hasCredits && (
+            <DemoBanner
+              data={demoData}
+              isGuest={isGuest}
+              onGuestCta={openUpgrade}
+              onBuyCta={() => {
+                if (isGuest) {
+                  openUpgrade();
+                  return;
+                }
+                if (!user) {
+                  window.location.href =
+                    "/auth?redirect=" + encodeURIComponent(window.location.pathname);
+                  return;
+                }
+                setShowPaymentModal(true);
+              }}
+              variant="bottom"
+            />
+          )}
+          {hasCredits && (
+            <Button variant="ghost" size="sm" className="w-full" onClick={exitDemo}>
+              Đóng ví dụ mẫu
+            </Button>
+          )}
         </div>
       );
     }
@@ -1050,7 +1054,8 @@ const VanHan = () => {
   // ══════════════════════════════════════════════════════════════
   const renderHistoryPanel = () => {
     const filtered = analysisHistory.filter((a) => a.analysis_result && a.analysis_result.length > 50);
-    if (filtered.length === 0) return null;
+    const showPinned = !!user && !isGuest && !!selectedChart;
+    if (filtered.length === 0 && !showPinned) return null;
 
     const tabLabel = activeTab === "week" ? "tuần" : activeTab === "month" ? "tháng" : "năm";
 
@@ -1073,6 +1078,24 @@ const VanHan = () => {
 
         {showHistory && (
           <div className="px-4 pb-4 space-y-2 max-h-[40vh] overflow-y-auto">
+            {showPinned && (
+              <PinnedDemoEntry
+                isViewing={demoMode && !currentResult && !activeStreamedText && !viewingHistoryId}
+                loading={demoLoading}
+                onClick={() => {
+                  setCurrentResult(null);
+                  setViewingHistoryId(null);
+                  setShowHistory(false);
+                  const feature = `van_han_${activeTab}` as DemoFeature;
+                  fetchDemo(feature);
+                  setTimeout(() => {
+                    document
+                      .getElementById("van-han-result")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }, 50);
+                }}
+              />
+            )}
             {historyLoading ? (
               <div className="flex items-center justify-center py-4">
                 <Loader2 className="w-5 h-5 animate-spin text-primary" />

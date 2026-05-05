@@ -31,6 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import AuthPromptCard from "@/components/AuthPromptCard";
 import { useDemoExample } from "@/hooks/useDemoExample";
 import { DemoBanner } from "@/components/DemoBanner";
+import { PinnedDemoEntry } from "@/components/PinnedDemoEntry";
 import { DemoSkeleton } from "@/components/DemoSkeleton";
 
 // ── Helpers ──
@@ -345,6 +346,7 @@ export default function TuViIztroPage() {
 
     setViewingHistoryId(item.id);
     setShowHistory(false);
+    if (demoMode) exitDemo();
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -514,13 +516,6 @@ export default function TuViIztroPage() {
     setShowPayment(true);
   }, [hasAccess, credits, loadAnalysis, isGuest, everPurchased, fetchDemo]);
 
-  // Auto-exit demo when user buys credits
-  useEffect(() => {
-    if (demoMode && hasAccess && credits > 0) {
-      exitDemo();
-    }
-  }, [demoMode, hasAccess, credits, exitDemo]);
-
   // Auto-load demo for logged-in users with 0 credits (never purchased)
   useEffect(() => {
     if (!user || isGuest) return;
@@ -609,7 +604,9 @@ export default function TuViIztroPage() {
 
   // ── Render collapsible history panel ──
   const renderHistory = () => {
-    if (!user || chartHistory.length === 0) return null;
+    if (!user || isGuest) return null;
+    const showPinned = !!chart;
+    if (chartHistory.length === 0 && !showPinned) return null;
 
     return (
       <div className="rounded-2xl bg-slate-900/80 border border-amber-600/30 overflow-hidden">
@@ -630,6 +627,22 @@ export default function TuViIztroPage() {
 
         {showHistory && (
           <div className="px-4 pb-4 space-y-2 max-h-[50vh] overflow-y-auto">
+            {showPinned && (
+              <PinnedDemoEntry
+                isViewing={demoMode}
+                loading={demoLoading}
+                onClick={() => {
+                  setViewingHistoryId(null);
+                  setShowHistory(false);
+                  fetchDemo("luan_giai");
+                  setTimeout(() => {
+                    document
+                      .getElementById("analysis-result")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }, 50);
+                }}
+              />
+            )}
             {historyLoading ? (
               <div className="flex items-center justify-center py-4">
                 <Loader2 className="w-5 h-5 animate-spin text-amber-400" />
@@ -697,8 +710,8 @@ export default function TuViIztroPage() {
   const renderAnalysisSection = () => {
     const displayText = cachedAnalysis || streamedText;
 
-    // ── DEMO LOADING: skeleton while fetching the sample ──
-    if (demoLoading && !demoMode && !cachedAnalysis && !streamedText && !viewingHistoryId) {
+    // ── DEMO LOADING: skeleton while fetching the sample (priority over cached) ──
+    if (demoLoading && !demoMode) {
       return (
         <div id="analysis-result" className="space-y-6">
           {chart && <ChartInterpretationDisplay chart={chart} />}
@@ -707,8 +720,9 @@ export default function TuViIztroPage() {
       );
     }
 
-    // ── DEMO MODE: show sample output for guests / 0-credit users ──
-    if (demoMode && demoData && !cachedAnalysis && !streamedText && !viewingHistoryId) {
+    // ── DEMO MODE: show sample output. When user opens via pinned entry,
+    //    demo takes precedence over cached/streamed/history result. ──
+    if (demoMode && demoData) {
       return (
         <div id="analysis-result" className="space-y-6">
           <ChartInterpretationDisplay chart={chart!} />
@@ -737,13 +751,20 @@ export default function TuViIztroPage() {
               </Button>
             </div>
           </Card>
-          <DemoBanner
-            data={demoData}
-            isGuest={isGuest}
-            onGuestCta={openUpgrade}
-            onBuyCta={openPaymentOrUpgrade}
-            variant="bottom"
-          />
+          {!hasAccess && (
+            <DemoBanner
+              data={demoData}
+              isGuest={isGuest}
+              onGuestCta={openUpgrade}
+              onBuyCta={openPaymentOrUpgrade}
+              variant="bottom"
+            />
+          )}
+          {hasAccess && (
+            <Button variant="ghost" size="sm" className="w-full" onClick={exitDemo}>
+              Đóng ví dụ mẫu
+            </Button>
+          )}
         </div>
       );
     }

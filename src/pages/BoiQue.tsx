@@ -25,6 +25,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useDemoExample } from "@/hooks/useDemoExample";
 import { DemoBanner } from "@/components/DemoBanner";
+import { PinnedDemoEntry } from "@/components/PinnedDemoEntry";
 import { DemoSkeleton } from "@/components/DemoSkeleton";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
@@ -984,11 +985,6 @@ const BoiQue = () => {
     setShowPayment(true);
   };
 
-  // Auto-exit demo when credits arrive
-  useEffect(() => {
-    if (demoMode && hasCredits) exitDemo();
-  }, [demoMode, hasCredits, exitDemo]);
-
   // Auto-load demo for logged-in users with 0 credits (never purchased)
   useEffect(() => {
     if (!user || isGuest) return;
@@ -1112,7 +1108,7 @@ const BoiQue = () => {
           </p>
         </div>
 
-        {history.length > 0 && (
+        {user && !isGuest && (
           <div>
             <button
               onClick={() => setShowHistory(!showHistory)}
@@ -1126,6 +1122,18 @@ const BoiQue = () => {
             </button>
             {showHistory && (
               <div className="mt-2 space-y-2">
+                <PinnedDemoEntry
+                  isViewing={demoMode && !result && !aiResult && !viewingHistoryId}
+                  loading={demoLoading}
+                  onClick={() => {
+                    setResult(null);
+                    setAiResult("");
+                    setViewingHistoryId(null);
+                    setShowHistory(false);
+                    fetchDemo("boi_que");
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                />
                 {history.map((item) => {
                   const isViewing = viewingHistoryId === item.id;
                   return (
@@ -1141,6 +1149,7 @@ const BoiQue = () => {
                         setChangingLineIndexes([]);
                         setViewingHistoryId(item.id);
                         setShowHistory(false);
+                        if (demoMode) exitDemo();
                         window.scrollTo({ top: 0, behavior: "smooth" });
                       }}
                       className={cn(
@@ -1267,11 +1276,11 @@ const BoiQue = () => {
             </>
           )}
 
-          {demoLoading && !demoMode && !result && !aiResult && !viewingHistoryId && (
+          {demoLoading && !demoMode && (
             <DemoSkeleton title="Đang tải quẻ mẫu..." lines={6} />
           )}
 
-          {demoMode && demoData && !result && !aiResult && !viewingHistoryId && (
+          {demoMode && demoData && (
             <div className="space-y-4">
               <DemoBanner
                 data={demoData}
@@ -1295,13 +1304,15 @@ const BoiQue = () => {
                   </Button>
                 </div>
               </div>
-              <DemoBanner
-                data={demoData}
-                isGuest={isGuest}
-                onGuestCta={openUpgrade}
-                onBuyCta={openPaymentOrUpgrade}
-                variant="bottom"
-              />
+              {!hasCredits && (
+                <DemoBanner
+                  data={demoData}
+                  isGuest={isGuest}
+                  onGuestCta={openUpgrade}
+                  onBuyCta={openPaymentOrUpgrade}
+                  variant="bottom"
+                />
+              )}
               <Button variant="ghost" size="sm" className="w-full" onClick={exitDemo}>
                 ← Đóng ví dụ mẫu
               </Button>

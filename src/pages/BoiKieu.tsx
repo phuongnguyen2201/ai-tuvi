@@ -14,6 +14,7 @@ import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
 import { useDemoExample } from "@/hooks/useDemoExample";
 import { DemoBanner } from "@/components/DemoBanner";
 import { DemoSkeleton } from "@/components/DemoSkeleton";
+import { PinnedDemoEntry } from "@/components/PinnedDemoEntry";
 import AuthPromptCard from "@/components/AuthPromptCard";
 
 const fortuneStyles: Record<string, { bg: string; border: string; badge: string; badgeText: string }> = {
@@ -224,12 +225,8 @@ const BoiKieu = () => {
     setShowPayment(true);
   };
 
-  // Auto-exit demo when credits arrive
-  useEffect(() => {
-    if (demoMode && hasCredits) exitDemo();
-  }, [demoMode, hasCredits, exitDemo]);
-
-  // Auto-load demo for logged-in users with 0 credits (never purchased)
+  // Auto-load demo for logged-in users with 0 credits (never purchased).
+  // Users with credits can still open the demo manually via the pinned history entry.
   useEffect(() => {
     if (!user || isGuest) return;
     if (hasCredits) return;
@@ -479,7 +476,7 @@ const BoiKieu = () => {
 
   const mainContent = (
     <div className="space-y-5">
-      {history.length > 0 && (
+      {user && !isGuest && (
         <div>
           <button
             onClick={() => setShowHistory(!showHistory)}
@@ -493,6 +490,18 @@ const BoiKieu = () => {
           </button>
           {showHistory && (
             <div className="mt-2 space-y-2">
+              <PinnedDemoEntry
+                isViewing={demoMode && !verse && !result && !viewingHistoryId}
+                loading={demoLoading}
+                onClick={() => {
+                  setVerse(null);
+                  setResult(null);
+                  setViewingHistoryId(null);
+                  setShowHistory(false);
+                  fetchDemo("boi_kieu");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+              />
               {history.map((item) => {
                 const isViewing = viewingHistoryId === item.id;
                 return (
@@ -504,6 +513,7 @@ const BoiKieu = () => {
                       setResult(item.analysis_result);
                       setViewingHistoryId(item.id);
                       setShowHistory(false);
+                      if (demoMode) exitDemo();
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
                     className={cn(
@@ -641,9 +651,9 @@ const BoiKieu = () => {
         </div>
       )}
 
-      {demoLoading && !demoMode && !verse && !result && !viewingHistoryId ? (
+      {demoLoading && !demoMode ? (
         <DemoSkeleton title="Đang tải quẻ Kiều mẫu..." lines={6} />
-      ) : demoMode && demoData && !verse && !result && !viewingHistoryId ? (
+      ) : demoMode && demoData ? (
         <div className="space-y-4">
           <DemoBanner
             data={demoData}
@@ -667,13 +677,20 @@ const BoiKieu = () => {
               </Button>
             </div>
           </div>
-          <DemoBanner
-            data={demoData}
-            isGuest={isGuest}
-            onGuestCta={openUpgrade}
-            onBuyCta={openPaymentOrUpgrade}
-            variant="bottom"
-          />
+          {!hasCredits && (
+            <DemoBanner
+              data={demoData}
+              isGuest={isGuest}
+              onGuestCta={openUpgrade}
+              onBuyCta={openPaymentOrUpgrade}
+              variant="bottom"
+            />
+          )}
+          {hasCredits && (
+            <Button variant="ghost" size="sm" className="w-full" onClick={exitDemo}>
+              Đóng ví dụ mẫu
+            </Button>
+          )}
         </div>
       ) : (
         renderAiResult()
