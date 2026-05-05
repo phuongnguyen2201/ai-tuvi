@@ -1108,7 +1108,7 @@ const BoiQue = () => {
           </p>
         </div>
 
-        {history.length > 0 && (
+        {user && !isGuest && (
           <div>
             <button
               onClick={() => setShowHistory(!showHistory)}
@@ -1122,6 +1122,18 @@ const BoiQue = () => {
             </button>
             {showHistory && (
               <div className="mt-2 space-y-2">
+                <PinnedDemoEntry
+                  isViewing={demoMode && !result && !aiResult && !viewingHistoryId}
+                  loading={demoLoading}
+                  onClick={() => {
+                    setResult(null);
+                    setAiResult("");
+                    setViewingHistoryId(null);
+                    setShowHistory(false);
+                    fetchDemo("boi_que");
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                />
                 {history.map((item) => {
                   const isViewing = viewingHistoryId === item.id;
                   return (
@@ -1137,6 +1149,7 @@ const BoiQue = () => {
                         setChangingLineIndexes([]);
                         setViewingHistoryId(item.id);
                         setShowHistory(false);
+                        if (demoMode) exitDemo();
                         window.scrollTo({ top: 0, behavior: "smooth" });
                       }}
                       className={cn(
