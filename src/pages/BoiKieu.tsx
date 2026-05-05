@@ -14,6 +14,7 @@ import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
 import { useDemoExample } from "@/hooks/useDemoExample";
 import { DemoBanner } from "@/components/DemoBanner";
 import { DemoSkeleton } from "@/components/DemoSkeleton";
+import { PinnedDemoEntry } from "@/components/PinnedDemoEntry";
 import AuthPromptCard from "@/components/AuthPromptCard";
 
 const fortuneStyles: Record<string, { bg: string; border: string; badge: string; badgeText: string }> = {
@@ -224,12 +225,8 @@ const BoiKieu = () => {
     setShowPayment(true);
   };
 
-  // Auto-exit demo when credits arrive
-  useEffect(() => {
-    if (demoMode && hasCredits) exitDemo();
-  }, [demoMode, hasCredits, exitDemo]);
-
-  // Auto-load demo for logged-in users with 0 credits (never purchased)
+  // Auto-load demo for logged-in users with 0 credits (never purchased).
+  // Users with credits can still open the demo manually via the pinned history entry.
   useEffect(() => {
     if (!user || isGuest) return;
     if (hasCredits) return;
