@@ -317,6 +317,18 @@ const VanHan = () => {
     if (demoMode && hasCredits) exitDemo();
   }, [demoMode, hasCredits, exitDemo]);
 
+  // Auto-load demo for logged-in users with 0 credits (never purchased)
+  // Re-fires when activeTab changes so each tab shows its own demo.
+  useEffect(() => {
+    if (!user || isGuest) return;
+    if (hasCredits || everPurchased) return;
+    if (demoMode || demoLoading) return;
+    if (currentResult || activeStreamedText) return;
+    if (!selectedChart) return;
+    const feature = `van_han_${activeTab}` as DemoFeature;
+    fetchDemo(feature);
+  }, [user, isGuest, activeTab, selectedChart, hasCredits, everPurchased, demoMode, demoLoading, currentResult, activeStreamedText, fetchDemo]);
+
   // ══════════════════════════════════════════════════════════════
   // AUTO-OPEN: If user has pending payment for current tab's
   // feature → auto-open standalone payment modal (QR immediately)
