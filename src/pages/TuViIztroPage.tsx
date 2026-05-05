@@ -629,10 +629,9 @@ export default function TuViIztroPage() {
           <div className="px-4 pb-4 space-y-2 max-h-[50vh] overflow-y-auto">
             {showPinned && (
               <PinnedDemoEntry
-                isViewing={demoMode && !cachedAnalysis && !streamedText && !viewingHistoryId}
+                isViewing={demoMode}
                 loading={demoLoading}
                 onClick={() => {
-                  setCachedAnalysis(null);
                   setViewingHistoryId(null);
                   setShowHistory(false);
                   fetchDemo("luan_giai");
