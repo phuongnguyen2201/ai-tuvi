@@ -32,6 +32,7 @@ import { DemoBanner } from "@/components/DemoBanner";
 import { DemoSkeleton } from "@/components/DemoSkeleton";
 import VietQRPaymentModal from "@/components/VietQRPaymentModal";
 import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
+import AuthPromptCard from "@/components/AuthPromptCard";
 import { getISOWeek, startOfISOWeek, endOfISOWeek, addWeeks } from "date-fns";
 
 // ── Types ──
