@@ -471,6 +471,7 @@ const VanHan = () => {
     setViewingHistoryId(item.id);
 
     setShowHistory(false);
+    if (demoMode) exitDemo();
 
     // Scroll to result
     setTimeout(() => {
