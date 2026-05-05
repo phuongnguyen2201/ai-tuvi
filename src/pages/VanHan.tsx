@@ -1354,6 +1354,11 @@ const VanHan = () => {
           }}
         />
 
+        {/* Demo result when there is no selected chart yet */}
+        {!selectedChart && (demoMode || demoLoading) && (
+          <div className="space-y-4">{renderAiResult()}</div>
+        )}
+
         {/* Content - only if chart selected */}
         {selectedChart && (
           <>
