@@ -476,7 +476,7 @@ const BoiKieu = () => {
 
   const mainContent = (
     <div className="space-y-5">
-      {history.length > 0 && (
+      {user && !isGuest && (
         <div>
           <button
             onClick={() => setShowHistory(!showHistory)}
@@ -490,6 +490,18 @@ const BoiKieu = () => {
           </button>
           {showHistory && (
             <div className="mt-2 space-y-2">
+              <PinnedDemoEntry
+                isViewing={demoMode && !verse && !result && !viewingHistoryId}
+                loading={demoLoading}
+                onClick={() => {
+                  setVerse(null);
+                  setResult(null);
+                  setViewingHistoryId(null);
+                  setShowHistory(false);
+                  fetchDemo("boi_kieu");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+              />
               {history.map((item) => {
                 const isViewing = viewingHistoryId === item.id;
                 return (
@@ -501,6 +513,7 @@ const BoiKieu = () => {
                       setResult(item.analysis_result);
                       setViewingHistoryId(item.id);
                       setShowHistory(false);
+                      if (demoMode) exitDemo();
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
                     className={cn(
