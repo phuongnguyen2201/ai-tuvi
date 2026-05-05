@@ -1280,6 +1280,7 @@ const BoiQue = () => {
             </>
           )}
 
+          <div id="boique-demo-anchor" />
           {demoLoading && !demoMode && (
             <DemoSkeleton title="Đang tải quẻ mẫu..." lines={6} />
           )}
