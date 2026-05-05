@@ -14,6 +14,7 @@ import { AnalysisDisclaimer } from "@/components/AnalysisDisclaimer";
 import { useDemoExample } from "@/hooks/useDemoExample";
 import { DemoBanner } from "@/components/DemoBanner";
 import { DemoSkeleton } from "@/components/DemoSkeleton";
+import AuthPromptCard from "@/components/AuthPromptCard";
 
 const fortuneStyles: Record<string, { bg: string; border: string; badge: string; badgeText: string }> = {
   excellent: {
@@ -583,14 +584,23 @@ const BoiKieu = () => {
       )}
 
       <div>
+        {(!user || isGuest) ? (
+          <AuthPromptCard
+            variant="banner"
+            title="Đăng ký để xem ví dụ mẫu"
+            description="Đăng ký tài khoản miễn phí để xem ví dụ luận giải Bói Kiều"
+          />
+        ) : (
         <textarea
           placeholder="Nhập câu hỏi của bạn... (VD: Công việc của tôi sắp tới sẽ thế nào?)"
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           className="w-full rounded-xl border border-border bg-surface-3 p-4 text-sm resize-none h-24 focus:outline-none focus:border-primary/50 text-foreground placeholder:text-muted-foreground"
         />
+        )}
       </div>
 
+      {user && !isGuest && (
       <div className="flex flex-col items-center gap-3 py-4">
         <button
           onClick={handleGieoQue}
@@ -620,6 +630,7 @@ const BoiKieu = () => {
         </button>
         <p className="text-xs text-muted-foreground">{usesLabel}</p>
       </div>
+      )}
 
       {verse && style && (
         <div className={cn("rounded-2xl p-6 animate-scale-in", "bg-gradient-to-br", style.bg, "border", style.border)}>
