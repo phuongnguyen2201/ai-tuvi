@@ -655,6 +655,7 @@ const BoiKieu = () => {
         </div>
       )}
 
+      <div id="boikieu-demo-anchor" />
       {demoLoading && !demoMode ? (
         <DemoSkeleton title="Đang tải quẻ Kiều mẫu..." lines={6} />
       ) : demoMode && demoData ? (
