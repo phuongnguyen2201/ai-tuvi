@@ -985,11 +985,6 @@ const BoiQue = () => {
     setShowPayment(true);
   };
 
-  // Auto-exit demo when credits arrive
-  useEffect(() => {
-    if (demoMode && hasCredits) exitDemo();
-  }, [demoMode, hasCredits, exitDemo]);
-
   // Auto-load demo for logged-in users with 0 credits (never purchased)
   useEffect(() => {
     if (!user || isGuest) return;
