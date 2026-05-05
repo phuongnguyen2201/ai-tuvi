@@ -1125,13 +1125,17 @@ const BoiQue = () => {
                 <PinnedDemoEntry
                   isViewing={demoMode && !result && !aiResult && !viewingHistoryId}
                   loading={demoLoading}
-                  onClick={() => {
+                  onClick={async () => {
                     setResult(null);
                     setAiResult("");
                     setViewingHistoryId(null);
                     setShowHistory(false);
-                    fetchDemo("boi_que");
-                    window.scrollTo({ top: 0, behavior: "smooth" });
+                    await fetchDemo("boi_que");
+                    setTimeout(() => {
+                      document
+                        .getElementById("boique-demo-anchor")
+                        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }, 50);
                   }}
                 />
                 {history.map((item) => {
