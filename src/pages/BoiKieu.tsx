@@ -651,9 +651,9 @@ const BoiKieu = () => {
         </div>
       )}
 
-      {demoLoading && !demoMode && !verse && !result && !viewingHistoryId ? (
+      {demoLoading && !demoMode ? (
         <DemoSkeleton title="Đang tải quẻ Kiều mẫu..." lines={6} />
-      ) : demoMode && demoData && !verse && !result && !viewingHistoryId ? (
+      ) : demoMode && demoData ? (
         <div className="space-y-4">
           <DemoBanner
             data={demoData}
