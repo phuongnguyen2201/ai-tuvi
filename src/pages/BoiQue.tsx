@@ -1276,11 +1276,11 @@ const BoiQue = () => {
             </>
           )}
 
-          {demoLoading && !demoMode && !result && !aiResult && !viewingHistoryId && (
+          {demoLoading && !demoMode && (
             <DemoSkeleton title="Đang tải quẻ mẫu..." lines={6} />
           )}
 
-          {demoMode && demoData && !result && !aiResult && !viewingHistoryId && (
+          {demoMode && demoData && (
             <div className="space-y-4">
               <DemoBanner
                 data={demoData}
